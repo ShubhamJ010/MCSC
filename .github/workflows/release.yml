@@ -13,20 +13,16 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build App
-        run: xcodebuild -scheme MCSC -configuration Release -archivePath MCSC.xcarchive archive
+        run: xcodebuild -scheme MCSC -configuration Release build
 
-      - name: Export App
+      - name: Zip App
         run: |
-          xcodebuild -exportArchive -archivePath MCSC.xcarchive -exportPath . -exportOptionsPlist .github/workflows/ExportOptions.plist
-          # The above assumes an ExportOptions.plist exists. 
-          # Alternatively, for simple unsigned builds, we can just zip the build product directly.
-          # Let's zip the result of the archive.
-          cd MCSC.xcarchive/Products/Applications
+          cd build/Release
           zip -r MCSC.zip MCSC.app
 
       - name: Upload Release
         uses: softprops/action-gh-release@v2
         with:
-          files: MCSC.xcarchive/Products/Applications/MCSC.zip
+          files: build/Release/MCSC.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
