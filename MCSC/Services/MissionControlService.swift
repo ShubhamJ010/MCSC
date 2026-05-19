@@ -3,7 +3,10 @@ import Foundation
 import CoreGraphics
 
 class MissionControlService {
-    private var isMissionControlActive = false
+    private var _isMissionControlActive = false
+    var isMissionControlActive: Bool {
+        return checkMissionControlActive()
+    }
     var isSimulating = false
     
     // Maintain notification observers for cleanup
@@ -26,8 +29,8 @@ class MissionControlService {
         
         for event in events {
             let observer = center.addObserver(forName: NSNotification.Name(event), object: nil, queue: .main) { [weak self] _ in
-                if event.contains("start") { self?.isMissionControlActive = true }
-                if event.contains("stop") { self?.isMissionControlActive = false }
+                if event.contains("start") { self?._isMissionControlActive = true }
+                if event.contains("stop") { self?._isMissionControlActive = false }
             }
             observers.append(observer)
         }
@@ -42,7 +45,7 @@ class MissionControlService {
     }
     
     func checkMissionControlActive() -> Bool {
-        if isMissionControlActive { return true }
+        if _isMissionControlActive { return true }
         
         // Fallback check via window list
         guard let windowList = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] else {

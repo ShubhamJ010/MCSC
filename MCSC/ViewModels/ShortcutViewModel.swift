@@ -63,8 +63,10 @@ class ShortcutViewModel {
                 }
                 
                 if keyCode == self.kKeyW && self.isCmdWEnabled {
-                    self.closeAction.perform(at: location, service: self.accessibilityService)
-                    return true
+                    if self.missionControlService.isMissionControlActive {
+                        self.closeAction.perform(at: location, service: self.accessibilityService)
+                        return true
+                    }
                 } else if keyCode == self.kKeyQ && self.isCmdQEnabled {
                     self.forceQuitAction.perform(at: location, service: self.accessibilityService)
                     return true
