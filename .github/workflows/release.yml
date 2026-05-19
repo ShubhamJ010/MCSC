@@ -17,12 +17,16 @@ jobs:
 
       - name: Zip App
         run: |
-          cd build/Release
-          zip -r MCSC.zip MCSC.app
+          APP_PATH=$(find . -name "MCSC.app" -type d | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            echo "MCSC.app not found!"
+            exit 1
+          fi
+          zip -r MCSC.zip "$APP_PATH"
 
       - name: Upload Release
         uses: softprops/action-gh-release@v2
         with:
-          files: build/Release/MCSC.zip
+          files: MCSC.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
