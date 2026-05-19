@@ -1,23 +1,21 @@
 name: Build and Release
 
 on:
-  push:
-    tags:
-      - 'v*'
+  release:
+    types: [created]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: macos-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Build App
         run: xcodebuild -scheme MCSC -configuration Release -derivedDataPath build build
-
-      - name: Debug Workspace Contents
-        run: find build -name "MCSC.app" -type d
 
       - name: Zip App
         run: |
@@ -28,10 +26,9 @@ jobs:
           fi
           zip -r MCSC.zip "$APP_PATH"
 
-      - name: Upload Release
+      - name: Upload Release Artifact
         uses: softprops/action-gh-release@v2
         with:
           files: MCSC.zip
-          tag_name: ${{ github.ref_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
