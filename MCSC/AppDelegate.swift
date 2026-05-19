@@ -12,8 +12,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         let eventTap = EventTapService()
         let accessibility = AccessibilityService()
+        let missionControl = MissionControlService()
         
-        viewModel = ShortcutViewModel(eventTapService: eventTap, accessibilityService: accessibility)
+        viewModel = ShortcutViewModel(eventTapService: eventTap, accessibilityService: accessibility, missionControlService: missionControl)
         
         // Request accessibility permissions if needed
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
@@ -62,6 +63,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         cmdFItem.state = .on
         menu.addItem(cmdFItem)
         
+        let cmdSpaceItem = NSMenuItem(title: "Toggle Cmd + Space Fix", action: #selector(toggleCmdSpace), keyEquivalent: " ")
+        cmdSpaceItem.state = .on
+        menu.addItem(cmdSpaceItem)
+        
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit MCSC", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "Q"))
         
@@ -96,6 +101,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let viewModel = viewModel else { return }
         viewModel.isCmdFEnabled.toggle()
         sender.state = viewModel.isCmdFEnabled ? .on : .off
+    }
+    
+    @objc private func toggleCmdSpace(_ sender: NSMenuItem) {
+        guard let viewModel = viewModel else { return }
+        viewModel.isCmdSpaceEnabled.toggle()
+        sender.state = viewModel.isCmdSpaceEnabled ? .on : .off
     }
     
     func applicationWillTerminate(_ notification: Notification) {

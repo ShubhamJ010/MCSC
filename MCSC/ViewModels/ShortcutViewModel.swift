@@ -3,6 +3,7 @@ import Cocoa
 class ShortcutViewModel {
     private let eventTapService: EventTapService
     private let accessibilityService: AccessibilityServiceProtocol
+    private let missionControlService: MissionControlService
     
     private let closeAction = CloseWindowAction()
     private let minimizeAction = MinimizeWindowAction()
@@ -16,16 +17,19 @@ class ShortcutViewModel {
     private let kKeyM: Int64 = 46
     private let kKeyH: Int64 = 4
     private let kKeyF: Int64 = 3
+    private let kKeySpace: Int64 = 49
     
     var isCmdWEnabled = true
     var isCmdQEnabled = true
     var isCmdMEnabled = true
     var isCmdHEnabled = true
     var isCmdFEnabled = true
+    var isCmdSpaceEnabled = true
     
-    init(eventTapService: EventTapService, accessibilityService: AccessibilityServiceProtocol) {
+    init(eventTapService: EventTapService, accessibilityService: AccessibilityServiceProtocol, missionControlService: MissionControlService) {
         self.eventTapService = eventTapService
         self.accessibilityService = accessibilityService
+        self.missionControlService = missionControlService
         
         setupCallbacks()
     }
@@ -38,6 +42,13 @@ class ShortcutViewModel {
             let isCmdPressed = flags.contains(.maskCommand)
             
             if isCmdPressed {
+                if keyCode == self.kKeySpace && self.isCmdSpaceEnabled && !self.missionControlService.isSimulating {
+                    if self.missionControlService.checkMissionControlActive() {
+                        self.missionControlService.executeFixSequence()
+                        return true
+                    }
+                }
+                
                 if keyCode == self.kKeyW && self.isCmdWEnabled {
                     self.closeAction.perform(at: location, service: self.accessibilityService)
                     return true
@@ -66,5 +77,6 @@ class ShortcutViewModel {
     
     func stop() {
         eventTapService.stop()
+        missionControlService.stop()
     }
 }
