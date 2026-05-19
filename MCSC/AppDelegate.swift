@@ -83,40 +83,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem?.menu = menu
     }
     
-    @objc private func toggleCmdW(_ sender: NSMenuItem) {
+    @objc private func toggleCmdW(_ sender: NSMenuItem) { handleToggle(sender, key: .cmdW) }
+    @objc private func toggleCmdQ(_ sender: NSMenuItem) { handleToggle(sender, key: .cmdQ) }
+    @objc private func toggleCmdM(_ sender: NSMenuItem) { handleToggle(sender, key: .cmdM) }
+    @objc private func toggleCmdH(_ sender: NSMenuItem) { handleToggle(sender, key: .cmdH) }
+    @objc private func toggleCmdF(_ sender: NSMenuItem) { handleToggle(sender, key: .cmdF) }
+    @objc private func toggleCmdSpace(_ sender: NSMenuItem) { handleToggle(sender, key: .cmdSpace) }
+
+    private enum ShortcutKey { case cmdW, cmdQ, cmdM, cmdH, cmdF, cmdSpace }
+
+    private func handleToggle(_ sender: NSMenuItem, key: ShortcutKey) {
         guard let viewModel = viewModel else { return }
-        viewModel.isCmdWEnabled.toggle()
-        sender.state = viewModel.isCmdWEnabled ? .on : .off
-    }
-    
-    @objc private func toggleCmdQ(_ sender: NSMenuItem) {
-        guard let viewModel = viewModel else { return }
-        viewModel.isCmdQEnabled.toggle()
-        sender.state = viewModel.isCmdQEnabled ? .on : .off
-    }
-    
-    @objc private func toggleCmdM(_ sender: NSMenuItem) {
-        guard let viewModel = viewModel else { return }
-        viewModel.isCmdMEnabled.toggle()
-        sender.state = viewModel.isCmdMEnabled ? .on : .off
-    }
-    
-    @objc private func toggleCmdH(_ sender: NSMenuItem) {
-        guard let viewModel = viewModel else { return }
-        viewModel.isCmdHEnabled.toggle()
-        sender.state = viewModel.isCmdHEnabled ? .on : .off
-    }
-    
-    @objc private func toggleCmdF(_ sender: NSMenuItem) {
-        guard let viewModel = viewModel else { return }
-        viewModel.isCmdFEnabled.toggle()
-        sender.state = viewModel.isCmdFEnabled ? .on : .off
-    }
-    
-    @objc private func toggleCmdSpace(_ sender: NSMenuItem) {
-        guard let viewModel = viewModel else { return }
-        viewModel.isCmdSpaceEnabled.toggle()
-        sender.state = viewModel.isCmdSpaceEnabled ? .on : .off
+        switch key {
+        case .cmdW: viewModel.isCmdWEnabled.toggle(); sender.state = viewModel.isCmdWEnabled ? .on : .off
+        case .cmdQ: viewModel.isCmdQEnabled.toggle(); sender.state = viewModel.isCmdQEnabled ? .on : .off
+        case .cmdM: viewModel.isCmdMEnabled.toggle(); sender.state = viewModel.isCmdMEnabled ? .on : .off
+        case .cmdH: viewModel.isCmdHEnabled.toggle(); sender.state = viewModel.isCmdHEnabled ? .on : .off
+        case .cmdF: viewModel.isCmdFEnabled.toggle(); sender.state = viewModel.isCmdFEnabled ? .on : .off
+        case .cmdSpace: viewModel.isCmdSpaceEnabled.toggle(); sender.state = viewModel.isCmdSpaceEnabled ? .on : .off
+        }
     }
     
     @objc private func toggleLaunchAtLogin(_ sender: NSMenuItem) {
