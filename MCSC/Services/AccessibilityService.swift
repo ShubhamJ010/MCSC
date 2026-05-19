@@ -9,10 +9,9 @@ protocol AccessibilityServiceProtocol {
 }
 
 class AccessibilityService: AccessibilityServiceProtocol {
+    private let systemWide = AXUIElementCreateSystemWide()
     
     func getElement(at point: CGPoint) -> AXUIElement? {
-        let systemWide = AXUIElementCreateSystemWide()
-        
         var element: AXUIElement?
         let result = AXUIElementCopyElementAtPosition(systemWide, Float(point.x), Float(point.y), &element)
         

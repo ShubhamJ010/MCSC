@@ -29,7 +29,7 @@ class EventTapService {
                     }
                 }
                 
-                return Unmanaged.passRetained(event)
+                return Unmanaged.passUnretained(event)
             },
             userInfo: Unmanaged.passUnretained(self).toOpaque()
         ) else {
@@ -44,11 +44,12 @@ class EventTapService {
     }
     
     func stop() {
+        if let runLoopSource = runLoopSource {
+            CFRunLoopSourceInvalidate(runLoopSource)
+            CFRunLoopRemoveSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
+        }
         if let eventTap = eventTap {
             CGEvent.tapEnable(tap: eventTap, enable: false)
-        }
-        if let runLoopSource = runLoopSource {
-            CFRunLoopRemoveSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
         }
         eventTap = nil
         runLoopSource = nil

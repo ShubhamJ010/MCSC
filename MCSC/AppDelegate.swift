@@ -1,15 +1,4 @@
-import SwiftUI
-
-@main
-struct MCSCApp: App {
-    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    
-    var body: some Scene {
-        Settings {
-            EmptyView()
-        }
-    }
-}
+import Cocoa
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var viewModel: ShortcutViewModel?
@@ -39,5 +28,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         }
+    }
+    
+    func applicationWillTerminate(_ notification: Notification) {
+        viewModel?.stop()
     }
 }
