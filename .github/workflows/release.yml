@@ -16,8 +16,8 @@ jobs:
       - name: Build App
         run: xcodebuild -scheme MCSC -configuration Release build
 
-      - name: Debug Build Directory
-        run: find . -name "*.app"
+      - name: Debug Workspace Contents
+        run: find . -maxdepth 4 -not -path '*/.*'
 
       - name: Zip App
         run: |
