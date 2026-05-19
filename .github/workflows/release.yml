@@ -32,5 +32,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: MCSC.zip
+          tag_name: ${{ github.ref_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
