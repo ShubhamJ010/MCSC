@@ -11,6 +11,9 @@ class ShortcutViewModel {
     private let kKeyW: Int64 = 13
     private let kKeyQ: Int64 = 12
     
+    var isCmdWEnabled = true
+    var isCmdQEnabled = true
+    
     init(eventTapService: EventTapService, accessibilityService: AccessibilityServiceProtocol) {
         self.eventTapService = eventTapService
         self.accessibilityService = accessibilityService
@@ -26,10 +29,10 @@ class ShortcutViewModel {
             let isCmdPressed = flags.contains(.maskCommand)
             
             if isCmdPressed {
-                if keyCode == self.kKeyW {
+                if keyCode == self.kKeyW && self.isCmdWEnabled {
                     self.closeAction.perform(at: location, service: self.accessibilityService)
                     return true // Consume event
-                } else if keyCode == self.kKeyQ {
+                } else if keyCode == self.kKeyQ && self.isCmdQEnabled {
                     self.forceQuitAction.perform(at: location, service: self.accessibilityService)
                     return true // Consume event
                 }
