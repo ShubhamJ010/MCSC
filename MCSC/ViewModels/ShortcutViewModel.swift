@@ -4,6 +4,7 @@ class ShortcutViewModel {
     private let eventTapService: EventTapService
     private let accessibilityService: AccessibilityServiceProtocol
     private let missionControlService: MissionControlService
+    private let launchAtLoginService: LaunchAtLoginService
     
     private let closeAction = CloseWindowAction()
     private let minimizeAction = MinimizeWindowAction()
@@ -26,12 +27,24 @@ class ShortcutViewModel {
     var isCmdFEnabled = true
     var isCmdSpaceEnabled = true
     
-    init(eventTapService: EventTapService, accessibilityService: AccessibilityServiceProtocol, missionControlService: MissionControlService) {
+    var isLaunchAtLoginEnabled: Bool {
+        return launchAtLoginService.isEnabled
+    }
+    
+    init(eventTapService: EventTapService, 
+         accessibilityService: AccessibilityServiceProtocol, 
+         missionControlService: MissionControlService,
+         launchAtLoginService: LaunchAtLoginService) {
         self.eventTapService = eventTapService
         self.accessibilityService = accessibilityService
         self.missionControlService = missionControlService
+        self.launchAtLoginService = launchAtLoginService
         
         setupCallbacks()
+    }
+    
+    func toggleLaunchAtLogin() {
+        launchAtLoginService.toggle()
     }
     
     private func setupCallbacks() {

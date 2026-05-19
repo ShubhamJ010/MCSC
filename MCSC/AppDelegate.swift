@@ -13,8 +13,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let eventTap = EventTapService()
         let accessibility = AccessibilityService()
         let missionControl = MissionControlService()
+        let launchAtLogin = LaunchAtLoginService()
         
-        viewModel = ShortcutViewModel(eventTapService: eventTap, accessibilityService: accessibility, missionControlService: missionControl)
+        viewModel = ShortcutViewModel(eventTapService: eventTap, 
+                                      accessibilityService: accessibility, 
+                                      missionControlService: missionControl,
+                                      launchAtLoginService: launchAtLogin)
         
         // Request accessibility permissions if needed
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
@@ -68,6 +72,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(cmdSpaceItem)
         
         menu.addItem(NSMenuItem.separator())
+        
+        let launchAtLoginItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "l")
+        launchAtLoginItem.state = (viewModel?.isLaunchAtLoginEnabled ?? false) ? .on : .off
+        menu.addItem(launchAtLoginItem)
+        
+        menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit MCSC", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "Q"))
         
         statusItem?.menu = menu
@@ -107,6 +117,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let viewModel = viewModel else { return }
         viewModel.isCmdSpaceEnabled.toggle()
         sender.state = viewModel.isCmdSpaceEnabled ? .on : .off
+    }
+    
+    @objc private func toggleLaunchAtLogin(_ sender: NSMenuItem) {
+        guard let viewModel = viewModel else { return }
+        viewModel.toggleLaunchAtLogin()
+        sender.state = viewModel.isLaunchAtLoginEnabled ? .on : .off
     }
     
     func applicationWillTerminate(_ notification: Notification) {
