@@ -15,6 +15,9 @@ jobs:
       - name: Build App
         run: xcodebuild -scheme MCSC -configuration Release build
 
+      - name: Debug Build Directory
+        run: find . -name "*.app"
+
       - name: Zip App
         run: |
           APP_PATH=$(find . -name "MCSC.app" -type d | head -n 1)
