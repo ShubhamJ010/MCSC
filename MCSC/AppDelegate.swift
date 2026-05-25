@@ -66,10 +66,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         cmdHItem.state = .on
         menu.addItem(cmdHItem)
         
-        let cmdFItem = NSMenuItem(title: "Cmd + F", action: #selector(toggleCmdF), keyEquivalent: "f")
-        cmdFItem.state = .on
-        menu.addItem(cmdFItem)
-        
         let cmdSpaceItem = NSMenuItem(title: "Cmd + Space Fix", action: #selector(toggleCmdSpace), keyEquivalent: " ")
         cmdSpaceItem.state = .on
         menu.addItem(cmdSpaceItem)
@@ -90,10 +86,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func toggleCmdQ(_ sender: NSMenuItem) { handleToggle(sender, key: .cmdQ) }
     @objc private func toggleCmdM(_ sender: NSMenuItem) { handleToggle(sender, key: .cmdM) }
     @objc private func toggleCmdH(_ sender: NSMenuItem) { handleToggle(sender, key: .cmdH) }
-    @objc private func toggleCmdF(_ sender: NSMenuItem) { handleToggle(sender, key: .cmdF) }
     @objc private func toggleCmdSpace(_ sender: NSMenuItem) { handleToggle(sender, key: .cmdSpace) }
 
-    private enum ShortcutKey { case cmdW, cmdQ, cmdM, cmdH, cmdF, cmdSpace }
+    private enum ShortcutKey { case cmdW, cmdQ, cmdM, cmdH, cmdSpace }
 
     private func handleToggle(_ sender: NSMenuItem, key: ShortcutKey) {
         guard let viewModel = viewModel else { return }
@@ -102,7 +97,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         case .cmdQ: viewModel.isCmdQEnabled.toggle(); sender.state = viewModel.isCmdQEnabled ? .on : .off
         case .cmdM: viewModel.isCmdMEnabled.toggle(); sender.state = viewModel.isCmdMEnabled ? .on : .off
         case .cmdH: viewModel.isCmdHEnabled.toggle(); sender.state = viewModel.isCmdHEnabled ? .on : .off
-        case .cmdF: viewModel.isCmdFEnabled.toggle(); sender.state = viewModel.isCmdFEnabled ? .on : .off
         case .cmdSpace: viewModel.isCmdSpaceEnabled.toggle(); sender.state = viewModel.isCmdSpaceEnabled ? .on : .off
         }
     }

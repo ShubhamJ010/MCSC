@@ -14,7 +14,6 @@ MCSC is a lightweight, high-performance macOS background utility designed to enh
     - `Cmd + Q`: Quit active application
     - `Cmd + M`: Minimize active window
     - `Cmd + H`: Hide active application
-    - `Cmd + F`: Maximize/Fullscreen active window
     - `Cmd + Space`: Mission Control UI fix
 
 
