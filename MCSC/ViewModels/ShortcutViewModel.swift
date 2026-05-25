@@ -71,14 +71,20 @@ class ShortcutViewModel {
                         return true
                     }
                 } else if keyCode == self.kKeyQ && self.isCmdQEnabled {
-                    self.forceQuitAction.perform(at: location, service: self.accessibilityService)
-                    return true
+                    if self.missionControlService.isMissionControlActive {
+                        self.forceQuitAction.perform(at: location, service: self.accessibilityService)
+                        return true
+                    }
                 } else if keyCode == self.kKeyM && self.isCmdMEnabled {
-                    self.minimizeAction.perform(at: location, service: self.accessibilityService)
-                    return true
+                    if self.missionControlService.isMissionControlActive {
+                        self.minimizeAction.perform(at: location, service: self.accessibilityService)
+                        return true
+                    }
                 } else if keyCode == self.kKeyH && self.isCmdHEnabled {
-                    self.hideAction.perform(at: location, service: self.accessibilityService)
-                    return true
+                    if self.missionControlService.isMissionControlActive {
+                        self.hideAction.perform(at: location, service: self.accessibilityService)
+                        return true
+                    }
                 }
             }
             
