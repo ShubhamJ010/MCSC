@@ -20,6 +20,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                                       missionControlService: missionControl,
                                       launchAtLoginService: launchAtLogin)
         
+        // Refresh status bar menu now that view model is ready
+        setupStatusBar()
+        
         // Request accessibility permissions if needed
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
         let isTrusted = AXIsProcessTrustedWithOptions(options as CFDictionary)
@@ -47,27 +50,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         let menu = NSMenu()
         
-        let cmdWItem = NSMenuItem(title: "Toggle Cmd + W", action: #selector(toggleCmdW), keyEquivalent: "w")
+        let cmdWItem = NSMenuItem(title: "Cmd + W", action: #selector(toggleCmdW), keyEquivalent: "w")
         cmdWItem.state = .on
         menu.addItem(cmdWItem)
         
-        let cmdQItem = NSMenuItem(title: "Toggle Cmd + Q", action: #selector(toggleCmdQ), keyEquivalent: "q")
+        let cmdQItem = NSMenuItem(title: "Cmd + Q", action: #selector(toggleCmdQ), keyEquivalent: "q")
         cmdQItem.state = .on
         menu.addItem(cmdQItem)
         
-        let cmdMItem = NSMenuItem(title: "Toggle Cmd + M", action: #selector(toggleCmdM), keyEquivalent: "m")
+        let cmdMItem = NSMenuItem(title: "Cmd + M", action: #selector(toggleCmdM), keyEquivalent: "m")
         cmdMItem.state = .on
         menu.addItem(cmdMItem)
         
-        let cmdHItem = NSMenuItem(title: "Toggle Cmd + H", action: #selector(toggleCmdH), keyEquivalent: "h")
+        let cmdHItem = NSMenuItem(title: "Cmd + H", action: #selector(toggleCmdH), keyEquivalent: "h")
         cmdHItem.state = .on
         menu.addItem(cmdHItem)
         
-        let cmdFItem = NSMenuItem(title: "Toggle Cmd + F", action: #selector(toggleCmdF), keyEquivalent: "f")
+        let cmdFItem = NSMenuItem(title: "Cmd + F", action: #selector(toggleCmdF), keyEquivalent: "f")
         cmdFItem.state = .on
         menu.addItem(cmdFItem)
         
-        let cmdSpaceItem = NSMenuItem(title: "Toggle Cmd + Space Fix", action: #selector(toggleCmdSpace), keyEquivalent: " ")
+        let cmdSpaceItem = NSMenuItem(title: "Cmd + Space Fix", action: #selector(toggleCmdSpace), keyEquivalent: " ")
         cmdSpaceItem.state = .on
         menu.addItem(cmdSpaceItem)
         

@@ -24,7 +24,7 @@ class ShortcutViewModel {
     var isCmdQEnabled = true
     var isCmdMEnabled = true
     var isCmdHEnabled = true
-    var isCmdFEnabled = true
+    var isCmdFEnabled = false
     var isCmdSpaceEnabled = true
     
     var isLaunchAtLoginEnabled: Bool {
@@ -51,10 +51,13 @@ class ShortcutViewModel {
         eventTapService.onShortcutDetected = { [weak self] keyCode, flags, location in
             guard let self = self else { return false }
             
-            // We only care about Cmd combinations
+            // We only care about Cmd combinations and no other modifiers
             let isCmdPressed = flags.contains(.maskCommand)
+            let isShiftPressed = flags.contains(.maskShift)
+            let isControlPressed = flags.contains(.maskControl)
+            let isOptionPressed = flags.contains(.maskAlternate)
             
-            if isCmdPressed {
+            if isCmdPressed && !isShiftPressed && !isControlPressed && !isOptionPressed {
                 if keyCode == self.kKeySpace && self.isCmdSpaceEnabled && !self.missionControlService.isSimulating {
                     if self.missionControlService.checkMissionControlActive() {
                         self.missionControlService.executeFixSequence()
@@ -75,9 +78,6 @@ class ShortcutViewModel {
                     return true
                 } else if keyCode == self.kKeyH && self.isCmdHEnabled {
                     self.hideAction.perform(at: location, service: self.accessibilityService)
-                    return true
-                } else if keyCode == self.kKeyF && self.isCmdFEnabled {
-                    self.maximizeAction.perform(at: location, service: self.accessibilityService)
                     return true
                 }
             }
