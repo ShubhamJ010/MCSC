@@ -7,3 +7,4 @@
   - Disabled `Cmd + F` shortcut by default.
   - Refined `Cmd` detection logic to ensure only the `Command` modifier is active (ignoring Shift, Control, and Option) to prevent interference with other system shortcuts.
   - Removed logic related to `Cmd + F` / `maximizeAction`.
+  - Restricted all shortcut actions (`Cmd+W`, `Cmd+Q`, `Cmd+M`, `Cmd+H`) to only execute when Mission Control is active.
