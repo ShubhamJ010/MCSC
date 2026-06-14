@@ -19,12 +19,13 @@ jobs:
 
       - name: Zip App
         run: |
-          APP_PATH=$(find build -name "MCSC.app" -type d | head -n 1)
-          if [ -z "$APP_PATH" ]; then
-            echo "MCSC.app not found!"
+          APP_PATH="build/Build/Products/Release/MCSC.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "MCSC.app not found at $APP_PATH!"
             exit 1
           fi
-          zip -r MCSC.zip "$APP_PATH"
+          cd build/Build/Products/Release
+          zip -r ../../../MCSC.zip MCSC.app
 
       - name: Upload Release Artifact
         uses: softprops/action-gh-release@v2
