@@ -13,6 +13,10 @@ class MissionControlService {
     private var observers: [NSObjectProtocol] = []
     
     init() {
+        start()
+    }
+    
+    func start() {
         setupNotifications()
     }
     

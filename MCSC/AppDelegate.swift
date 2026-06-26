@@ -3,6 +3,8 @@ import Cocoa
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var viewModel: ShortcutViewModel?
     private var statusItem: NSStatusItem?
+    private var sleepObserver: NSObjectProtocol?
+    private var wakeObserver: NSObjectProtocol?
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Hide dock icon
@@ -38,6 +40,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     timer.invalidate()
                 }
             }
+        }
+        
+        // Observe sleep/wake to recreate event tap
+        sleepObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.willSleepNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            print("System sleeping - stopping event tap")
+            self?.viewModel?.stop()
+        }
+        
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            print("System woke up - restarting event tap")
+            self?.viewModel?.start()
         }
     }
     
@@ -109,5 +130,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     func applicationWillTerminate(_ notification: Notification) {
         viewModel?.stop()
+        
+        if let observer = sleepObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(observer)
+        }
+        if let observer = wakeObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(observer)
+        }
     }
 }

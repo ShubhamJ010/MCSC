@@ -94,6 +94,7 @@ class ShortcutViewModel {
     
     func start() {
         eventTapService.start()
+        missionControlService.start()
     }
     
     func stop() {
