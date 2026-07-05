@@ -6,6 +6,7 @@ protocol AccessibilityServiceProtocol {
     func getWindow(for element: AXUIElement) -> AXUIElement?
     func performAction(_ action: String, on element: AXUIElement) -> Bool
     func getAttributeValue<T>(_ attribute: String, for element: AXUIElement) -> T?
+    func setFrame(_ frame: CGRect, for element: AXUIElement) -> Bool
     func isDockItem(_ element: AXUIElement) -> Bool
     func getAppFromDockItem(_ element: AXUIElement) -> NSRunningApplication?
 }
@@ -65,5 +66,18 @@ class AccessibilityService: AccessibilityServiceProtocol {
 
         let runningApps = NSWorkspace.shared.runningApplications
         return runningApps.first { $0.localizedName == title }
+    }
+
+    func setFrame(_ frame: CGRect, for element: AXUIElement) -> Bool {
+        // Set position first, then size — some apps fail if done in one shot
+        var position = CGPoint(x: frame.origin.x, y: frame.origin.y)
+        let posValue = AXValueCreate(.cgPoint, &position)!
+        let posResult = AXUIElementSetAttributeValue(element, kAXPositionAttribute as CFString, posValue)
+
+        var size = CGSize(width: frame.width, height: frame.height)
+        let sizeValue = AXValueCreate(.cgSize, &size)!
+        let sizeResult = AXUIElementSetAttributeValue(element, kAXSizeAttribute as CFString, sizeValue)
+
+        return posResult == .success && sizeResult == .success
     }
 }

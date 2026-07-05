@@ -2,6 +2,19 @@
 
 ## 05 Jul 2026
 
+- **main.swift**: Fixed Swift 6 MainActor isolation error by wrapping delegate init in `MainActor.assumeIsolated`.
+- **AppDelegate.swift**: Added `@MainActor` annotation. Replaced flat "Pinch to Close" menu item with "Enable Gestures" submenu containing per-gesture toggles (Pinch In, Swipe Down/Up, 3-Finger Double Tap).
+- **GestureRecognizer.swift**: Added `cmdPinchIn`, `swipeDown`, `cmdSwipeDown`, `swipeUp`, `cmdSwipeUp`, `threeFingerDoubleTap`, and `cmdThreeFingerDoubleTap` result types.
+- **PinchInRecognizer.swift**: Simplified state machine by removing the "armed" state — gesture fires immediately on threshold crossing. Added `isEnabled` and `isCmdHeld` closures.
+- **ShortcutActions.swift**: Added `FullscreenWindowAction`, `ReasonableSizeAction`, and `AlmostMaximizeAction` for window tiling.
+- **AccessibilityService.swift**: Added `setFrame(_:for:)` to set window position and size via AX API.
+- **EventTapService.swift**: Added `CFEventTimestamp` typealias.
+- **MissionControlService.swift**: Added `onActivated` callback fired when Mission Control opens, used for gesture cooldown.
+- **MultitouchService.swift**: Made `multitouchCallback` `nonisolated` and dispatch frame data to main queue.
+- **ShortcutViewModel.swift**: Integrated `SwipeRecognizer` and `ThreeFingerDoubleTapRecognizer`. Added Cmd-modifier variants for all gestures. Added Mission Control activation cooldown to prevent false gesture detection.
+
+## 05 Jul 2026
+
 - **AccessibilityService.swift**: Added `isDockItem()` and `getAppFromDockItem()` to detect dock icons and resolve them to running applications via AX title matching.
 - **ShortcutActions.swift**: Added `CloseAppAction`, `MinimizeAppAction`, and `ForceQuitAppAction` for app-level operations on dock icons.
 - **ShortcutViewModel.swift**: Shortcuts (`Cmd+W`, `Cmd+Q`, `Cmd+M`, `Cmd+H`) now work on dock icons in Mission Control, routing to app-level actions instead of window-level actions.

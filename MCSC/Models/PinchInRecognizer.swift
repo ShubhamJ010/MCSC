@@ -1,13 +1,11 @@
 import Foundation
 import Cocoa
 
-/// Detects a "pinch-in" gesture: two fingers move closer together,
-/// then lift off the trackpad.
+/// Detects a "pinch-in" gesture: two fingers move closer together.
 ///
 /// State machine:
 ///   idle → tracking (2 fingers detected, recording initial distance)
-///        → armed (distance threshold crossed, haptic fired, waiting for both fingers to lift)
-///        → cooldown (both fingers released → action fired) → idle
+///        → cooldown (threshold crossed → action fired) → idle
 class PinchInRecognizer: GestureRecognizer {
 
     // MARK: - Configuration
@@ -26,6 +24,12 @@ class PinchInRecognizer: GestureRecognizer {
 
     var config = Config()
 
+    /// Return true if this recognizer should be active.
+    var isEnabled: (() -> Bool)?
+
+    /// Called when a pinch gesture completes. Return true if the Cmd key is held.
+    var isCmdHeld: (() -> Bool)?
+
     // MARK: - State
 
     private enum State {
@@ -41,15 +45,6 @@ class PinchInRecognizer: GestureRecognizer {
             lastCenterNormalized: (Float, Float)
         )
 
-        /// Pinch threshold crossed and haptic fired.
-        /// Waiting for both tracked fingers to be released.
-        case armed(
-            finger1ID: Int32,
-            finger2ID: Int32,
-            startTime: Double,
-            centerNormalized: (Float, Float)
-        )
-
         case cooldown(until: Double)
     }
 
@@ -58,6 +53,7 @@ class PinchInRecognizer: GestureRecognizer {
     // MARK: - GestureRecognizer
 
     func processFrame(_ touches: [TouchPoint], timestamp: Double) -> GestureResult? {
+        guard isEnabled?() ?? true else { return nil }
         switch state {
 
         case .idle:
@@ -95,14 +91,14 @@ class PinchInRecognizer: GestureRecognizer {
                 // Check if pinch ratio just crossed the threshold
                 let ratio = initialDist > 0.05 ? (initialDist - currentDist) / initialDist : 0
                 if ratio >= config.pinchRatioThreshold {
-                    // Threshold crossed while fingers are still down → haptic + arm
+                    // Threshold crossed → fire immediately
                     fireHaptic()
-                    state = .armed(
-                        finger1ID: f1ID,
-                        finger2ID: f2ID,
-                        startTime: startTime,
-                        centerNormalized: center
-                    )
+                    state = .cooldown(until: timestamp + config.cooldownDuration)
+                    let cmdHeld = isCmdHeld?() ?? false
+                    if cmdHeld {
+                        return .cmdPinchIn(atNormalized: center)
+                    }
+                    return .pinchIn(atNormalized: center)
                 } else {
                     state = .tracking(
                         finger1ID: f1ID, finger2ID: f2ID,
@@ -117,26 +113,6 @@ class PinchInRecognizer: GestureRecognizer {
 
             // Finger(s) lifted before threshold was reached — cancel
             state = .idle
-            return nil
-
-        case .armed(let f1ID, let f2ID, let startTime, let center):
-            // Timeout
-            if timestamp - startTime > config.maxGestureDuration {
-                state = .idle
-                return nil
-            }
-
-            // Check if both tracked fingers are gone
-            let f1Present = touches.contains(where: { $0.identifier == f1ID })
-            let f2Present = touches.contains(where: { $0.identifier == f2ID })
-
-            if !f1Present && !f2Present {
-                // Both fingers released → fire the gesture
-                state = .cooldown(until: timestamp + config.cooldownDuration)
-                return .pinchIn(atNormalized: center)
-            }
-
-            // At least one finger still on trackpad — keep waiting
             return nil
 
         case .cooldown(let until):

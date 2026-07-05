@@ -16,6 +16,9 @@ class ShortcutViewModel {
     private let closeAppAction = CloseAppAction()
     private let minimizeAppAction = MinimizeAppAction()
     private let forceQuitAppAction = ForceQuitAppAction()
+    private let fullscreenAction = FullscreenWindowAction()
+    private let reasonableSizeAction = ReasonableSizeAction()
+    private let almostMaximizeAction = AlmostMaximizeAction()
     
     // Key codes
     private let kKeyW: Int64 = 13
@@ -31,8 +34,15 @@ class ShortcutViewModel {
     var isCmdHEnabled = true
     var isCmdFEnabled = false
     var isCmdSpaceEnabled = true
-    var isPinchToCloseEnabled = true
-    
+    var isGesturesEnabled = true
+    var isPinchInEnabled = true
+    var isSwipeDownEnabled = true
+    var isSwipeUpEnabled = true
+    var isThreeFingerDoubleTapEnabled = true
+
+    /// Prevents gestures from firing right after Mission Control opens via 3-finger swipe.
+    private var isCoolingDown = false
+
     var isLaunchAtLoginEnabled: Bool {
         return launchAtLoginService.isEnabled
     }
@@ -47,6 +57,14 @@ class ShortcutViewModel {
         self.launchAtLoginService = launchAtLoginService
         
         setupCallbacks()
+
+        // Cooldown after Mission Control activates to avoid false gesture detection
+        missionControlService.onActivated = { [weak self] in
+            self?.isCoolingDown = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.isCoolingDown = false
+            }
+        }
     }
     
     func toggleLaunchAtLogin() {
@@ -112,12 +130,37 @@ class ShortcutViewModel {
         }
         
         // Register gesture recognizers
-        gestureEngine.register(PinchInRecognizer())
+        let pinchRecognizer = PinchInRecognizer()
+        pinchRecognizer.isCmdHeld = {
+            NSEvent.modifierFlags.contains(.command)
+        }
+        pinchRecognizer.isEnabled = { [weak self] in self?.isPinchInEnabled ?? false }
+        gestureEngine.register(pinchRecognizer)
+
+        let swipeRecognizer = SwipeRecognizer()
+        swipeRecognizer.isCmdHeld = {
+            NSEvent.modifierFlags.contains(.command)
+        }
+        swipeRecognizer.isEnabled = { [weak self] in
+            guard let self = self else { return false }
+            return self.isSwipeDownEnabled || self.isSwipeUpEnabled
+        }
+        swipeRecognizer.isSwipeDownEnabled = { [weak self] in self?.isSwipeDownEnabled ?? false }
+        swipeRecognizer.isSwipeUpEnabled = { [weak self] in self?.isSwipeUpEnabled ?? false }
+        gestureEngine.register(swipeRecognizer)
+
+        let threeFingerTapRecognizer = ThreeFingerDoubleTapRecognizer()
+        threeFingerTapRecognizer.isCmdHeld = {
+            NSEvent.modifierFlags.contains(.command)
+        }
+        threeFingerTapRecognizer.isEnabled = { [weak self] in self?.isThreeFingerDoubleTapEnabled ?? false }
+        gestureEngine.register(threeFingerTapRecognizer)
         
         // MultitouchService -> GestureEngine
         multitouchService.onFrame = { [weak self] touches, timestamp in
             guard let self = self,
-                  self.isPinchToCloseEnabled,
+                  self.isGesturesEnabled,
+                  !self.isCoolingDown,
                   self.missionControlService.isMissionControlActive else { return }
             self.gestureEngine.processFrame(touches, timestamp: timestamp)
         }
@@ -127,7 +170,6 @@ class ShortcutViewModel {
             guard let self = self else { return }
             switch result {
             case .pinchIn:
-                // Use mouse cursor position in Core Graphics coordinates (0,0 is top-left)
                 guard let mouseLocation = CGEvent(source: nil)?.location else { return }
                 
                 let element = self.accessibilityService.getElement(at: mouseLocation)
@@ -139,6 +181,56 @@ class ShortcutViewModel {
                 } else {
                     self.closeAction.perform(at: mouseLocation, service: self.accessibilityService)
                 }
+            case .cmdPinchIn:
+                guard let mouseLocation = CGEvent(source: nil)?.location else { return }
+                
+                let element = self.accessibilityService.getElement(at: mouseLocation)
+                let isDock = element.map { self.accessibilityService.isDockItem($0) } ?? false
+                let app = isDock ? element.flatMap { self.accessibilityService.getAppFromDockItem($0) } : nil
+                
+                if let app = app {
+                    self.forceQuitAppAction.perform(app: app)
+                } else {
+                    self.forceQuitAction.perform(at: mouseLocation, service: self.accessibilityService)
+                }
+
+            case .swipeDown:
+                guard let mouseLocation = CGEvent(source: nil)?.location else { return }
+                self.fullscreenAction.perform(at: mouseLocation, service: self.accessibilityService)
+
+            case .cmdSwipeDown:
+                guard let mouseLocation = CGEvent(source: nil)?.location else { return }
+                self.fullscreenAction.perform(at: mouseLocation, service: self.accessibilityService)
+
+            case .swipeUp:
+                guard let mouseLocation = CGEvent(source: nil)?.location else { return }
+                let element = self.accessibilityService.getElement(at: mouseLocation)
+                let isDock = element.map { self.accessibilityService.isDockItem($0) } ?? false
+                let app = isDock ? element.flatMap { self.accessibilityService.getAppFromDockItem($0) } : nil
+                if let app = app {
+                    self.minimizeAppAction.perform(app: app, service: self.accessibilityService)
+                } else {
+                    self.minimizeAction.perform(at: mouseLocation, service: self.accessibilityService)
+                }
+
+            case .cmdSwipeUp:
+                guard let mouseLocation = CGEvent(source: nil)?.location else { return }
+                let element = self.accessibilityService.getElement(at: mouseLocation)
+                let isDock = element.map { self.accessibilityService.isDockItem($0) } ?? false
+                let app = isDock ? element.flatMap { self.accessibilityService.getAppFromDockItem($0) } : nil
+                if let app = app {
+                    app.hide()
+                } else {
+                    self.hideAction.perform(at: mouseLocation, service: self.accessibilityService)
+                }
+
+            case .threeFingerDoubleTap:
+                guard let mouseLocation = CGEvent(source: nil)?.location else { return }
+                self.reasonableSizeAction.perform(at: mouseLocation, service: self.accessibilityService)
+
+            case .cmdThreeFingerDoubleTap:
+                guard let mouseLocation = CGEvent(source: nil)?.location else { return }
+                self.almostMaximizeAction.perform(at: mouseLocation, service: self.accessibilityService)
             }
         }
     }

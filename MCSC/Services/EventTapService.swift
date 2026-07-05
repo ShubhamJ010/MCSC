@@ -1,5 +1,7 @@
 import Cocoa
 
+typealias CFEventTimestamp = CGEventTimestamp
+
 class EventTapService {
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?

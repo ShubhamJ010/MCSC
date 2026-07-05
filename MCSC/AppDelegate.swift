@@ -1,5 +1,6 @@
 import Cocoa
 
+@MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var viewModel: ShortcutViewModel?
     private var statusItem: NSStatusItem?
@@ -91,9 +92,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         cmdSpaceItem.state = .on
         menu.addItem(cmdSpaceItem)
         
-        let pinchItem = NSMenuItem(title: "Pinch to Close", action: #selector(togglePinchToClose), keyEquivalent: "")
-        pinchItem.state = (viewModel?.isPinchToCloseEnabled ?? true) ? .on : .off
-        menu.addItem(pinchItem)
+        let gesturesItem = NSMenuItem(title: "Enable Gestures", action: #selector(toggleGestures), keyEquivalent: "")
+        gesturesItem.state = (viewModel?.isGesturesEnabled ?? true) ? .on : .off
+        
+        let gesturesSubmenu = NSMenu()
+        let pinchInItem = NSMenuItem(title: "Pinch In to Close", action: #selector(togglePinchIn), keyEquivalent: "")
+        pinchInItem.state = (viewModel?.isPinchInEnabled ?? true) ? .on : .off
+        gesturesSubmenu.addItem(pinchInItem)
+
+        let swipeDownItem = NSMenuItem(title: "Swipe Down → Fullscreen", action: #selector(toggleSwipeDown), keyEquivalent: "")
+        swipeDownItem.state = (viewModel?.isSwipeDownEnabled ?? true) ? .on : .off
+        gesturesSubmenu.addItem(swipeDownItem)
+
+        let swipeUpItem = NSMenuItem(title: "Swipe Up → Minimize", action: #selector(toggleSwipeUp), keyEquivalent: "")
+        swipeUpItem.state = (viewModel?.isSwipeUpEnabled ?? true) ? .on : .off
+        gesturesSubmenu.addItem(swipeUpItem)
+
+        let threeFingerTapItem = NSMenuItem(title: "3-Finger Double Tap → Resize", action: #selector(toggleThreeFingerDoubleTap), keyEquivalent: "")
+        threeFingerTapItem.state = (viewModel?.isThreeFingerDoubleTapEnabled ?? true) ? .on : .off
+        gesturesSubmenu.addItem(threeFingerTapItem)
+
+        gesturesItem.submenu = gesturesSubmenu
+        
+        menu.addItem(gesturesItem)
         
         menu.addItem(NSMenuItem.separator())
         
@@ -112,9 +133,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func toggleCmdM(_ sender: NSMenuItem) { handleToggle(sender, key: .cmdM) }
     @objc private func toggleCmdH(_ sender: NSMenuItem) { handleToggle(sender, key: .cmdH) }
     @objc private func toggleCmdSpace(_ sender: NSMenuItem) { handleToggle(sender, key: .cmdSpace) }
-    @objc private func togglePinchToClose(_ sender: NSMenuItem) { handleToggle(sender, key: .pinchToClose) }
+    @objc private func toggleGestures(_ sender: NSMenuItem) { handleToggle(sender, key: .gestures) }
+    @objc private func togglePinchIn(_ sender: NSMenuItem) { handleToggle(sender, key: .pinchIn) }
+    @objc private func toggleSwipeDown(_ sender: NSMenuItem) { handleToggle(sender, key: .swipeDown) }
+    @objc private func toggleSwipeUp(_ sender: NSMenuItem) { handleToggle(sender, key: .swipeUp) }
+    @objc private func toggleThreeFingerDoubleTap(_ sender: NSMenuItem) { handleToggle(sender, key: .threeFingerDoubleTap) }
 
-    private enum ShortcutKey { case cmdW, cmdQ, cmdM, cmdH, cmdSpace, pinchToClose }
+    private enum ShortcutKey { case cmdW, cmdQ, cmdM, cmdH, cmdSpace, gestures, pinchIn, swipeDown, swipeUp, threeFingerDoubleTap }
 
     private func handleToggle(_ sender: NSMenuItem, key: ShortcutKey) {
         guard let viewModel = viewModel else { return }
@@ -124,7 +149,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         case .cmdM: viewModel.isCmdMEnabled.toggle(); sender.state = viewModel.isCmdMEnabled ? .on : .off
         case .cmdH: viewModel.isCmdHEnabled.toggle(); sender.state = viewModel.isCmdHEnabled ? .on : .off
         case .cmdSpace: viewModel.isCmdSpaceEnabled.toggle(); sender.state = viewModel.isCmdSpaceEnabled ? .on : .off
-        case .pinchToClose: viewModel.isPinchToCloseEnabled.toggle(); sender.state = viewModel.isPinchToCloseEnabled ? .on : .off
+        case .gestures: viewModel.isGesturesEnabled.toggle(); sender.state = viewModel.isGesturesEnabled ? .on : .off
+        case .pinchIn: viewModel.isPinchInEnabled.toggle(); sender.state = viewModel.isPinchInEnabled ? .on : .off
+        case .swipeDown: viewModel.isSwipeDownEnabled.toggle(); sender.state = viewModel.isSwipeDownEnabled ? .on : .off
+        case .swipeUp: viewModel.isSwipeUpEnabled.toggle(); sender.state = viewModel.isSwipeUpEnabled ? .on : .off
+        case .threeFingerDoubleTap: viewModel.isThreeFingerDoubleTapEnabled.toggle(); sender.state = viewModel.isThreeFingerDoubleTapEnabled ? .on : .off
         }
     }
     

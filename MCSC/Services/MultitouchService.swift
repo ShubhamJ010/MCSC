@@ -79,15 +79,14 @@ class MultitouchService {
 
 // MARK: - C Callback (free function, bridges back to instance)
 
-private func multitouchCallback(
+nonisolated private func multitouchCallback(
     device: MTDeviceRef?,
     fingers: UnsafeMutableRawPointer?,
     count: Int32,
     timestamp: Double,
     frame: Int32
 ) -> Int32 {
-    guard let fingers = fingers, count > 0,
-          let service = MultitouchService.shared else { return 0 }
+    guard let fingers = fingers, count > 0 else { return 0 }
 
     let fingerPtr = fingers.assumingMemoryBound(to: Finger.self)
     var points: [TouchPoint] = []
@@ -107,6 +106,10 @@ private func multitouchCallback(
         }
     }
 
-    service.onFrame?(points, timestamp)
+    DispatchQueue.main.async {
+        if let service = MultitouchService.shared {
+            service.onFrame?(points, timestamp)
+        }
+    }
     return 0
 }

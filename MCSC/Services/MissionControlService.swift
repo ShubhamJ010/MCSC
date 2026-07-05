@@ -8,7 +8,10 @@ class MissionControlService {
         return checkMissionControlActive()
     }
     var isSimulating = false
-    
+
+    /// Fires when Mission Control (or Expose) activates. Used for gesture cooldown.
+    var onActivated: (() -> Void)?
+
     // Maintain notification observers for cleanup
     private var observers: [NSObjectProtocol] = []
     
@@ -32,8 +35,11 @@ class MissionControlService {
         ]
         
         for event in events {
-            let observer = center.addObserver(forName: NSNotification.Name(event), object: nil, queue: .main) { [weak self] _ in
-                if event.contains("start") { self?._isMissionControlActive = true }
+            let observer = center.addObserver(forName: NSNotification.Name(event), object: nil, queue: .main) { @MainActor [weak self] _ in
+                if event.contains("start") {
+                    self?._isMissionControlActive = true
+                    self?.onActivated?()
+                }
                 if event.contains("stop") { self?._isMissionControlActive = false }
             }
             observers.append(observer)

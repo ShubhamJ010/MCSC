@@ -3,7 +3,13 @@ import Foundation
 /// Result emitted when a gesture completes.
 enum GestureResult {
     case pinchIn(atNormalized: (Float, Float))
-    // Future: .swipeUp, .threeFingerTap, etc.
+    case cmdPinchIn(atNormalized: (Float, Float))
+    case swipeDown(atNormalized: (Float, Float))
+    case cmdSwipeDown(atNormalized: (Float, Float))
+    case swipeUp(atNormalized: (Float, Float))
+    case cmdSwipeUp(atNormalized: (Float, Float))
+    case threeFingerDoubleTap
+    case cmdThreeFingerDoubleTap
 }
 
 /// Protocol that all gesture recognizers must conform to.

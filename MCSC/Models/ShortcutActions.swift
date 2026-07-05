@@ -110,3 +110,44 @@ struct ForceQuitAppAction {
         }
     }
 }
+
+// MARK: - Tiling Actions
+
+struct FullscreenWindowAction: ShortcutAction {
+    func perform(at point: CGPoint, service: AccessibilityServiceProtocol) {
+        guard let element = service.getElement(at: point),
+              let window = service.getWindow(for: element) else { return }
+        let screen = NSScreen.main ?? NSScreen.screens[0]
+        let f = screen.frame
+        let frame = CGRect(x: f.origin.x, y: 0, width: f.width, height: f.height)
+        _ = service.setFrame(frame, for: window)
+    }
+}
+
+struct ReasonableSizeAction: ShortcutAction {
+    func perform(at point: CGPoint, service: AccessibilityServiceProtocol) {
+        guard let element = service.getElement(at: point),
+              let window = service.getWindow(for: element) else { return }
+        let screen = NSScreen.main ?? NSScreen.screens[0]
+        let f = screen.frame
+        let w = f.width * 0.7
+        let h = f.height * 0.75
+        let x = (f.width - w) / 2
+        let y = (f.height - h) / 2
+        _ = service.setFrame(CGRect(x: x, y: y, width: w, height: h), for: window)
+    }
+}
+
+struct AlmostMaximizeAction: ShortcutAction {
+    func perform(at point: CGPoint, service: AccessibilityServiceProtocol) {
+        guard let element = service.getElement(at: point),
+              let window = service.getWindow(for: element) else { return }
+        let screen = NSScreen.main ?? NSScreen.screens[0]
+        let f = screen.frame
+        let w = f.width * 0.8
+        let h = f.height * 0.7
+        let x = (f.width - w) / 2
+        let y = (f.height - h) / 2
+        _ = service.setFrame(CGRect(x: x, y: y, width: w, height: h), for: window)
+    }
+}
