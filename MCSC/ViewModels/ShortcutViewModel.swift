@@ -11,6 +11,9 @@ class ShortcutViewModel {
     private let maximizeAction = MaximizeWindowAction()
     private let hideAction = HideApplicationAction()
     private let forceQuitAction = ForceQuitAction()
+    private let closeAppAction = CloseAppAction()
+    private let minimizeAppAction = MinimizeAppAction()
+    private let forceQuitAppAction = ForceQuitAppAction()
     
     // Key codes
     private let kKeyW: Int64 = 13
@@ -65,24 +68,38 @@ class ShortcutViewModel {
                     }
                 }
                 
-                if keyCode == self.kKeyW && self.isCmdWEnabled {
-                    if self.missionControlService.isMissionControlActive {
-                        self.closeAction.perform(at: location, service: self.accessibilityService)
+                if self.missionControlService.isMissionControlActive {
+                    let element = self.accessibilityService.getElement(at: location)
+                    let isDock = element.map { self.accessibilityService.isDockItem($0) } ?? false
+                    let app = isDock ? element.flatMap { self.accessibilityService.getAppFromDockItem($0) } : nil
+
+                    if keyCode == self.kKeyW && self.isCmdWEnabled {
+                        if let app = app {
+                            self.closeAppAction.perform(app: app, service: self.accessibilityService)
+                        } else {
+                            self.closeAction.perform(at: location, service: self.accessibilityService)
+                        }
                         return true
-                    }
-                } else if keyCode == self.kKeyQ && self.isCmdQEnabled {
-                    if self.missionControlService.isMissionControlActive {
-                        self.forceQuitAction.perform(at: location, service: self.accessibilityService)
+                    } else if keyCode == self.kKeyQ && self.isCmdQEnabled {
+                        if let app = app {
+                            self.forceQuitAppAction.perform(app: app)
+                        } else {
+                            self.forceQuitAction.perform(at: location, service: self.accessibilityService)
+                        }
                         return true
-                    }
-                } else if keyCode == self.kKeyM && self.isCmdMEnabled {
-                    if self.missionControlService.isMissionControlActive {
-                        self.minimizeAction.perform(at: location, service: self.accessibilityService)
+                    } else if keyCode == self.kKeyM && self.isCmdMEnabled {
+                        if let app = app {
+                            self.minimizeAppAction.perform(app: app, service: self.accessibilityService)
+                        } else {
+                            self.minimizeAction.perform(at: location, service: self.accessibilityService)
+                        }
                         return true
-                    }
-                } else if keyCode == self.kKeyH && self.isCmdHEnabled {
-                    if self.missionControlService.isMissionControlActive {
-                        self.hideAction.perform(at: location, service: self.accessibilityService)
+                    } else if keyCode == self.kKeyH && self.isCmdHEnabled {
+                        if let app = app {
+                            app.hide()
+                        } else {
+                            self.hideAction.perform(at: location, service: self.accessibilityService)
+                        }
                         return true
                     }
                 }

@@ -6,6 +6,8 @@ protocol AccessibilityServiceProtocol {
     func getWindow(for element: AXUIElement) -> AXUIElement?
     func performAction(_ action: String, on element: AXUIElement) -> Bool
     func getAttributeValue<T>(_ attribute: String, for element: AXUIElement) -> T?
+    func isDockItem(_ element: AXUIElement) -> Bool
+    func getAppFromDockItem(_ element: AXUIElement) -> NSRunningApplication?
 }
 
 class AccessibilityService: AccessibilityServiceProtocol {
@@ -47,5 +49,21 @@ class AccessibilityService: AccessibilityServiceProtocol {
         let result = AXUIElementCopyAttributeValue(element, attribute as CFString, &value)
         guard result == .success else { return nil }
         return value as? T
+    }
+
+    func isDockItem(_ element: AXUIElement) -> Bool {
+        var role: CFTypeRef?
+        let result = AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &role)
+        guard result == .success else { return false }
+        return (role as? String) == "AXDockItem"
+    }
+
+    func getAppFromDockItem(_ element: AXUIElement) -> NSRunningApplication? {
+        guard let title: String = getAttributeValue(kAXTitleAttribute, for: element) else {
+            return nil
+        }
+
+        let runningApps = NSWorkspace.shared.runningApplications
+        return runningApps.first { $0.localizedName == title }
     }
 }

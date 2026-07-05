@@ -66,3 +66,47 @@ struct ForceQuitAction: ShortcutAction {
         }
     }
 }
+
+struct CloseAppAction {
+    func perform(app: NSRunningApplication, service: AccessibilityServiceProtocol) {
+        let appElement = AXUIElementCreateApplication(app.processIdentifier)
+
+        var windows: CFTypeRef?
+        AXUIElementCopyAttributeValue(appElement, kAXWindowsAttribute as CFString, &windows)
+
+        if let windowList = windows as? [AXUIElement], !windowList.isEmpty {
+            for window in windowList {
+                if let closeButton: AXUIElement = service.getAttributeValue(kAXCloseButtonAttribute, for: window) {
+                    _ = service.performAction(kAXPressAction, on: closeButton)
+                }
+            }
+        } else {
+            app.terminate()
+        }
+    }
+}
+
+struct MinimizeAppAction {
+    func perform(app: NSRunningApplication, service: AccessibilityServiceProtocol) {
+        let appElement = AXUIElementCreateApplication(app.processIdentifier)
+
+        var windows: CFTypeRef?
+        AXUIElementCopyAttributeValue(appElement, kAXWindowsAttribute as CFString, &windows)
+
+        if let windowList = windows as? [AXUIElement] {
+            for window in windowList {
+                if let minimizeButton: AXUIElement = service.getAttributeValue(kAXMinimizeButtonAttribute, for: window) {
+                    _ = service.performAction(kAXPressAction, on: minimizeButton)
+                }
+            }
+        }
+    }
+}
+
+struct ForceQuitAppAction {
+    func perform(app: NSRunningApplication) {
+        if app.processIdentifier != NSRunningApplication.current.processIdentifier {
+            app.forceTerminate()
+        }
+    }
+}
