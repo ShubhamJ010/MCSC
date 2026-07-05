@@ -6,8 +6,8 @@ import Cocoa
 ///
 /// State machine:
 ///   idle → tracking (2 fingers detected, recording initial distance)
-///        → recognized (distance decreased by threshold + fingers lifted)
-///        → cooldown (prevent rapid re-fires) → idle
+///        → armed (distance threshold crossed, haptic fired, waiting for both fingers to lift)
+///        → cooldown (both fingers released → action fired) → idle
 class PinchInRecognizer: GestureRecognizer {
 
     // MARK: - Configuration
@@ -30,6 +30,8 @@ class PinchInRecognizer: GestureRecognizer {
 
     private enum State {
         case idle
+
+        /// Two fingers detected, tracking distance change.
         case tracking(
             finger1ID: Int32,
             finger2ID: Int32,
@@ -38,6 +40,16 @@ class PinchInRecognizer: GestureRecognizer {
             lastDistance: Float,
             lastCenterNormalized: (Float, Float)
         )
+
+        /// Pinch threshold crossed and haptic fired.
+        /// Waiting for both tracked fingers to be released.
+        case armed(
+            finger1ID: Int32,
+            finger2ID: Int32,
+            startTime: Double,
+            centerNormalized: (Float, Float)
+        )
+
         case cooldown(until: Double)
     }
 
@@ -64,7 +76,7 @@ class PinchInRecognizer: GestureRecognizer {
             }
             return nil
 
-        case .tracking(let f1ID, let f2ID, let initialDist, let startTime, _, let lastCenter):
+        case .tracking(let f1ID, let f2ID, let initialDist, let startTime, _, _):
             // Timeout: gesture took too long
             if timestamp - startTime > config.maxGestureDuration {
                 state = .idle
@@ -79,22 +91,52 @@ class PinchInRecognizer: GestureRecognizer {
                 // Both fingers still touching — update distance
                 let currentDist = distance(f1, f2)
                 let center = midpoint(f1, f2)
-                state = .tracking(
-                    finger1ID: f1ID, finger2ID: f2ID,
-                    initialDistance: initialDist,
-                    startTime: startTime,
-                    lastDistance: currentDist,
-                    lastCenterNormalized: center
-                )
+
+                // Check if pinch ratio just crossed the threshold
+                let ratio = initialDist > 0.05 ? (initialDist - currentDist) / initialDist : 0
+                if ratio >= config.pinchRatioThreshold {
+                    // Threshold crossed while fingers are still down → haptic + arm
+                    fireHaptic()
+                    state = .armed(
+                        finger1ID: f1ID,
+                        finger2ID: f2ID,
+                        startTime: startTime,
+                        centerNormalized: center
+                    )
+                } else {
+                    state = .tracking(
+                        finger1ID: f1ID, finger2ID: f2ID,
+                        initialDistance: initialDist,
+                        startTime: startTime,
+                        lastDistance: currentDist,
+                        lastCenterNormalized: center
+                    )
+                }
                 return nil
             }
 
-            // At least one finger lifted — check if pinch threshold was met
-            // (we use lastDistance since the fingers are now gone)
-            if let result = checkCompletion(initialDist: initialDist, lastCenter: lastCenter, timestamp: timestamp) {
-                return result
-            }
+            // Finger(s) lifted before threshold was reached — cancel
             state = .idle
+            return nil
+
+        case .armed(let f1ID, let f2ID, let startTime, let center):
+            // Timeout
+            if timestamp - startTime > config.maxGestureDuration {
+                state = .idle
+                return nil
+            }
+
+            // Check if both tracked fingers are gone
+            let f1Present = touches.contains(where: { $0.identifier == f1ID })
+            let f2Present = touches.contains(where: { $0.identifier == f2ID })
+
+            if !f1Present && !f2Present {
+                // Both fingers released → fire the gesture
+                state = .cooldown(until: timestamp + config.cooldownDuration)
+                return .pinchIn(atNormalized: center)
+            }
+
+            // At least one finger still on trackpad — keep waiting
             return nil
 
         case .cooldown(let until):
@@ -109,22 +151,19 @@ class PinchInRecognizer: GestureRecognizer {
         state = .idle
     }
 
-    // MARK: - Helpers
+    // MARK: - Haptic Feedback
 
-    private func checkCompletion(initialDist: Float, lastCenter: (Float, Float), timestamp: Double) -> GestureResult? {
-        guard case .tracking(_, _, _, _, let lastDist, _) = state else { return nil }
-
-        let ratio = (initialDist - lastDist) / initialDist
-        if ratio >= config.pinchRatioThreshold && initialDist > 0.05 {
-            // Haptic feedback
-            DispatchQueue.main.async {
-                NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .now)
-            }
-            state = .cooldown(until: timestamp + config.cooldownDuration)
-            return .pinchIn(atNormalized: lastCenter)
+    /// Fires a subtle haptic "tick" to confirm the pinch threshold was reached.
+    private func fireHaptic() {
+        DispatchQueue.main.async {
+            NSHapticFeedbackManager.defaultPerformer.perform(
+                .levelChange,
+                performanceTime: .now
+            )
         }
-        return nil
     }
+
+    // MARK: - Geometry Helpers
 
     private func distance(_ a: TouchPoint, _ b: TouchPoint) -> Float {
         let dx = a.normalizedX - b.normalizedX
