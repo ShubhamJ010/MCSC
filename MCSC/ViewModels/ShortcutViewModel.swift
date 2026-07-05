@@ -5,6 +5,8 @@ class ShortcutViewModel {
     private let accessibilityService: AccessibilityServiceProtocol
     private let missionControlService: MissionControlService
     private let launchAtLoginService: LaunchAtLoginService
+    private lazy var multitouchService = MultitouchService()
+    private lazy var gestureEngine = GestureEngine()
     
     private let closeAction = CloseWindowAction()
     private let minimizeAction = MinimizeWindowAction()
@@ -30,8 +32,6 @@ class ShortcutViewModel {
     var isCmdFEnabled = false
     var isCmdSpaceEnabled = true
     var isPinchToCloseEnabled = true
-    
-    private lazy var gestureRecognitionService = GestureRecognitionService()
     
     var isLaunchAtLoginEnabled: Bool {
         return launchAtLoginService.isEnabled
@@ -111,28 +111,34 @@ class ShortcutViewModel {
             return false // Don't consume
         }
         
-        eventTapService.onMagnifyGesture = { [weak self] delta, location in
-            guard let self = self else { return }
-            print("[ShortcutViewModel] Magnify gesture received: delta=\(delta), location=\(location), isPinchToCloseEnabled=\(self.isPinchToCloseEnabled), isMissionControlActive=\(self.missionControlService.isMissionControlActive)")
-            guard self.isPinchToCloseEnabled,
+        // Register gesture recognizers
+        gestureEngine.register(PinchInRecognizer())
+        
+        // MultitouchService -> GestureEngine
+        multitouchService.onFrame = { [weak self] touches, timestamp in
+            guard let self = self,
+                  self.isPinchToCloseEnabled,
                   self.missionControlService.isMissionControlActive else { return }
-            self.gestureRecognitionService.processMagnification(delta: delta, at: location)
+            self.gestureEngine.processFrame(touches, timestamp: timestamp)
         }
         
-        gestureRecognitionService.onPinchInCompleted = { [weak self] location in
+        // GestureEngine -> Actions
+        gestureEngine.onGestureRecognized = { [weak self] result in
             guard let self = self else { return }
-            guard self.isPinchToCloseEnabled,
-                  self.missionControlService.isMissionControlActive else { return }
-            let element = self.accessibilityService.getElement(at: location)
-            let isDock = element.map { self.accessibilityService.isDockItem($0) } ?? false
-            let app = isDock ? element.flatMap { self.accessibilityService.getAppFromDockItem($0) } : nil
-            
-            if let app = app {
-                print("[ShortcutViewModel] Target is Dock App: \(app.localizedName ?? "nil"). Performing closeAppAction.")
-                self.closeAppAction.perform(app: app, service: self.accessibilityService)
-            } else {
-                print("[ShortcutViewModel] Target is Window. Performing closeAction.")
-                self.closeAction.perform(at: location, service: self.accessibilityService)
+            switch result {
+            case .pinchIn:
+                // Use mouse cursor position in Core Graphics coordinates (0,0 is top-left)
+                guard let mouseLocation = CGEvent(source: nil)?.location else { return }
+                
+                let element = self.accessibilityService.getElement(at: mouseLocation)
+                let isDock = element.map { self.accessibilityService.isDockItem($0) } ?? false
+                let app = isDock ? element.flatMap { self.accessibilityService.getAppFromDockItem($0) } : nil
+                
+                if let app = app {
+                    self.closeAppAction.perform(app: app, service: self.accessibilityService)
+                } else {
+                    self.closeAction.perform(at: mouseLocation, service: self.accessibilityService)
+                }
             }
         }
     }
@@ -140,11 +146,13 @@ class ShortcutViewModel {
     func start() {
         eventTapService.start()
         missionControlService.start()
+        multitouchService.start()
     }
     
     func stop() {
         eventTapService.stop()
         missionControlService.stop()
-        gestureRecognitionService.stop()
+        multitouchService.stop()
+        gestureEngine.reset()
     }
 }
