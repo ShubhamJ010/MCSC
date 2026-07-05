@@ -91,6 +91,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         cmdSpaceItem.state = .on
         menu.addItem(cmdSpaceItem)
         
+        let pinchItem = NSMenuItem(title: "Pinch to Close", action: #selector(togglePinchToClose), keyEquivalent: "")
+        pinchItem.state = (viewModel?.isPinchToCloseEnabled ?? true) ? .on : .off
+        menu.addItem(pinchItem)
+        
         menu.addItem(NSMenuItem.separator())
         
         let launchAtLoginItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "l")
@@ -108,8 +112,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func toggleCmdM(_ sender: NSMenuItem) { handleToggle(sender, key: .cmdM) }
     @objc private func toggleCmdH(_ sender: NSMenuItem) { handleToggle(sender, key: .cmdH) }
     @objc private func toggleCmdSpace(_ sender: NSMenuItem) { handleToggle(sender, key: .cmdSpace) }
+    @objc private func togglePinchToClose(_ sender: NSMenuItem) { handleToggle(sender, key: .pinchToClose) }
 
-    private enum ShortcutKey { case cmdW, cmdQ, cmdM, cmdH, cmdSpace }
+    private enum ShortcutKey { case cmdW, cmdQ, cmdM, cmdH, cmdSpace, pinchToClose }
 
     private func handleToggle(_ sender: NSMenuItem, key: ShortcutKey) {
         guard let viewModel = viewModel else { return }
@@ -119,6 +124,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         case .cmdM: viewModel.isCmdMEnabled.toggle(); sender.state = viewModel.isCmdMEnabled ? .on : .off
         case .cmdH: viewModel.isCmdHEnabled.toggle(); sender.state = viewModel.isCmdHEnabled ? .on : .off
         case .cmdSpace: viewModel.isCmdSpaceEnabled.toggle(); sender.state = viewModel.isCmdSpaceEnabled ? .on : .off
+        case .pinchToClose: viewModel.isPinchToCloseEnabled.toggle(); sender.state = viewModel.isPinchToCloseEnabled ? .on : .off
         }
     }
     

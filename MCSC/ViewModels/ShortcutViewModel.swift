@@ -29,6 +29,9 @@ class ShortcutViewModel {
     var isCmdHEnabled = true
     var isCmdFEnabled = false
     var isCmdSpaceEnabled = true
+    var isPinchToCloseEnabled = true
+    
+    private lazy var gestureRecognitionService = GestureRecognitionService()
     
     var isLaunchAtLoginEnabled: Bool {
         return launchAtLoginService.isEnabled
@@ -107,6 +110,31 @@ class ShortcutViewModel {
             
             return false // Don't consume
         }
+        
+        eventTapService.onMagnifyGesture = { [weak self] delta, location in
+            guard let self = self else { return }
+            print("[ShortcutViewModel] Magnify gesture received: delta=\(delta), location=\(location), isPinchToCloseEnabled=\(self.isPinchToCloseEnabled), isMissionControlActive=\(self.missionControlService.isMissionControlActive)")
+            guard self.isPinchToCloseEnabled,
+                  self.missionControlService.isMissionControlActive else { return }
+            self.gestureRecognitionService.processMagnification(delta: delta, at: location)
+        }
+        
+        gestureRecognitionService.onPinchInCompleted = { [weak self] location in
+            guard let self = self else { return }
+            guard self.isPinchToCloseEnabled,
+                  self.missionControlService.isMissionControlActive else { return }
+            let element = self.accessibilityService.getElement(at: location)
+            let isDock = element.map { self.accessibilityService.isDockItem($0) } ?? false
+            let app = isDock ? element.flatMap { self.accessibilityService.getAppFromDockItem($0) } : nil
+            
+            if let app = app {
+                print("[ShortcutViewModel] Target is Dock App: \(app.localizedName ?? "nil"). Performing closeAppAction.")
+                self.closeAppAction.perform(app: app, service: self.accessibilityService)
+            } else {
+                print("[ShortcutViewModel] Target is Window. Performing closeAction.")
+                self.closeAction.perform(at: location, service: self.accessibilityService)
+            }
+        }
     }
     
     func start() {
@@ -117,5 +145,6 @@ class ShortcutViewModel {
     func stop() {
         eventTapService.stop()
         missionControlService.stop()
+        gestureRecognitionService.stop()
     }
 }
