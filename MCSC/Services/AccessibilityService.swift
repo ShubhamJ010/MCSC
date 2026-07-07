@@ -11,8 +11,6 @@ protocol AccessibilityServiceProtocol {
     func getAppFromDockItem(_ element: AXUIElement) -> NSRunningApplication?
     func findActiveTabCloseButton(in window: AXUIElement) -> AXUIElement?
     func getAppFromElement(_ element: AXUIElement) -> NSRunningApplication?
-    func isWindowMinimized(_ window: AXUIElement) -> Bool
-    func unminimizeWindow(_ window: AXUIElement) -> Bool
 }
 
 class AccessibilityService: AccessibilityServiceProtocol {
@@ -107,20 +105,6 @@ class AccessibilityService: AccessibilityServiceProtocol {
         let result = AXUIElementGetPid(element, &pid)
         guard result == .success else { return nil }
         return NSRunningApplication(processIdentifier: pid)
-    }
-
-    func isWindowMinimized(_ window: AXUIElement) -> Bool {
-        guard let minimized: Bool = getAttributeValue(kAXMinimizedAttribute, for: window) else {
-            return false
-        }
-        return minimized
-    }
-
-    /// Reliably raises (unminimizes + brings to front) a window using the
-    /// `kAXRaiseAction` AX action, which is the supported way to unminimize a window.
-    func unminimizeWindow(_ window: AXUIElement) -> Bool {
-        let result = AXUIElementPerformAction(window, kAXRaiseAction as CFString)
-        return result == .success
     }
 
     func setFrame(_ frame: CGRect, for element: AXUIElement) -> Bool {

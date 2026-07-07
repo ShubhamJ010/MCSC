@@ -195,50 +195,6 @@ struct ReopenTabAppAction {
     }
 }
 
-// MARK: - Fallback Actions
-
-/// Unminimizes a window if it's minimized, or unhides an app if it's hidden.
-/// Used as a fallback when the primary action (e.g. fullscreen) cannot be performed
-/// because the app is minimized or hidden. Works in the Mission Control context
-/// where the element under the cursor is a window thumbnail.
-struct UnminimizeUnhideWindowAction: ShortcutAction {
-    func perform(at point: CGPoint, service: AccessibilityServiceProtocol) {
-        guard let element = service.getElement(at: point) else { return }
-        let app = service.getAppFromElement(element)
-
-        // 1. If the app is hidden entirely, unhide and bring to front.
-        if let app = app, app.isHidden {
-            app.unhide()
-            app.activate(options: .activateIgnoringOtherApps)
-            return
-        }
-
-        // 2. Find a minimized window belonging to this app and raise it.
-        //    In Mission Control the cursor is over a thumbnail — get the app's
-        //    real windows and raise the minimized one.
-        if let app = app {
-            let appElement = AXUIElementCreateApplication(app.processIdentifier)
-            var windows: CFTypeRef?
-            AXUIElementCopyAttributeValue(appElement, kAXWindowsAttribute as CFString, &windows)
-            if let windowList = windows as? [AXUIElement] {
-                // Prefer the first minimized window; otherwise just raise the main one.
-                let minimized = windowList.first { service.isWindowMinimized($0) }
-                if let target = minimized ?? windowList.first {
-                    _ = service.unminimizeWindow(target)
-                    app.activate(options: .activateIgnoringOtherApps)
-                    return
-                }
-            }
-        }
-
-        // 3. Last resort: operate directly on the element under the cursor.
-        if let window = service.getWindow(for: element), service.isWindowMinimized(window) {
-            _ = service.unminimizeWindow(window)
-            app?.activate(options: .activateIgnoringOtherApps)
-        }
-    }
-}
-
 // MARK: - Tiling Actions
 
 struct FullscreenWindowAction: ShortcutAction {
