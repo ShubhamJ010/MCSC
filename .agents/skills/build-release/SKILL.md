@@ -27,13 +27,14 @@ Build a code-signed Release archive of the MCSC app and install it into `/Applic
 
 This skill ships with ready-to-run scripts in `scripts/`. Use them instead of typing the commands manually:
 
-- **`scripts/build-release.sh`** — does everything in one go (resolve identity → archive → install → verify → launch).
+- **`scripts/build-release.sh`** — does everything in one go (clean uninstall + TCC reset → resolve identity → archive → install → verify → launch).
   ```bash
   # from the skill's scripts dir, or anywhere
   bash .agents/skills/build-release/scripts/build-release.sh
   # or with an explicit identity:
   bash .agents/skills/build-release/scripts/build-release.sh "Apple Development: you@icloud.com (XXXX)"
   ```
+  Before building, the script **quits and removes any existing `/Applications/MCSC.app` and runs `tccutil reset Accessibility <bundle-id>`** so the freshly built binary starts with a clean Accessibility permission state and re-prompts on first launch. The bundle ID is read dynamically from `Info.plist`.
   If `/Applications` is not writable by the current user, the install step will prompt for `sudo`.
 
 - **`scripts/verify.sh`** — re-checks the installed app's signature and architecture:
@@ -44,6 +45,17 @@ This skill ships with ready-to-run scripts in `scripts/`. Use them instead of ty
 Both scripts are marked executable. The `build-release.sh` auto-detects the first valid `Apple Development` identity when none is passed.
 
 ## Manual Steps (if running commands by hand)
+
+0. **Clean uninstall & reset Accessibility permission** (so the new build starts fresh):
+   ```bash
+   # Quit and remove the installed app
+   osascript -e 'tell application "MCSC" to quit' 2>/dev/null || true
+   pkill -f "/Applications/MCSC.app/Contents/MacOS/MCSC" 2>/dev/null || true
+   sudo rm -rf /Applications/MCSC.app
+   # Reset the Accessibility (TCC) grant for this bundle id
+   tccutil reset Accessibility sj010.MCSC
+   ```
+   The bundle ID is read from `Info.plist` (`CFBundleIdentifier`) — do not hardcode.
 
 1. **Resolve the signing identity** (if not already known):
    ```bash
