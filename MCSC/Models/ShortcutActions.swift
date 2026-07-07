@@ -86,6 +86,58 @@ struct CloseAppAction {
     }
 }
 
+struct CloseTabAction: ShortcutAction {
+    func perform(at point: CGPoint, service: AccessibilityServiceProtocol) {
+        guard let element = service.getElement(at: point),
+              let window = service.getWindow(for: element) else { return }
+
+        if let closeBtn = service.findActiveTabCloseButton(in: window) {
+            _ = service.performAction(kAXPressAction, on: closeBtn)
+            return
+        }
+
+        var pid: pid_t = 0
+        guard AXUIElementGetPid(element, &pid) == .success else { return }
+        postCmdW(to: pid)
+    }
+
+    private func postCmdW(to pid: pid_t) {
+        let source = CGEventSource(stateID: .hidSystemState)
+        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 0x0D, keyDown: true)
+        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 0x0D, keyDown: false)
+        keyDown?.flags = .maskCommand
+        keyUp?.flags = .maskCommand
+        keyDown?.postToPid(pid)
+        keyUp?.postToPid(pid)
+    }
+}
+
+struct CloseTabAppAction {
+    func perform(app: NSRunningApplication, service: AccessibilityServiceProtocol) {
+        let appElement = AXUIElementCreateApplication(app.processIdentifier)
+
+        var windows: CFTypeRef?
+        AXUIElementCopyAttributeValue(appElement, kAXWindowsAttribute as CFString, &windows)
+
+        if let windowList = windows as? [AXUIElement], !windowList.isEmpty {
+            for window in windowList {
+                if let closeBtn = service.findActiveTabCloseButton(in: window) {
+                    _ = service.performAction(kAXPressAction, on: closeBtn)
+                    return
+                }
+            }
+        }
+
+        let source = CGEventSource(stateID: .hidSystemState)
+        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 0x0D, keyDown: true)
+        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 0x0D, keyDown: false)
+        keyDown?.flags = .maskCommand
+        keyUp?.flags = .maskCommand
+        keyDown?.postToPid(app.processIdentifier)
+        keyUp?.postToPid(app.processIdentifier)
+    }
+}
+
 struct MinimizeAppAction {
     func perform(app: NSRunningApplication, service: AccessibilityServiceProtocol) {
         let appElement = AXUIElementCreateApplication(app.processIdentifier)
@@ -107,6 +159,67 @@ struct ForceQuitAppAction {
     func perform(app: NSRunningApplication) {
         if app.processIdentifier != NSRunningApplication.current.processIdentifier {
             app.forceTerminate()
+        }
+    }
+}
+
+struct ReopenTabAction: ShortcutAction {
+    func perform(at point: CGPoint, service: AccessibilityServiceProtocol) {
+        guard let element = service.getElement(at: point) else { return }
+
+        var pid: pid_t = 0
+        guard AXUIElementGetPid(element, &pid) == .success else { return }
+        postCmdShiftT(to: pid)
+    }
+
+    private func postCmdShiftT(to pid: pid_t) {
+        let source = CGEventSource(stateID: .hidSystemState)
+        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 0x11, keyDown: true)
+        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 0x11, keyDown: false)
+        keyDown?.flags = [.maskCommand, .maskShift]
+        keyUp?.flags = [.maskCommand, .maskShift]
+        keyDown?.postToPid(pid)
+        keyUp?.postToPid(pid)
+    }
+}
+
+struct ReopenTabAppAction {
+    func perform(app: NSRunningApplication) {
+        let source = CGEventSource(stateID: .hidSystemState)
+        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 0x11, keyDown: true)
+        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 0x11, keyDown: false)
+        keyDown?.flags = [.maskCommand, .maskShift]
+        keyUp?.flags = [.maskCommand, .maskShift]
+        keyDown?.postToPid(app.processIdentifier)
+        keyUp?.postToPid(app.processIdentifier)
+    }
+}
+
+// MARK: - Fallback Actions
+
+/// Unminimizes a window if it's minimized, or unhides an app if it's hidden.
+/// Used as a fallback when the primary action (e.g. fullscreen) cannot be performed
+/// because the app is minimized or hidden.
+struct UnminimizeUnhideWindowAction: ShortcutAction {
+    func perform(at point: CGPoint, service: AccessibilityServiceProtocol) {
+        guard let element = service.getElement(at: point) else { return }
+        let app = service.getAppFromElement(element)
+
+        // 1. Try to unminimize: get the window and check if minimized
+        if let window = service.getWindow(for: element) {
+            if service.isWindowMinimized(window) {
+                _ = service.unminimizeWindow(window)
+                // Bring the app to front
+                app?.activate(options: .activateIgnoringOtherApps)
+                return
+            }
+        }
+
+        // 2. If the app is hidden, unhide it
+        if let app = app, app.isHidden {
+            app.unhide()
+            app.activate(options: .activateIgnoringOtherApps)
+            return
         }
     }
 }

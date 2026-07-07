@@ -4,12 +4,18 @@ import Foundation
 enum GestureResult {
     case pinchIn(atNormalized: (Float, Float))
     case cmdPinchIn(atNormalized: (Float, Float))
+    case swipeLeft(atNormalized: (Float, Float))
+    case cmdSwipeLeft(atNormalized: (Float, Float))
+    case swipeRight(atNormalized: (Float, Float))
+    case cmdSwipeRight(atNormalized: (Float, Float))
     case swipeDown(atNormalized: (Float, Float))
     case cmdSwipeDown(atNormalized: (Float, Float))
     case swipeUp(atNormalized: (Float, Float))
     case cmdSwipeUp(atNormalized: (Float, Float))
     case threeFingerDoubleTap
     case cmdThreeFingerDoubleTap
+    case twoFingerDoubleTap
+    case cmdTwoFingerDoubleTap
 }
 
 /// Protocol that all gesture recognizers must conform to.

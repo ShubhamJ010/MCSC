@@ -9,14 +9,19 @@ class ShortcutViewModel {
     private lazy var gestureEngine = GestureEngine()
     
     private let closeAction = CloseWindowAction()
+    private let closeTabAction = CloseTabAction()
+    private let closeTabAppAction = CloseTabAppAction()
+    private let reopenTabAction = ReopenTabAction()
+    private let reopenTabAppAction = ReopenTabAppAction()
+    private let closeAppAction = CloseAppAction()
     private let minimizeAction = MinimizeWindowAction()
     private let maximizeAction = MaximizeWindowAction()
     private let hideAction = HideApplicationAction()
     private let forceQuitAction = ForceQuitAction()
-    private let closeAppAction = CloseAppAction()
     private let minimizeAppAction = MinimizeAppAction()
     private let forceQuitAppAction = ForceQuitAppAction()
     private let fullscreenAction = FullscreenWindowAction()
+    private let unminimizeUnhideAction = UnminimizeUnhideWindowAction()
     private let reasonableSizeAction = ReasonableSizeAction()
     private let almostMaximizeAction = AlmostMaximizeAction()
     
@@ -35,10 +40,12 @@ class ShortcutViewModel {
     var isCmdFEnabled = false
     var isCmdSpaceEnabled = true
     var isGesturesEnabled = true
-    var isPinchInEnabled = true
+    var isSwipeLeftEnabled = true
+    var isSwipeRightEnabled = true
     var isSwipeDownEnabled = true
     var isSwipeUpEnabled = true
     var isThreeFingerDoubleTapEnabled = true
+    var isTwoFingerDoubleTapEnabled = true
 
     /// Prevents gestures from firing right after Mission Control opens via 3-finger swipe.
     private var isCoolingDown = false
@@ -96,9 +103,9 @@ class ShortcutViewModel {
 
                     if keyCode == self.kKeyW && self.isCmdWEnabled {
                         if let app = app {
-                            self.closeAppAction.perform(app: app, service: self.accessibilityService)
+                            self.closeTabAppAction.perform(app: app, service: self.accessibilityService)
                         } else {
-                            self.closeAction.perform(at: location, service: self.accessibilityService)
+                            self.closeTabAction.perform(at: location, service: self.accessibilityService)
                         }
                         return true
                     } else if keyCode == self.kKeyQ && self.isCmdQEnabled {
@@ -130,12 +137,19 @@ class ShortcutViewModel {
         }
         
         // Register gesture recognizers
-        let pinchRecognizer = PinchInRecognizer()
-        pinchRecognizer.isCmdHeld = {
+        let swipeLeftRecognizer = TwoFingerSwipeLeftRecognizer()
+        swipeLeftRecognizer.isCmdHeld = {
             NSEvent.modifierFlags.contains(.command)
         }
-        pinchRecognizer.isEnabled = { [weak self] in self?.isPinchInEnabled ?? false }
-        gestureEngine.register(pinchRecognizer)
+        swipeLeftRecognizer.isEnabled = { [weak self] in self?.isSwipeLeftEnabled ?? false }
+        gestureEngine.register(swipeLeftRecognizer)
+
+        let swipeRightRecognizer = TwoFingerSwipeRightRecognizer()
+        swipeRightRecognizer.isCmdHeld = {
+            NSEvent.modifierFlags.contains(.command)
+        }
+        swipeRightRecognizer.isEnabled = { [weak self] in self?.isSwipeRightEnabled ?? false }
+        gestureEngine.register(swipeRightRecognizer)
 
         let swipeRecognizer = SwipeRecognizer()
         swipeRecognizer.isCmdHeld = {
@@ -149,12 +163,12 @@ class ShortcutViewModel {
         swipeRecognizer.isSwipeUpEnabled = { [weak self] in self?.isSwipeUpEnabled ?? false }
         gestureEngine.register(swipeRecognizer)
 
-        let threeFingerTapRecognizer = ThreeFingerDoubleTapRecognizer()
-        threeFingerTapRecognizer.isCmdHeld = {
+        let twoFingerTapRecognizer = TwoFingerDoubleTapRecognizer()
+        twoFingerTapRecognizer.isCmdHeld = {
             NSEvent.modifierFlags.contains(.command)
         }
-        threeFingerTapRecognizer.isEnabled = { [weak self] in self?.isThreeFingerDoubleTapEnabled ?? false }
-        gestureEngine.register(threeFingerTapRecognizer)
+        twoFingerTapRecognizer.isEnabled = { [weak self] in self?.isTwoFingerDoubleTapEnabled ?? false }
+        gestureEngine.register(twoFingerTapRecognizer)
         
         // MultitouchService -> GestureEngine
         multitouchService.onFrame = { [weak self] touches, timestamp in
@@ -171,17 +185,43 @@ class ShortcutViewModel {
             switch result {
             case .pinchIn:
                 guard let mouseLocation = CGEvent(source: nil)?.location else { return }
+
+                let element = self.accessibilityService.getElement(at: mouseLocation)
+                let isDock = element.map { self.accessibilityService.isDockItem($0) } ?? false
+                let app = isDock ? element.flatMap { self.accessibilityService.getAppFromDockItem($0) } : nil
+
+                if let app = app {
+                    self.closeAppAction.perform(app: app, service: self.accessibilityService)
+                } else {
+                    self.closeAction.perform(at: mouseLocation, service: self.accessibilityService)
+                }
+
+            case .cmdPinchIn:
+                guard let mouseLocation = CGEvent(source: nil)?.location else { return }
+
+                let element = self.accessibilityService.getElement(at: mouseLocation)
+                let isDock = element.map { self.accessibilityService.isDockItem($0) } ?? false
+                let app = isDock ? element.flatMap { self.accessibilityService.getAppFromDockItem($0) } : nil
+
+                if let app = app {
+                    self.forceQuitAppAction.perform(app: app)
+                } else {
+                    self.forceQuitAction.perform(at: mouseLocation, service: self.accessibilityService)
+                }
+
+            case .swipeLeft:
+                guard let mouseLocation = CGEvent(source: nil)?.location else { return }
                 
                 let element = self.accessibilityService.getElement(at: mouseLocation)
                 let isDock = element.map { self.accessibilityService.isDockItem($0) } ?? false
                 let app = isDock ? element.flatMap { self.accessibilityService.getAppFromDockItem($0) } : nil
                 
                 if let app = app {
-                    self.closeAppAction.perform(app: app, service: self.accessibilityService)
+                    self.closeTabAppAction.perform(app: app, service: self.accessibilityService)
                 } else {
-                    self.closeAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    self.closeTabAction.perform(at: mouseLocation, service: self.accessibilityService)
                 }
-            case .cmdPinchIn:
+            case .cmdSwipeLeft:
                 guard let mouseLocation = CGEvent(source: nil)?.location else { return }
                 
                 let element = self.accessibilityService.getElement(at: mouseLocation)
@@ -194,13 +234,39 @@ class ShortcutViewModel {
                     self.forceQuitAction.perform(at: mouseLocation, service: self.accessibilityService)
                 }
 
+            case .swipeRight:
+                guard let mouseLocation = CGEvent(source: nil)?.location else { return }
+
+                let element = self.accessibilityService.getElement(at: mouseLocation)
+                let isDock = element.map { self.accessibilityService.isDockItem($0) } ?? false
+                let app = isDock ? element.flatMap { self.accessibilityService.getAppFromDockItem($0) } : nil
+
+                if let app = app {
+                    self.reopenTabAppAction.perform(app: app)
+                } else {
+                    self.reopenTabAction.perform(at: mouseLocation, service: self.accessibilityService)
+                }
+
+            case .cmdSwipeRight:
+                guard let mouseLocation = CGEvent(source: nil)?.location else { return }
+
+                let element = self.accessibilityService.getElement(at: mouseLocation)
+                let isDock = element.map { self.accessibilityService.isDockItem($0) } ?? false
+                let app = isDock ? element.flatMap { self.accessibilityService.getAppFromDockItem($0) } : nil
+
+                if let app = app {
+                    self.reopenTabAppAction.perform(app: app)
+                } else {
+                    self.reopenTabAction.perform(at: mouseLocation, service: self.accessibilityService)
+                }
+
             case .swipeDown:
                 guard let mouseLocation = CGEvent(source: nil)?.location else { return }
-                self.fullscreenAction.perform(at: mouseLocation, service: self.accessibilityService)
+                self.performSwipeDownFallback(at: mouseLocation)
 
             case .cmdSwipeDown:
                 guard let mouseLocation = CGEvent(source: nil)?.location else { return }
-                self.fullscreenAction.perform(at: mouseLocation, service: self.accessibilityService)
+                self.performSwipeDownFallback(at: mouseLocation)
 
             case .swipeUp:
                 guard let mouseLocation = CGEvent(source: nil)?.location else { return }
@@ -224,17 +290,44 @@ class ShortcutViewModel {
                     self.hideAction.perform(at: mouseLocation, service: self.accessibilityService)
                 }
 
-            case .threeFingerDoubleTap:
+            case .twoFingerDoubleTap:
                 guard let mouseLocation = CGEvent(source: nil)?.location else { return }
                 self.reasonableSizeAction.perform(at: mouseLocation, service: self.accessibilityService)
 
-            case .cmdThreeFingerDoubleTap:
+            case .cmdTwoFingerDoubleTap:
                 guard let mouseLocation = CGEvent(source: nil)?.location else { return }
                 self.almostMaximizeAction.perform(at: mouseLocation, service: self.accessibilityService)
+
+            case .threeFingerDoubleTap, .cmdThreeFingerDoubleTap:
+                // Kept for backward compatibility; no longer used in resize flow
+                break
             }
         }
     }
     
+    /// Determines whether the app/window under the cursor is minimized or hidden.
+    /// If so, unminimizes/unhides it as a fallback. Otherwise, performs the fullscreen action.
+    private func performSwipeDownFallback(at point: CGPoint) {
+        guard let element = accessibilityService.getElement(at: point) else { return }
+
+        // Check if the element belongs to a minimized window
+        if let window = accessibilityService.getWindow(for: element) {
+            if accessibilityService.isWindowMinimized(window) {
+                unminimizeUnhideAction.perform(at: point, service: accessibilityService)
+                return
+            }
+        }
+
+        // Check if the app is hidden
+        if let app = accessibilityService.getAppFromElement(element), app.isHidden {
+            unminimizeUnhideAction.perform(at: point, service: accessibilityService)
+            return
+        }
+
+        // Default: perform the configured fullscreen action
+        fullscreenAction.perform(at: point, service: accessibilityService)
+    }
+
     func start() {
         eventTapService.start()
         missionControlService.start()

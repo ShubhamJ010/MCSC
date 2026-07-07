@@ -96,9 +96,9 @@ class PinchInRecognizer: GestureRecognizer {
                     state = .cooldown(until: timestamp + config.cooldownDuration)
                     let cmdHeld = isCmdHeld?() ?? false
                     if cmdHeld {
-                        return .cmdPinchIn(atNormalized: center)
+                        return .cmdSwipeLeft(atNormalized: center)
                     }
-                    return .pinchIn(atNormalized: center)
+                    return .swipeLeft(atNormalized: center)
                 } else {
                     state = .tracking(
                         finger1ID: f1ID, finger2ID: f2ID,

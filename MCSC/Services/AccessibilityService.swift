@@ -9,6 +9,10 @@ protocol AccessibilityServiceProtocol {
     func setFrame(_ frame: CGRect, for element: AXUIElement) -> Bool
     func isDockItem(_ element: AXUIElement) -> Bool
     func getAppFromDockItem(_ element: AXUIElement) -> NSRunningApplication?
+    func findActiveTabCloseButton(in window: AXUIElement) -> AXUIElement?
+    func getAppFromElement(_ element: AXUIElement) -> NSRunningApplication?
+    func isWindowMinimized(_ window: AXUIElement) -> Bool
+    func unminimizeWindow(_ window: AXUIElement) -> Bool
 }
 
 class AccessibilityService: AccessibilityServiceProtocol {
@@ -66,6 +70,57 @@ class AccessibilityService: AccessibilityServiceProtocol {
 
         let runningApps = NSWorkspace.shared.runningApplications
         return runningApps.first { $0.localizedName == title }
+    }
+
+    func findActiveTabCloseButton(in window: AXUIElement) -> AXUIElement? {
+        guard let children: [AXUIElement] = getAttributeValue(kAXChildrenAttribute, for: window) else {
+            print("[MCSC] findActiveTabCloseButton: no children on window")
+            return nil
+        }
+        for child in children {
+            guard let role: String = getAttributeValue(kAXRoleAttribute, for: child),
+                  role == "AXTabGroup" else { continue }
+            guard let tabs: [AXUIElement] = getAttributeValue(kAXChildrenAttribute, for: child) else {
+                continue
+            }
+            for tab in tabs {
+                guard let tabRole: String = getAttributeValue(kAXRoleAttribute, for: tab),
+                      tabRole == "AXRadioButton" else { continue }
+                let isSelected: Bool? = getAttributeValue(kAXValueAttribute, for: tab)
+                if isSelected == true {
+                    if let tabChildren: [AXUIElement] = getAttributeValue(kAXChildrenAttribute, for: tab) {
+                        for tabChild in tabChildren {
+                            if let childRole: String = getAttributeValue(kAXRoleAttribute, for: tabChild),
+                               childRole == "AXButton" {
+                                return tabChild
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return nil
+    }
+
+    func getAppFromElement(_ element: AXUIElement) -> NSRunningApplication? {
+        var pid: pid_t = 0
+        let result = AXUIElementGetPid(element, &pid)
+        guard result == .success else { return nil }
+        return NSRunningApplication(processIdentifier: pid)
+    }
+
+    func isWindowMinimized(_ window: AXUIElement) -> Bool {
+        guard let minimized: Bool = getAttributeValue(kAXMinimizedAttribute, for: window) else {
+            return false
+        }
+        return minimized
+    }
+
+    func unminimizeWindow(_ window: AXUIElement) -> Bool {
+        // Set minimized attribute to false to unminimize
+        let value: CFTypeRef = kCFBooleanFalse
+        let result = AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, value)
+        return result == .success
     }
 
     func setFrame(_ frame: CGRect, for element: AXUIElement) -> Bool {
