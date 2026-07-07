@@ -91,14 +91,14 @@ class TwoFingerDoubleTapRecognizer: GestureRecognizer {
         state = .idle
     }
 
-    // MARK: - Haptic
-
     private func fireHaptic() {
-        DispatchQueue.main.async {
-            NSHapticFeedbackManager.defaultPerformer.perform(
-                .levelChange,
-                performanceTime: .now
-            )
+        let performer = NSHapticFeedbackManager.defaultPerformer
+        performer.perform(.alignment, performanceTime: .now)
+        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.03) {
+            performer.perform(.alignment, performanceTime: .now)
+        }
+        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.06) {
+            performer.perform(.alignment, performanceTime: .now)
         }
     }
 }

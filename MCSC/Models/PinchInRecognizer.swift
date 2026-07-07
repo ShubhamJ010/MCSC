@@ -131,11 +131,10 @@ class PinchInRecognizer: GestureRecognizer {
 
     /// Fires a subtle haptic "tick" to confirm the pinch threshold was reached.
     private func fireHaptic() {
-        DispatchQueue.main.async {
-            NSHapticFeedbackManager.defaultPerformer.perform(
-                .levelChange,
-                performanceTime: .now
-            )
+        let performer = NSHapticFeedbackManager.defaultPerformer
+        performer.perform(.levelChange, performanceTime: .now)
+        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.08) {
+            performer.perform(.levelChange, performanceTime: .now)
         }
     }
 

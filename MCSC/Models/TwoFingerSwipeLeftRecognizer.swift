@@ -17,6 +17,10 @@ class TwoFingerSwipeLeftRecognizer: GestureRecognizer {
 
         /// Cooldown after a successful gesture.
         var cooldownDuration: Double = 0.8
+
+        /// Dead zone for tap/slide discrimination. Movement within this zone
+        /// does not commit to swipe, leaving the result to tap recognizers.
+        var tapSlideZone: Float = 0.04
     }
 
     var config = Config()
@@ -37,6 +41,7 @@ class TwoFingerSwipeLeftRecognizer: GestureRecognizer {
             finger2ID: Int32,
             startMidX: Float,
             startMidY: Float,
+            startedMoving: Bool,
             startTime: Double
         )
 
@@ -61,12 +66,13 @@ class TwoFingerSwipeLeftRecognizer: GestureRecognizer {
                     finger2ID: touches[1].identifier,
                     startMidX: midX,
                     startMidY: midY,
+                    startedMoving: false,
                     startTime: timestamp
                 )
             }
             return nil
 
-        case .tracking(let f1ID, let f2ID, let startMidX, let startMidY, let startTime):
+        case .tracking(let f1ID, let f2ID, let startMidX, let startMidY, let startedMoving, let startTime):
             if timestamp - startTime > config.maxGestureDuration {
                 state = .idle
                 return nil
@@ -84,6 +90,14 @@ class TwoFingerSwipeLeftRecognizer: GestureRecognizer {
             let currentMidY = (f1.normalizedY + f2.normalizedY) / 2.0
             let deltaX = currentMidX - startMidX
 
+            // Tap/slide discrimination: once movement exceeds tap-zone, commit
+            var committed = startedMoving
+            if !committed {
+                committed = abs(deltaX) > config.tapSlideZone
+            }
+
+            guard committed else { return nil }
+
             // Swipe left = deltaX is negative (moving toward lower X values)
             if deltaX <= -config.swipeThreshold {
                 let center: (Float, Float) = (currentMidX, currentMidY)
@@ -95,6 +109,13 @@ class TwoFingerSwipeLeftRecognizer: GestureRecognizer {
                 return cmdHeld ? .cmdSwipeLeft(atNormalized: center) : .swipeLeft(atNormalized: center)
             }
 
+            // Still tracking, but haven't crossed threshold yet
+            state = .tracking(
+                finger1ID: f1ID, finger2ID: f2ID,
+                startMidX: startMidX, startMidY: startMidY,
+                startedMoving: committed,
+                startTime: startTime
+            )
             return nil
 
         case .cooldown(let until):
@@ -113,10 +134,8 @@ class TwoFingerSwipeLeftRecognizer: GestureRecognizer {
 
     private func fireHaptic() {
         let performer = NSHapticFeedbackManager.defaultPerformer
-        DispatchQueue.main.async {
-            performer.perform(.alignment, performanceTime: .now)
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) {
+        performer.perform(.alignment, performanceTime: .now)
+        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.05) {
             performer.perform(.levelChange, performanceTime: .now)
         }
     }

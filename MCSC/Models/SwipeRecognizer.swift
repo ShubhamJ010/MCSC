@@ -17,6 +17,10 @@ class SwipeRecognizer: GestureRecognizer {
 
         /// Cooldown after a successful gesture.
         var cooldownDuration: Double = 0.8
+
+        /// Dead zone for tap/slide discrimination. Movement within this zone
+        /// does not commit to swipe, leaving the result to tap recognizers.
+        var tapSlideZone: Float = 0.04
     }
 
     var config = Config()
@@ -43,6 +47,7 @@ class SwipeRecognizer: GestureRecognizer {
             finger2ID: Int32,
             startMidY: Float,
             startMidX: Float,
+            startedMoving: Bool,
             startTime: Double
         )
 
@@ -67,12 +72,13 @@ class SwipeRecognizer: GestureRecognizer {
                     finger2ID: touches[1].identifier,
                     startMidY: midY,
                     startMidX: midX,
+                    startedMoving: false,
                     startTime: timestamp
                 )
             }
             return nil
 
-        case .tracking(let f1ID, let f2ID, let startMidY, let startMidX, let startTime):
+        case .tracking(let f1ID, let f2ID, let startMidY, let startMidX, let startedMoving, let startTime):
             if timestamp - startTime > config.maxGestureDuration {
                 state = .idle
                 return nil
@@ -90,19 +96,30 @@ class SwipeRecognizer: GestureRecognizer {
             let currentMidX = (f1.normalizedX + f2.normalizedX) / 2.0
             let deltaY = currentMidY - startMidY
 
+            // Tap/slide discrimination: once movement exceeds tap-zone, commit
+            var committed = startedMoving
+            if !committed {
+                committed = abs(deltaY) > config.tapSlideZone
+            }
+
+            guard committed else { return nil }
+
             if abs(deltaY) >= config.swipeThreshold {
                 let center: (Float, Float) = (currentMidX, currentMidY)
                 let cmdHeld = isCmdHeld?() ?? false
                 let goingDown = deltaY > 0
 
-                // Check if this direction is enabled
                 let directionEnabled = goingDown ? (isSwipeDownEnabled?() ?? true) : (isSwipeUpEnabled?() ?? true)
                 guard directionEnabled else {
                     state = .cooldown(until: timestamp + config.cooldownDuration)
                     return nil
                 }
 
-                fireHaptic()
+                if goingDown {
+                    fireHapticDown()
+                } else {
+                    fireHapticUp()
+                }
                 state = .cooldown(until: timestamp + config.cooldownDuration)
 
                 if goingDown {
@@ -112,7 +129,12 @@ class SwipeRecognizer: GestureRecognizer {
                 }
             }
 
-            // Still tracking — update nothing, just keep waiting for threshold
+            state = .tracking(
+                finger1ID: f1ID, finger2ID: f2ID,
+                startMidY: startMidY, startMidX: startMidX,
+                startedMoving: committed,
+                startTime: startTime
+            )
             return nil
 
         case .cooldown(let until):
@@ -129,12 +151,18 @@ class SwipeRecognizer: GestureRecognizer {
 
     // MARK: - Haptic Feedback
 
-    private func fireHaptic() {
-        DispatchQueue.main.async {
-            NSHapticFeedbackManager.defaultPerformer.perform(
-                .levelChange,
-                performanceTime: .now
-            )
+    private func fireHapticDown() {
+        NSHapticFeedbackManager.defaultPerformer.perform(
+            .levelChange,
+            performanceTime: .now
+        )
+    }
+
+    private func fireHapticUp() {
+        let performer = NSHapticFeedbackManager.defaultPerformer
+        performer.perform(.alignment, performanceTime: .now)
+        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.07) {
+            performer.perform(.levelChange, performanceTime: .now)
         }
     }
 }

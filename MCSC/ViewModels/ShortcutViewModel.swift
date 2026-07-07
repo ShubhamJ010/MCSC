@@ -136,6 +136,18 @@ class ShortcutViewModel {
         }
         
         // Register gesture recognizers
+        // IMPORTANT: Tap recognizers must be registered BEFORE swipe recognizers.
+        // The GestureEngine processes recognizers in registration order, and the
+        // first recognizer to return a result wins. Taps need priority to prevent
+        // swipe recognizers from accidentally firing during double-tap gestures.
+
+        let twoFingerTapRecognizer = TwoFingerDoubleTapRecognizer()
+        twoFingerTapRecognizer.isCmdHeld = {
+            NSEvent.modifierFlags.contains(.command)
+        }
+        twoFingerTapRecognizer.isEnabled = { [weak self] in self?.isTwoFingerDoubleTapEnabled ?? false }
+        gestureEngine.register(twoFingerTapRecognizer)
+
         let swipeLeftRecognizer = TwoFingerSwipeLeftRecognizer()
         swipeLeftRecognizer.isCmdHeld = {
             NSEvent.modifierFlags.contains(.command)
@@ -161,13 +173,6 @@ class ShortcutViewModel {
         swipeRecognizer.isSwipeDownEnabled = { [weak self] in self?.isSwipeDownEnabled ?? false }
         swipeRecognizer.isSwipeUpEnabled = { [weak self] in self?.isSwipeUpEnabled ?? false }
         gestureEngine.register(swipeRecognizer)
-
-        let twoFingerTapRecognizer = TwoFingerDoubleTapRecognizer()
-        twoFingerTapRecognizer.isCmdHeld = {
-            NSEvent.modifierFlags.contains(.command)
-        }
-        twoFingerTapRecognizer.isEnabled = { [weak self] in self?.isTwoFingerDoubleTapEnabled ?? false }
-        gestureEngine.register(twoFingerTapRecognizer)
         
         // MultitouchService -> GestureEngine
         multitouchService.onFrame = { [weak self] touches, timestamp in

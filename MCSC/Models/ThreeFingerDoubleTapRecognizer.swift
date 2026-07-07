@@ -91,12 +91,10 @@ class ThreeFingerDoubleTapRecognizer: GestureRecognizer {
         state = .idle
     }
 
-    // MARK: - Haptic
-
     private func fireHaptic() {
         DispatchQueue.main.async {
             NSHapticFeedbackManager.defaultPerformer.perform(
-                .levelChange,
+                .generic,
                 performanceTime: .now
             )
         }
