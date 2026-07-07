@@ -30,12 +30,32 @@ protocol GestureRecognizer: AnyObject {
 class GestureEngine {
     private var recognizers: [GestureRecognizer] = []
     var onGestureRecognized: ((GestureResult) -> Void)?
+    private var poisoned = false
 
     func register(_ recognizer: GestureRecognizer) {
         recognizers.append(recognizer)
     }
 
     func processFrame(_ touches: [TouchPoint], timestamp: Double) {
+        // If 3+ fingers appear at ANY point, poison the cycle.
+        // All recognizers are reset immediately, and no further
+        // frames are forwarded until every finger is lifted.
+        if touches.count >= 3 {
+            if !poisoned {
+                poisoned = true
+                recognizers.forEach { $0.reset() }
+            }
+            return
+        }
+
+        // Un-poison only when ALL fingers are lifted
+        if poisoned {
+            if touches.count == 0 {
+                poisoned = false
+            }
+            return
+        }
+
         for recognizer in recognizers {
             if let result = recognizer.processFrame(touches, timestamp: timestamp) {
                 onGestureRecognized?(result)
@@ -47,11 +67,13 @@ class GestureEngine {
     }
 
     func reset() {
+        poisoned = false
         recognizers.forEach { $0.reset() }
     }
 
     func removeAll() {
         recognizers.removeAll()
         onGestureRecognized = nil
+        poisoned = false
     }
 }
