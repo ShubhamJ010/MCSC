@@ -43,7 +43,6 @@ class ShortcutViewModel {
     var isSwipeRightEnabled = true
     var isSwipeDownEnabled = true
     var isSwipeUpEnabled = true
-    var isThreeFingerDoubleTapEnabled = true
     var isTwoFingerDoubleTapEnabled = true
 
     /// Prevents gestures from firing right after Mission Control opens via 3-finger swipe.
@@ -301,10 +300,6 @@ class ShortcutViewModel {
             case .cmdTwoFingerDoubleTap:
                 guard let mouseLocation = CGEvent(source: nil)?.location else { return }
                 self.almostMaximizeAction.perform(at: mouseLocation, service: self.accessibilityService)
-
-            case .threeFingerDoubleTap, .cmdThreeFingerDoubleTap:
-                // Kept for backward compatibility; no longer used in resize flow
-                break
             }
         }
     }

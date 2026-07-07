@@ -12,8 +12,6 @@ enum GestureResult {
     case cmdSwipeDown(atNormalized: (Float, Float))
     case swipeUp(atNormalized: (Float, Float))
     case cmdSwipeUp(atNormalized: (Float, Float))
-    case threeFingerDoubleTap
-    case cmdThreeFingerDoubleTap
     case twoFingerDoubleTap
     case cmdTwoFingerDoubleTap
 }
