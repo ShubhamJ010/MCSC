@@ -1,5 +1,18 @@
 # Changelog
 
+## 07 Jul 2026
+
+- **GestureRecognizer.swift**: Added three-finger touch rejection so two-finger gestures are not triggered by three-finger input.
+- **TwoFingerSwipeLeftRecognizer.swift / TwoFingerSwipeRightRecognizer.swift**: Expanded swipe recognition with a tap-slide dead zone and directional haptic feedback; reworked state machine for more reliable left/right detection.
+- **SwipeRecognizer.swift**: Added tap-slide dead zone handling and per-direction haptic triggers.
+- **TwoFingerDoubleTapRecognizer.swift**: Simplified haptic logic and aligned recognition with the new dead-zone behavior.
+- **PinchInRecognizer.swift**: Tuned threshold handling to match the updated gesture model.
+- **ShortcutViewModel.swift**: Integrated swipe left/right and refined gesture routing; removed three-finger double tap wiring and unused window fallback handling.
+- **ShortcutActions.swift**: Removed unused window unminimize/unhide fallback actions.
+- **AccessibilityService.swift**: Removed dead fallback paths no longer used by shortcut actions.
+- **ThreeFingerDoubleTapRecognizer.swift**: Removed (gesture support dropped).
+- **build-release skill**: Added user-invokable release skill (`.agents/skills/build-release`) with build and verification scripts.
+
 ## 05 Jul 2026
 
 - **main.swift**: Fixed Swift 6 MainActor isolation error by wrapping delegate init in `MainActor.assumeIsolated`.
