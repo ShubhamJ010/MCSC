@@ -116,10 +116,10 @@ class AccessibilityService: AccessibilityServiceProtocol {
         return minimized
     }
 
+    /// Reliably raises (unminimizes + brings to front) a window using the
+    /// `kAXRaiseAction` AX action, which is the supported way to unminimize a window.
     func unminimizeWindow(_ window: AXUIElement) -> Bool {
-        // Set minimized attribute to false to unminimize
-        let value: CFTypeRef = kCFBooleanFalse
-        let result = AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, value)
+        let result = AXUIElementPerformAction(window, kAXRaiseAction as CFString)
         return result == .success
     }
 

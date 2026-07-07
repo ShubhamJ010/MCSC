@@ -307,24 +307,32 @@ class ShortcutViewModel {
     
     /// Determines whether the app/window under the cursor is minimized or hidden.
     /// If so, unminimizes/unhides it as a fallback. Otherwise, performs the fullscreen action.
+    /// Works in the Mission Control context where the cursor sits over a window thumbnail.
     private func performSwipeDownFallback(at point: CGPoint) {
         guard let element = accessibilityService.getElement(at: point) else { return }
+        let app = accessibilityService.getAppFromElement(element)
 
-        // Check if the element belongs to a minimized window
-        if let window = accessibilityService.getWindow(for: element) {
-            if accessibilityService.isWindowMinimized(window) {
-                unminimizeUnhideAction.perform(at: point, service: accessibilityService)
-                return
+        let isHidden = app?.isHidden ?? false
+
+        // Check whether the app has any minimized window (works in Mission Control,
+        // where the element under the cursor is a thumbnail, not the real window).
+        var hasMinimizedWindow = false
+        if let app = app {
+            let appElement = AXUIElementCreateApplication(app.processIdentifier)
+            var windows: CFTypeRef?
+            AXUIElementCopyAttributeValue(appElement, kAXWindowsAttribute as CFString, &windows)
+            if let windowList = windows as? [AXUIElement] {
+                hasMinimizedWindow = windowList.contains { accessibilityService.isWindowMinimized($0) }
             }
         }
 
-        // Check if the app is hidden
-        if let app = accessibilityService.getAppFromElement(element), app.isHidden {
+        // Fallback: the app is minimized or hidden — unminimize / unhide instead of fullscreen.
+        if isHidden || hasMinimizedWindow {
             unminimizeUnhideAction.perform(at: point, service: accessibilityService)
             return
         }
 
-        // Default: perform the configured fullscreen action
+        // Default: the window is on-screen and normal — perform the configured fullscreen action.
         fullscreenAction.perform(at: point, service: accessibilityService)
     }
 
