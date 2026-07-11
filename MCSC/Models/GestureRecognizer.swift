@@ -31,12 +31,27 @@ class GestureEngine {
     private var recognizers: [GestureRecognizer] = []
     var onGestureRecognized: ((GestureResult) -> Void)?
     private var poisoned = false
+    /// Set after a gesture fires; frames are ignored until all fingers lift,
+    /// so each gesture triggers once per finger-lift rather than on continuous
+    /// motion (e.g. repeatedly swiping up without lifting).
+    private var awaitingLift = false
 
     func register(_ recognizer: GestureRecognizer) {
         recognizers.append(recognizer)
     }
 
     func processFrame(_ touches: [TouchPoint], timestamp: Double) {
+        // After a gesture fires, ignore frames until every finger is lifted,
+        // so a gesture triggers only once per finger-lift instead of on
+        // continuous motion (e.g. repeatedly swiping up without lifting).
+        if awaitingLift {
+            if touches.count == 0 {
+                awaitingLift = false
+            } else {
+                return
+            }
+        }
+
         // If 3+ fingers appear at ANY point, poison the cycle.
         // All recognizers are reset immediately, and no further
         // frames are forwarded until every finger is lifted.
@@ -61,6 +76,8 @@ class GestureEngine {
                 onGestureRecognized?(result)
                 // Reset all recognizers after a gesture fires
                 recognizers.forEach { $0.reset() }
+                // Require a full finger lift before the next gesture can fire.
+                awaitingLift = true
                 break
             }
         }
@@ -68,6 +85,7 @@ class GestureEngine {
 
     func reset() {
         poisoned = false
+        awaitingLift = false
         recognizers.forEach { $0.reset() }
     }
 

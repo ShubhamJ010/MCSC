@@ -47,6 +47,23 @@ Supported actions:
 
 ---
 
+### Trackpad Gestures
+
+Two-finger and pinch gestures, also scoped to **Mission Control only**:
+
+| Gesture | Action |
+|---|---|
+| Two-finger swipe up | Hide / minimize active window |
+| Two-finger swipe down | Toggle fullscreen |
+| Two-finger swipe left | Close tab |
+| Two-finger swipe right | Reopen tab |
+| Pinch in | Close window / quit app |
+| Two-finger double tap | Reasonable size / almost maximize |
+
+Holding `Cmd` while gesturing maps to the force-quit / app-level variant of the
+same action. Each gesture fires **once per finger lift** — keeping fingers down
+and repeating the motion will not re-trigger it until you lift and touch again.
+
 ### Accessibility API Integration
 
 Uses `AXUIElement` directly to:
@@ -59,13 +76,22 @@ Uses `AXUIElement` directly to:
 
 ### Mission Control Monitoring
 
-Includes dedicated handling for:
-- Mission Control
-- Exposé
-- stuck UI states
-- failed transitions
+All gestures and `Cmd` shortcuts are scoped to **Mission Control only**. They
+fire while Mission Control is open and are deliberately suppressed in:
 
-MCSC can automatically attempt recovery sequences when macOS gets stuck during Mission Control interactions.
+- **Launchpad**
+- expanded **Finder folder stacks** in the Dock
+- the **normal desktop**
+
+Detection is performed by inspecting the Dock's window layers via
+`CGWindowListCopyWindowInfo` — Mission Control exposes a full-screen Dock overlay
+at layer 20 together with the Dock bar at layer ≤ 18, whereas Launchpad
+(layers 27–29) and Finder folder stacks (overlay only, no Dock bar) do not match
+this signature. The result is cached for 200ms to avoid polling on every
+trackpad frame.
+
+MCSC can also automatically attempt recovery sequences (`Cmd + Space`) when
+macOS gets stuck during Mission Control interactions.
 
 ---
 
@@ -105,8 +131,9 @@ MCSC uses a service-oriented architecture inspired by MVVM principles.
   - AX API communication
 
 - `MissionControlService`
-  - Mission Control state monitoring
-  - recovery handling
+  - Mission Control detection via Dock window-layer analysis (`CGWindowList`)
+  - scopes gestures & shortcuts to Mission Control only
+  - recovery handling (`Cmd + Space` fix sequence)
 
 - `LaunchAtLoginService`
   - startup integration using `SMAppService`

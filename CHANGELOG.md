@@ -1,5 +1,10 @@
 # Changelog
 
+## 11 Jul 2026
+
+- **MissionControlService.swift**: Fixed Mission Control detection so gestures and `Cmd` shortcuts fire **only** inside Mission Control. Detection now uses `CGWindowListCopyWindowInfo` Dock window-layer analysis — Mission Control exposes a full-screen Dock overlay at layer 20 together with the Dock bar at layer ≤ 18; Launchpad (layers 27–29) and expanded Finder folder stacks (overlay only, no Dock bar) are correctly excluded. Replaced the previous always-on `Dock layer > 0` heuristic that fired everywhere. The result is cached for 200ms to avoid polling on every trackpad frame.
+- **GestureRecognizer.swift**: Added an "awaiting lift" guard to `GestureEngine` so a gesture fires only once per finger lift. Previously a gesture re-armed on the next frame and re-fired continuously while fingers were held down and moving; frames are now ignored until all fingers are lifted.
+
 ## 07 Jul 2026
 
 - **GestureRecognizer.swift**: Added three-finger touch rejection so two-finger gestures are not triggered by three-finger input.

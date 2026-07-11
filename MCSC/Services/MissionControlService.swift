@@ -14,7 +14,19 @@ class MissionControlService {
 
     // Maintain notification observers for cleanup
     private var observers: [NSObjectProtocol] = []
-    
+
+    // MARK: - Detection tuning (verified on macOS 15.7.3)
+    /// Layer of Mission Control's full-screen Dock overlay window.
+    private let missionControlOverlayLayer = 20
+    /// Mission Control also shows the Dock bar at/below this layer; a Finder
+    /// folder stack shows only the overlay and lacks this, so it is excluded.
+    private let dockBarLayerThreshold = 18
+
+    // MARK: - Cached detection (polled at most every 200ms)
+    private let detectionCacheInterval: Double = 0.2
+    private var cachedIsActive: Bool?
+    private var lastDetectionTime: Double = 0
+
     init() {
         start()
     }
@@ -54,32 +66,44 @@ class MissionControlService {
         observers.removeAll()
     }
     
+    /// Returns `true` only while Mission Control is open.
+    ///
+    /// Mission Control exposes an empty-named, full-screen Dock window at
+    /// `missionControlOverlayLayer` *and* the Dock bar itself (empty-named
+    /// windows at `dockBarLayerThreshold` or below). Launchpad uses higher
+    /// layers (27–29) and a Finder folder stack shows only the overlay without
+    /// the Dock bar, so both are excluded. The result is cached for
+    /// `detectionCacheInterval` to avoid polling the window list on every
+    /// trackpad frame.
     func checkMissionControlActive() -> Bool {
+        // Notification fast-path (rarely fires — MC notifications do not reach a
+        // standalone process on this macOS version).
         if _isMissionControlActive { return true }
-        
-        // Fallback check via window list
-        guard let windowList = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] else {
-            return false
+
+        let now = CACurrentMediaTime()
+        if now - lastDetectionTime < detectionCacheInterval, let cached = cachedIsActive {
+            return cached
         }
-        
-        for window in windowList {
-            let ownerName = window[kCGWindowOwnerName as String] as? String ?? ""
-            let name = window[kCGWindowName as String] as? String ?? ""
-            let layer = window[kCGWindowLayer as String] as? Int ?? 0
-            
-            if ownerName == "Dock" {
-                if let bounds = window[kCGWindowBounds as String] as? [String: Any],
-                   let y = bounds["Y"] as? CGFloat {
-                    if y == -1 || layer > 0 {
-                        return true
-                    }
-                }
-                if name == "Mission Control" || name == "Expose" {
-                    return true
+
+        // Collect the layers of all empty-named Dock windows.
+        var emptyNamedDockLayers: [Int] = []
+        if let windowList = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] {
+            for window in windowList {
+                guard (window[kCGWindowOwnerName as String] as? String) == "Dock" else { continue }
+                let name = window[kCGWindowName as String] as? String ?? ""
+                let layer = window[kCGWindowLayer as String] as? Int ?? 0
+                if name.isEmpty {
+                    emptyNamedDockLayers.append(layer)
                 }
             }
         }
-        return false
+
+        let isActive = emptyNamedDockLayers.contains(missionControlOverlayLayer)
+            && emptyNamedDockLayers.contains { $0 <= dockBarLayerThreshold }
+
+        cachedIsActive = isActive
+        lastDetectionTime = now
+        return isActive
     }
     
     func executeFixSequence() {
