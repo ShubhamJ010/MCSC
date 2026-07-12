@@ -6,16 +6,16 @@
 	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>sj010.MCSC</string>
-	<key>LSApplicationCategoryType</key>
-	<string>public.app-category.utilities</string>
 	<key>CFBundleName</key>
 	<string>$(PRODUCT_NAME)</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.2.1-beta</string>
+	<string>0.2.4-beta</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>2</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.utilities</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>15.7</string>
 	<key>LSUIElement</key>
