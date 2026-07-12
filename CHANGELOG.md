@@ -1,5 +1,9 @@
 # Changelog
 
+## 12 Jul 2026
+
+- **AccessibilityService.swift**: Fixed Dock gesture/shortcut resolution for non-native apps (Mac Catalyst, Electron). `isDockItem` and `getAppFromDockItem` now walk up to the nearest `AXDockItem` ancestor (hit element is often a badge/AXImage child) and resolve the running app by **bundle identifier** via the Dock item's `AXURL` first, falling back to a case/diacritic/whitespace-insensitive `AXTitle` match. Previously an exact `localizedName == AXTitle` equality caused `getAppFromDockItem` to return `nil` for these apps, silently degrading into a window lookup that found no window on a Dock icon — so `Cmd+W`/swipe/pinch over their Dock icons did nothing. Window-targeted actions are unaffected.
+
 ## 11 Jul 2026
 
 - **MissionControlService.swift**: Fixed Mission Control detection so gestures and `Cmd` shortcuts fire **only** inside Mission Control. Detection now uses `CGWindowListCopyWindowInfo` Dock window-layer analysis — Mission Control exposes a full-screen Dock overlay at layer 20 together with the Dock bar at layer ≤ 18; Launchpad (layers 27–29) and expanded Finder folder stacks (overlay only, no Dock bar) are correctly excluded. Replaced the previous always-on `Dock layer > 0` heuristic that fired everywhere. The result is cached for 200ms to avoid polling on every trackpad frame.

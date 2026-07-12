@@ -55,19 +55,62 @@ class AccessibilityService: AccessibilityServiceProtocol {
     }
 
     func isDockItem(_ element: AXUIElement) -> Bool {
-        var role: CFTypeRef?
-        let result = AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &role)
-        guard result == .success else { return false }
-        return (role as? String) == "AXDockItem"
+        // Walk up the AX hierarchy: the hit element over a Dock icon is often a
+        // child (badge / AXImage) rather than the AXDockItem itself, especially
+        // for non-native apps (Mac Catalyst, Electron). Resolve against the
+        // nearest Dock item ancestor instead of demanding the hit be one.
+        return dockItemAncestor(for: element) != nil
+    }
+
+    /// Returns the nearest `AXDockItem` at or above `element`, climbing the
+    /// parent chain up to a bounded depth. Returns `nil` if no Dock item is
+    /// found — it can never escape into a window or app element.
+    func dockItemAncestor(for element: AXUIElement) -> AXUIElement? {
+        var current: AXUIElement? = element
+        var depth = 0
+        while let el = current, depth < 8 {
+            var role: CFTypeRef?
+            if AXUIElementCopyAttributeValue(el, kAXRoleAttribute as CFString, &role) == .success,
+               (role as? String) == "AXDockItem" {
+                return el
+            }
+            var parent: CFTypeRef?
+            guard AXUIElementCopyAttributeValue(el, kAXParentAttribute as CFString, &parent) == .success,
+                  let parentEl = parent as! AXUIElement? else {
+                return nil
+            }
+            current = parentEl
+            depth += 1
+        }
+        return nil
     }
 
     func getAppFromDockItem(_ element: AXUIElement) -> NSRunningApplication? {
-        guard let title: String = getAttributeValue(kAXTitleAttribute, for: element) else {
-            return nil
-        }
+        // Resolve against the actual Dock item (the hit element may be a child
+        // such as a notification badge), then map it to a running app.
+        guard let dockItem = dockItemAncestor(for: element) else { return nil }
 
         let runningApps = NSWorkspace.shared.runningApplications
-        return runningApps.first { $0.localizedName == title }
+
+        // Primary: the Dock item often exposes its app URL. Matching by bundle
+        // identifier is framework-agnostic and works for Mac Catalyst / Electron
+        // apps whose AXTitle does not equal the running app's localizedName.
+        if let url: NSURL = getAttributeValue(kAXURLAttribute, for: dockItem),
+           let bundle = Bundle(url: url as URL),
+           let app = runningApps.first(where: { $0.bundleIdentifier == bundle.bundleIdentifier }) {
+            return app
+        }
+
+        // Fallback: tolerant (case / diacritic / whitespace-insensitive) title
+        // match. The exact-equality check used previously failed for any app
+        // whose Dock AXTitle differed from localizedName.
+        guard let title: String = getAttributeValue(kAXTitleAttribute, for: dockItem) else { return nil }
+        let normalizedTitle = title.trimmingCharacters(in: .whitespaces)
+        let opts: String.CompareOptions = [.caseInsensitive, .diacriticInsensitive]
+        return runningApps.first {
+            normalizedTitle.compare(($0.localizedName ?? "").trimmingCharacters(in: .whitespaces),
+                                     options: opts) == .orderedSame
+        }
     }
 
     func findActiveTabCloseButton(in window: AXUIElement) -> AXUIElement? {
