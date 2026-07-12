@@ -15,6 +15,18 @@ protocol AccessibilityServiceProtocol {
 
 class AccessibilityService: AccessibilityServiceProtocol {
     private let systemWide = AXUIElementCreateSystemWide()
+
+    /// When `true`, `getAppFromDockItem` logs the Dock item's AX attributes and
+    /// which resolution strategy matched. Flip on to verify Catalyst/Electron
+    /// Dock icons (e.g. WhatsApp, Beeper) without spamming normal operation.
+    /// Enabled by launching with `MCSC_DOCK_DIAG=1` in the environment.
+    var dockDiagnosticsEnabled = false
+
+    init() {
+        if ProcessInfo.processInfo.environment["MCSC_DOCK_DIAG"] == "1" {
+            dockDiagnosticsEnabled = true
+        }
+    }
     
     func getElement(at point: CGPoint) -> AXUIElement? {
         var element: AXUIElement?
@@ -88,7 +100,12 @@ class AccessibilityService: AccessibilityServiceProtocol {
     func getAppFromDockItem(_ element: AXUIElement) -> NSRunningApplication? {
         // Resolve against the actual Dock item (the hit element may be a child
         // such as a notification badge), then map it to a running app.
-        guard let dockItem = dockItemAncestor(for: element) else { return nil }
+        guard let dockItem = dockItemAncestor(for: element) else {
+            if dockDiagnosticsEnabled {
+                print("[MCSC][DockDiag] no AXDockItem ancestor found for hit element")
+            }
+            return nil
+        }
 
         let runningApps = NSWorkspace.shared.runningApplications
 
@@ -98,19 +115,42 @@ class AccessibilityService: AccessibilityServiceProtocol {
         if let url: NSURL = getAttributeValue(kAXURLAttribute, for: dockItem),
            let bundle = Bundle(url: url as URL),
            let app = runningApps.first(where: { $0.bundleIdentifier == bundle.bundleIdentifier }) {
+            if dockDiagnosticsEnabled {
+                print("[MCSC][DockDiag] resolved via AXURL → bundleID '\(bundle.bundleIdentifier)' → '\(app.localizedName ?? "?")'")
+            }
             return app
         }
 
         // Fallback: tolerant (case / diacritic / whitespace-insensitive) title
         // match. The exact-equality check used previously failed for any app
         // whose Dock AXTitle differed from localizedName.
-        guard let title: String = getAttributeValue(kAXTitleAttribute, for: dockItem) else { return nil }
+        guard let title: String = getAttributeValue(kAXTitleAttribute, for: dockItem) else {
+            if dockDiagnosticsEnabled {
+                let role: String? = getAttributeValue(kAXRoleAttribute, for: dockItem)
+                let subrole: String? = getAttributeValue(kAXSubroleAttribute, for: dockItem)
+                let url: NSURL? = getAttributeValue(kAXURLAttribute, for: dockItem)
+                print("[MCSC][DockDiag] AXURL match failed; AXTitle missing — role='\(role ?? "?"))' subrole='\(subrole ?? "?")' AXURL=\(url?.absoluteString ?? "nil")")
+            }
+            return nil
+        }
         let normalizedTitle = title.trimmingCharacters(in: .whitespaces)
         let opts: String.CompareOptions = [.caseInsensitive, .diacriticInsensitive]
-        return runningApps.first {
+        if let app = runningApps.first(where: {
             normalizedTitle.compare(($0.localizedName ?? "").trimmingCharacters(in: .whitespaces),
                                      options: opts) == .orderedSame
+        }) {
+            if dockDiagnosticsEnabled {
+                print("[MCSC][DockDiag] resolved via tolerant AXTitle '\(normalizedTitle)' → '\(app.localizedName ?? "?")'")
+            }
+            return app
         }
+        if dockDiagnosticsEnabled {
+            let role: String? = getAttributeValue(kAXRoleAttribute, for: dockItem)
+            let subrole: String? = getAttributeValue(kAXSubroleAttribute, for: dockItem)
+            let url: NSURL? = getAttributeValue(kAXURLAttribute, for: dockItem)
+            print("[MCSC][DockDiag] NO match — AXTitle='\(title)' role='\(role ?? "?")' subrole='\(subrole ?? "?")' AXURL=\(url?.absoluteString ?? "nil")' running=\(runningApps.compactMap { $0.localizedName })")
+        }
+        return nil
     }
 
     func findActiveTabCloseButton(in window: AXUIElement) -> AXUIElement? {
