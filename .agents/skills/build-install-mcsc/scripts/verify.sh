@@ -13,7 +13,7 @@ set -euo pipefail
 APP_DEST="/Applications/MCSC.app"
 
 if [[ ! -d "${APP_DEST}" ]]; then
-  echo "ERROR: ${APP_DEST} not found. Run build-release.sh first." >&2
+  echo "ERROR: ${APP_DEST} not found. Run build-install-mcsc.sh first." >&2
   exit 1
 fi
 

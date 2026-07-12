@@ -1,11 +1,11 @@
 ---
-name: build-release
-description: Build a signed Release archive of the MCSC macOS app with the user's Apple Development identity, install it to /Applications, and launch it for testing. User-invoked for local release testing.
+name: build-install-mcsc
+description: Build and install the MCSC macOS app — archive and sign the current release with the user's Apple Development identity, install it into /Applications, and launch it on the user's Mac for local testing. User-invoked to build and install MCSC onto their Mac.
 ---
 
-# Build & Install MCSC Release
+# Build & Install MCSC
 
-Build a code-signed Release archive of the MCSC app and install it into `/Applications` for local testing.
+Build and install MCSC — archive and sign the current release app with the user's Apple account, then install it into `/Applications` on the user's Mac for local testing.
 
 ## When to use
 - The user wants to test a release build of MCSC on their Mac.
@@ -27,22 +27,22 @@ Build a code-signed Release archive of the MCSC app and install it into `/Applic
 
 This skill ships with ready-to-run scripts in `scripts/`. Use them instead of typing the commands manually:
 
-- **`scripts/build-release.sh`** — does everything in one go (clean uninstall + TCC reset → resolve identity → archive → install → verify → launch).
+- **`scripts/build-install-mcsc.sh`** — does everything in one go (clean uninstall + TCC reset → resolve identity → archive → install → verify → launch).
   ```bash
   # from the skill's scripts dir, or anywhere
-  bash .agents/skills/build-release/scripts/build-release.sh
+  bash .agents/skills/build-install-mcsc/scripts/build-install-mcsc.sh
   # or with an explicit identity:
-  bash .agents/skills/build-release/scripts/build-release.sh "Apple Development: you@icloud.com (XXXX)"
+  bash .agents/skills/build-install-mcsc/scripts/build-install-mcsc.sh "Apple Development: you@icloud.com (XXXX)"
   ```
   Before building, the script **quits and removes any existing `/Applications/MCSC.app` and runs `tccutil reset Accessibility <bundle-id>`** so the freshly built binary starts with a clean Accessibility permission state and re-prompts on first launch. The bundle ID is read dynamically from `Info.plist`.
   If `/Applications` is not writable by the current user, the install step will prompt for `sudo`.
 
 - **`scripts/verify.sh`** — re-checks the installed app's signature and architecture:
   ```bash
-  bash .agents/skills/build-release/scripts/verify.sh
+  bash .agents/skills/build-install-mcsc/scripts/verify.sh
   ```
 
-Both scripts are marked executable. The `build-release.sh` auto-detects the first valid `Apple Development` identity when none is passed.
+Both scripts are marked executable. The `build-install-mcsc.sh` auto-detects the first valid `Apple Development` identity when none is passed.
 
 ## Manual Steps (if running commands by hand)
 

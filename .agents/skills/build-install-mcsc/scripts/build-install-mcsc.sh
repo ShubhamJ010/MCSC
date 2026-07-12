@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 #
-# build-release.sh — Build, sign, install, and launch the MCSC release app.
+# build-install-mcsc.sh — Build, sign, install, and launch the MCSC release app.
 # User-invokable skill script. Run from the repo root or anywhere.
 #
 # Usage:
-#   ./build-release.sh                 # auto-detects the first Apple Development identity
-#   ./build-release.sh "Apple Development: you@icloud.com (XXXX)"   # explicit identity
+#   ./build-install-mcsc.sh                 # auto-detects the first Apple Development identity
+#   ./build-install-mcsc.sh "Apple Development: you@icloud.com (XXXX)"   # explicit identity
 #
 # What it does:
 #   0. Uninstalls any existing /Applications/MCSC.app and resets its
