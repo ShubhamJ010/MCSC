@@ -100,6 +100,7 @@ class ShortcutViewModel {
                     let app = isDock ? element.flatMap { self.accessibilityService.getAppFromDockItem($0) } : nil
 
                     if keyCode == self.kKeyW && self.isCmdWEnabled {
+                        self.activateAppIfNeeded(at: location)
                         if let app = app {
                             self.closeTabAppAction.perform(app: app, service: self.accessibilityService)
                         } else {
@@ -215,6 +216,8 @@ class ShortcutViewModel {
             case .swipeLeft:
                 guard let mouseLocation = CGEvent(source: nil)?.location else { return }
                 
+                self.activateAppIfNeeded(at: mouseLocation)
+                
                 let element = self.accessibilityService.getElement(at: mouseLocation)
                 let isDock = element.map { self.accessibilityService.isDockItem($0) } ?? false
                 let app = isDock ? element.flatMap { self.accessibilityService.getAppFromDockItem($0) } : nil
@@ -226,6 +229,8 @@ class ShortcutViewModel {
                 }
             case .cmdSwipeLeft:
                 guard let mouseLocation = CGEvent(source: nil)?.location else { return }
+                
+                self.activateAppIfNeeded(at: mouseLocation)
                 
                 let element = self.accessibilityService.getElement(at: mouseLocation)
                 let isDock = element.map { self.accessibilityService.isDockItem($0) } ?? false
@@ -302,6 +307,23 @@ class ShortcutViewModel {
                 self.almostMaximizeAction.perform(at: mouseLocation, service: self.accessibilityService)
             }
         }
+    }
+
+    // MARK: - App Activation
+
+    /// Resolves the `NSRunningApplication` under the given point and activates it
+    /// (brings it frontmost). This ensures that close-tab, close-window, and force-quit
+    /// operations work reliably — many apps ignore keyboard or accessibility events
+    /// when they are not the active application.
+    @discardableResult
+    private func activateAppIfNeeded(at point: CGPoint) -> NSRunningApplication? {
+        let element = accessibilityService.getElement(at: point)
+        let isDock = element.map { accessibilityService.isDockItem($0) } ?? false
+        let app = isDock
+            ? element.flatMap { accessibilityService.getAppFromDockItem($0) }
+            : element.flatMap { accessibilityService.getAppFromElement($0) }
+        app?.activate(options: .activateIgnoringOtherApps)
+        return app
     }
 
     func start() {
