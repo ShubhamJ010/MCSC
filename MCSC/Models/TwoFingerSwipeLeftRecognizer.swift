@@ -1,5 +1,4 @@
 import Foundation
-import Cocoa
 
 /// Detects a two-finger horizontal swipe left on the trackpad.
 ///
@@ -103,7 +102,6 @@ class TwoFingerSwipeLeftRecognizer: GestureRecognizer {
                 let center: (Float, Float) = (currentMidX, currentMidY)
                 let cmdHeld = isCmdHeld?() ?? false
 
-                fireHaptic()
                 state = .cooldown(until: timestamp + config.cooldownDuration)
 
                 return cmdHeld ? .cmdSwipeLeft(atNormalized: center) : .swipeLeft(atNormalized: center)
@@ -128,15 +126,5 @@ class TwoFingerSwipeLeftRecognizer: GestureRecognizer {
 
     func reset() {
         state = .idle
-    }
-
-    // MARK: - Haptic Feedback
-
-    private func fireHaptic() {
-        let performer = NSHapticFeedbackManager.defaultPerformer
-        performer.perform(.alignment, performanceTime: .now)
-        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.05) {
-            performer.perform(.levelChange, performanceTime: .now)
-        }
     }
 }

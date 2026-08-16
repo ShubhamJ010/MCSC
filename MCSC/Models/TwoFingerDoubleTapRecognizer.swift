@@ -1,5 +1,4 @@
 import Foundation
-import Cocoa
 
 /// Detects a two-finger double tap on the trackpad.
 ///
@@ -87,7 +86,6 @@ class TwoFingerDoubleTapRecognizer: GestureRecognizer {
             // Second tap: 2 fingers touch down again
             if touches.count >= 2 {
                 let cmdHeld = isCmdHeld?() ?? false
-                fireHaptic(isCmd: cmdHeld)
                 state = .cooldown(until: timestamp + config.cooldownDuration)
                 return cmdHeld ? .cmdTwoFingerDoubleTap : .twoFingerDoubleTap
             }
@@ -103,18 +101,5 @@ class TwoFingerDoubleTapRecognizer: GestureRecognizer {
 
     func reset() {
         state = .idle
-    }
-
-    private func fireHaptic(isCmd: Bool) {
-        let performer = NSHapticFeedbackManager.defaultPerformer
-        performer.perform(.alignment, performanceTime: .now)
-        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.10) {
-            performer.perform(.alignment, performanceTime: .now)
-            if isCmd {
-                DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.08) {
-                    performer.perform(.levelChange, performanceTime: .now)
-                }
-            }
-        }
     }
 }

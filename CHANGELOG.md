@@ -1,5 +1,9 @@
 # Changelog
 
+## 16 Aug 2026
+
+- **Haptics & Gesture Target Validation**: Fixed phantom haptic feedback when scrolling or performing two-finger gestures over empty areas (wallpaper / Spaces bar) in Mission Control. Removed premature haptic triggers from recognizers (`SwipeRecognizer`, `TwoFingerSwipeLeftRecognizer`, `TwoFingerSwipeRightRecognizer`, `TwoFingerDoubleTapRecognizer`, `PinchInRecognizer`) to keep models pure. Introduced `HapticService` and added target resolution in `ShortcutViewModel` so haptics and actions only execute when hovering over a valid window thumbnail or Dock item.
+
 ## 16 Aug 2026 (Breaking Gesture Refactor)
 
 - **ShortcutActions.swift**: Removed `MoveWindowToSpaceAction` and `SpaceDirection`. Added `CloseAllTabsAction` (posts Cmd+Shift+W to close all tabs/windows) and `NewWindowAction` (posts Cmd+N to open a new window).

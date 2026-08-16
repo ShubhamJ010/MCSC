@@ -1,5 +1,4 @@
 import Foundation
-import Cocoa
 
 /// Detects a two-finger vertical swipe (up or down) on the trackpad.
 ///
@@ -115,11 +114,6 @@ class SwipeRecognizer: GestureRecognizer {
                     return nil
                 }
 
-                if goingDown {
-                    fireHapticDown()
-                } else {
-                    fireHapticUp()
-                }
                 state = .cooldown(until: timestamp + config.cooldownDuration)
 
                 if goingDown {
@@ -147,22 +141,5 @@ class SwipeRecognizer: GestureRecognizer {
 
     func reset() {
         state = .idle
-    }
-
-    // MARK: - Haptic Feedback
-
-    private func fireHapticDown() {
-        NSHapticFeedbackManager.defaultPerformer.perform(
-            .levelChange,
-            performanceTime: .now
-        )
-    }
-
-    private func fireHapticUp() {
-        let performer = NSHapticFeedbackManager.defaultPerformer
-        performer.perform(.alignment, performanceTime: .now)
-        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.07) {
-            performer.perform(.levelChange, performanceTime: .now)
-        }
     }
 }
