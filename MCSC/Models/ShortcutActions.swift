@@ -214,10 +214,10 @@ struct ReasonableSizeAction: ShortcutAction {
               let window = service.getWindow(for: element) else { return }
         let screen = NSScreen.main ?? NSScreen.screens[0]
         let f = screen.frame
-        let w = f.width * 0.7
-        let h = f.height * 0.75
-        let x = (f.width - w) / 2
-        let y = (f.height - h) / 2
+        let w = (f.width * 0.604).rounded()
+        let h = (f.height * 0.58).rounded()
+        let x = f.origin.x + (f.width - w) / 2
+        let y = f.origin.y + (f.height - h) / 2
         _ = service.setFrame(CGRect(x: x, y: y, width: w, height: h), for: window)
     }
 }
@@ -228,10 +228,10 @@ struct AlmostMaximizeAction: ShortcutAction {
               let window = service.getWindow(for: element) else { return }
         let screen = NSScreen.main ?? NSScreen.screens[0]
         let f = screen.frame
-        let w = f.width * 0.8
-        let h = f.height * 0.7
-        let x = (f.width - w) / 2
-        let y = (f.height - h) / 2
+        let w = (f.width * 0.904).rounded()
+        let h = (f.height * 0.872).rounded()
+        let x = f.origin.x + (f.width - w) / 2
+        let y = f.origin.y + (f.height - h) / 2
         _ = service.setFrame(CGRect(x: x, y: y, width: w, height: h), for: window)
     }
 }
