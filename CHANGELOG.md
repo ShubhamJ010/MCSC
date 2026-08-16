@@ -1,5 +1,21 @@
 # Changelog
 
+## 16 Aug 2026 (Breaking Gesture Refactor)
+
+- **ShortcutActions.swift**: Added `MoveWindowToSpaceAction` and `SpaceDirection` to move the targeted window to the adjacent macOS Desktop (Space) via synthesized mouse drag and `Ctrl + Left/Right Arrow` key navigation.
+- **PinchInRecognizer.swift**: Fixed `processFrame` to emit `.pinchIn` / `.cmdPinchIn` instead of `.swipeLeft` / `.cmdSwipeLeft`.
+- **ShortcutViewModel.swift**:
+  - Registered `PinchInRecognizer` in `GestureEngine`.
+  - Routed `pinchIn` to Close Window / Close Application and `cmdPinchIn` to Force Quit.
+  - Routed `cmdSwipeLeft` to move window to Next Desktop.
+  - Routed `cmdSwipeRight` to move window to Previous Desktop.
+  - Added `isPinchInEnabled` property.
+- **AppDelegate.swift**:
+  - Added "Pinch In → Close / Quit" toggle to status menu.
+  - Updated "Swipe Left" label to "Swipe Left → Close Tab (Cmd: Next Desktop)".
+  - Updated "Swipe Right" label to "Swipe Right → Reopen Tab (Cmd: Prev Desktop)".
+- **README.md**: Updated gestures table to document the full gesture mapping matrix.
+
 ## 16 Aug 2026
 
 - **ShortcutActions.swift**: Replaced `FullscreenWindowAction` with `MakeLargerAction` to increase window dimensions by 33% (anchored at center and clamped to the active display bounds).
