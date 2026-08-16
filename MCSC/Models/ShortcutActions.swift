@@ -197,14 +197,60 @@ struct ReopenTabAppAction {
 
 // MARK: - Tiling Actions
 
-struct FullscreenWindowAction: ShortcutAction {
+/// Increases the size of the target window by 33% (anchored at center, clamped to screen bounds).
+struct MakeLargerAction: ShortcutAction {
+    /// Multiplier used to scale window dimensions (+33%).
+    private let scaleFactor: CGFloat = 1.33
+
     func perform(at point: CGPoint, service: AccessibilityServiceProtocol) {
         guard let element = service.getElement(at: point),
-              let window = service.getWindow(for: element) else { return }
-        let screen = NSScreen.main ?? NSScreen.screens[0]
-        let f = screen.frame
-        let frame = CGRect(x: f.origin.x, y: 0, width: f.width, height: f.height)
-        _ = service.setFrame(frame, for: window)
+              let window = service.getWindow(for: element),
+              let currentFrame = service.getFrame(for: window) else { return }
+
+        let primaryHeight = NSScreen.screens.first?.frame.height ?? 0
+        let screen = NSScreen.screens.first(where: {
+            let axBounds = CGRect(
+                x: $0.frame.origin.x,
+                y: primaryHeight - $0.frame.origin.y - $0.frame.height,
+                width: $0.frame.width,
+                height: $0.frame.height
+            )
+            return axBounds.contains(point)
+        }) ?? NSScreen.main ?? NSScreen.screens[0]
+
+        let screenFrame = screen.frame
+        let axScreenBounds = CGRect(
+            x: screenFrame.origin.x,
+            y: primaryHeight - screenFrame.origin.y - screenFrame.height,
+            width: screenFrame.width,
+            height: screenFrame.height
+        )
+
+        let targetWidth = (currentFrame.width * scaleFactor).rounded()
+        let targetHeight = (currentFrame.height * scaleFactor).rounded()
+
+        // Clamp dimensions to screen bounds
+        let newWidth = min(targetWidth, axScreenBounds.width)
+        let newHeight = min(targetHeight, axScreenBounds.height)
+
+        // Expand symmetrically from center
+        var newX = (currentFrame.origin.x - (newWidth - currentFrame.width) / 2.0).rounded()
+        var newY = (currentFrame.origin.y - (newHeight - currentFrame.height) / 2.0).rounded()
+
+        // Clamp position within screen boundaries
+        if newX < axScreenBounds.minX {
+            newX = axScreenBounds.minX
+        } else if newX + newWidth > axScreenBounds.maxX {
+            newX = axScreenBounds.maxX - newWidth
+        }
+
+        if newY < axScreenBounds.minY {
+            newY = axScreenBounds.minY
+        } else if newY + newHeight > axScreenBounds.maxY {
+            newY = axScreenBounds.maxY - newHeight
+        }
+
+        _ = service.setFrame(CGRect(x: newX, y: newY, width: newWidth, height: newHeight), for: window)
     }
 }
 

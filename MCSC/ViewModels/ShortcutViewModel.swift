@@ -20,7 +20,7 @@ class ShortcutViewModel {
     private let forceQuitAction = ForceQuitAction()
     private let minimizeAppAction = MinimizeAppAction()
     private let forceQuitAppAction = ForceQuitAppAction()
-    private let fullscreenAction = FullscreenWindowAction()
+    private let makeLargerAction = MakeLargerAction()
     private let reasonableSizeAction = ReasonableSizeAction()
     private let almostMaximizeAction = AlmostMaximizeAction()
     
@@ -270,11 +270,11 @@ class ShortcutViewModel {
 
             case .swipeDown:
                 guard let mouseLocation = CGEvent(source: nil)?.location else { return }
-                fullscreenAction.perform(at: mouseLocation, service: accessibilityService)
+                makeLargerAction.perform(at: mouseLocation, service: accessibilityService)
 
             case .cmdSwipeDown:
                 guard let mouseLocation = CGEvent(source: nil)?.location else { return }
-                fullscreenAction.perform(at: mouseLocation, service: accessibilityService)
+                makeLargerAction.perform(at: mouseLocation, service: accessibilityService)
 
             case .swipeUp:
                 guard let mouseLocation = CGEvent(source: nil)?.location else { return }

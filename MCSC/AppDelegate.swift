@@ -104,7 +104,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         swipeRightItem.state = (viewModel?.isSwipeRightEnabled ?? true) ? .on : .off
         gesturesSubmenu.addItem(swipeRightItem)
 
-        let swipeDownItem = NSMenuItem(title: "Swipe Down → Fullscreen", action: #selector(toggleSwipeDown), keyEquivalent: "")
+        let swipeDownItem = NSMenuItem(title: "Swipe Down → Make Larger (+33%)", action: #selector(toggleSwipeDown), keyEquivalent: "")
         swipeDownItem.state = (viewModel?.isSwipeDownEnabled ?? true) ? .on : .off
         gesturesSubmenu.addItem(swipeDownItem)
 

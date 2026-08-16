@@ -6,6 +6,7 @@ protocol AccessibilityServiceProtocol {
     func getWindow(for element: AXUIElement) -> AXUIElement?
     func performAction(_ action: String, on element: AXUIElement) -> Bool
     func getAttributeValue<T>(_ attribute: String, for element: AXUIElement) -> T?
+    func getFrame(for element: AXUIElement) -> CGRect?
     func setFrame(_ frame: CGRect, for element: AXUIElement) -> Bool
     func isDockItem(_ element: AXUIElement) -> Bool
     func getAppFromDockItem(_ element: AXUIElement) -> NSRunningApplication?
@@ -188,6 +189,25 @@ class AccessibilityService: AccessibilityServiceProtocol {
         let result = AXUIElementGetPid(element, &pid)
         guard result == .success else { return nil }
         return NSRunningApplication(processIdentifier: pid)
+    }
+
+    /// Retrieves the current frame (origin and size in Quartz AX coordinates) for an accessibility element.
+    func getFrame(for element: AXUIElement) -> CGRect? {
+        var posVal: CFTypeRef?
+        var sizeVal: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &posVal) == .success,
+              let posVal = posVal, CFGetTypeID(posVal) == AXValueGetTypeID(),
+              AXUIElementCopyAttributeValue(element, kAXSizeAttribute as CFString, &sizeVal) == .success,
+              let sizeVal = sizeVal, CFGetTypeID(sizeVal) == AXValueGetTypeID() else {
+            return nil
+        }
+        var point = CGPoint.zero
+        var size = CGSize.zero
+        guard AXValueGetValue(posVal as! AXValue, .cgPoint, &point),
+              AXValueGetValue(sizeVal as! AXValue, .cgSize, &size) else {
+            return nil
+        }
+        return CGRect(origin: point, size: size)
     }
 
     func setFrame(_ frame: CGRect, for element: AXUIElement) -> Bool {
