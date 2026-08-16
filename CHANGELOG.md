@@ -2,18 +2,18 @@
 
 ## 16 Aug 2026 (Breaking Gesture Refactor)
 
-- **ShortcutActions.swift**: Added `MoveWindowToSpaceAction` and `SpaceDirection` to move the targeted window to the adjacent macOS Desktop (Space) via synthesized mouse drag and `Ctrl + Left/Right Arrow` key navigation.
+- **ShortcutActions.swift**: Removed `MoveWindowToSpaceAction` and `SpaceDirection`. Added `CloseAllTabsAction` (posts Cmd+Shift+W to close all tabs/windows) and `NewWindowAction` (posts Cmd+N to open a new window).
 - **PinchInRecognizer.swift**: Fixed `processFrame` to emit `.pinchIn` / `.cmdPinchIn` instead of `.swipeLeft` / `.cmdSwipeLeft`.
 - **ShortcutViewModel.swift**:
   - Registered `PinchInRecognizer` in `GestureEngine`.
   - Routed `pinchIn` to Close Window / Close Application and `cmdPinchIn` to Force Quit.
-  - Routed `cmdSwipeLeft` to move window to Next Desktop.
-  - Routed `cmdSwipeRight` to move window to Previous Desktop.
+  - Routed `cmdSwipeLeft` to Close All Tabs (Cmd+Shift+W).
+  - Routed `cmdSwipeRight` to New Window (Cmd+N).
   - Added `isPinchInEnabled` property.
 - **AppDelegate.swift**:
   - Added "Pinch In → Close / Quit" toggle to status menu.
-  - Updated "Swipe Left" label to "Swipe Left → Close Tab (Cmd: Next Desktop)".
-  - Updated "Swipe Right" label to "Swipe Right → Reopen Tab (Cmd: Prev Desktop)".
+  - Updated "Swipe Left" label to "Swipe Left → Close Tab (Cmd: Close All Cmd⌥W)".
+  - Updated "Swipe Right" label to "Swipe Right → Reopen Tab (Cmd: New Window Cmd⌥N)".
 - **README.md**: Updated gestures table to document the full gesture mapping matrix.
 
 ## 16 Aug 2026

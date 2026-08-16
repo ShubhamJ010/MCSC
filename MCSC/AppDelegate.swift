@@ -100,11 +100,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         pinchInItem.state = (viewModel?.isPinchInEnabled ?? true) ? .on : .off
         gesturesSubmenu.addItem(pinchInItem)
 
-        let swipeLeftItem = NSMenuItem(title: "Swipe Left → Close Tab (Cmd: Next Desktop)", action: #selector(toggleSwipeLeft), keyEquivalent: "")
+        let swipeLeftItem = NSMenuItem(title: "Swipe Left → Close Tab (Cmd: Close All Cmd⌥W)", action: #selector(toggleSwipeLeft), keyEquivalent: "")
         swipeLeftItem.state = (viewModel?.isSwipeLeftEnabled ?? true) ? .on : .off
         gesturesSubmenu.addItem(swipeLeftItem)
 
-        let swipeRightItem = NSMenuItem(title: "Swipe Right → Reopen Tab (Cmd: Prev Desktop)", action: #selector(toggleSwipeRight), keyEquivalent: "")
+        let swipeRightItem = NSMenuItem(title: "Swipe Right → Reopen Tab (Cmd: New Window Cmd⌥N)", action: #selector(toggleSwipeRight), keyEquivalent: "")
         swipeRightItem.state = (viewModel?.isSwipeRightEnabled ?? true) ? .on : .off
         gesturesSubmenu.addItem(swipeRightItem)
 

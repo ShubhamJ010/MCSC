@@ -28,7 +28,7 @@ swiftc \
   "${ROOT_DIR}/MCSC/Models/ShortcutActions.swift" \
   "${SCRIPT_DIR}/Mocks/MockAccessibilityService.swift" \
   "${SCRIPT_DIR}/PinchInRecognizerTests.swift" \
-  "${SCRIPT_DIR}/MoveWindowToSpaceActionTests.swift" \
+  "${SCRIPT_DIR}/CmdSwipeActionsTests.swift" \
   "${SCRIPT_DIR}/GestureEngineRoutingTests.swift" \
   "${SCRIPT_DIR}/TestRunner.swift"
 

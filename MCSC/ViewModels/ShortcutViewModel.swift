@@ -23,8 +23,8 @@ class ShortcutViewModel {
     private let makeLargerAction = MakeLargerAction()
     private let reasonableSizeAction = ReasonableSizeAction()
     private let almostMaximizeAction = AlmostMaximizeAction()
-    private let moveWindowToPrevSpaceAction = MoveWindowToSpaceAction(direction: .previous)
-    private let moveWindowToNextSpaceAction = MoveWindowToSpaceAction(direction: .next)
+    private let closeAllTabsAction = CloseAllTabsAction()
+    private let newWindowAction = NewWindowAction()
     
     // Key codes
     private let kKeyW: Int64 = 13
@@ -240,7 +240,7 @@ class ShortcutViewModel {
 
             case .cmdSwipeLeft:
                 guard let mouseLocation = CGEvent(source: nil)?.location else { return }
-                self.moveWindowToNextSpaceAction.perform(at: mouseLocation, service: self.accessibilityService)
+                self.closeAllTabsAction.perform(at: mouseLocation, service: self.accessibilityService)
 
             case .swipeRight:
                 guard let mouseLocation = CGEvent(source: nil)?.location else { return }
@@ -257,7 +257,7 @@ class ShortcutViewModel {
 
             case .cmdSwipeRight:
                 guard let mouseLocation = CGEvent(source: nil)?.location else { return }
-                self.moveWindowToPrevSpaceAction.perform(at: mouseLocation, service: self.accessibilityService)
+                self.newWindowAction.perform(at: mouseLocation, service: self.accessibilityService)
 
             case .swipeDown:
                 guard let mouseLocation = CGEvent(source: nil)?.location else { return }

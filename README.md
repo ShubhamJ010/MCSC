@@ -54,8 +54,8 @@ Two-finger and pinch gestures, also scoped to **Mission Control only**:
 | Gesture | Action | `Cmd` + Gesture |
 |---|---|---|
 | Pinch in | Close window / quit app | Force quit app |
-| Two-finger swipe left | Close active tab | Move window to Next Desktop |
-| Two-finger swipe right | Reopen closed tab | Move window to Previous Desktop |
+| Two-finger swipe left | Close active tab | Close all tabs (Cmd+Shift+W) |
+| Two-finger swipe right | Reopen closed tab | New window (Cmd+N) |
 | Two-finger swipe up | Minimize active window | Hide application |
 | Two-finger swipe down | Make larger (+33%) | Make larger (+33%) |
 | Two-finger double tap | Reasonable size (60%) | Almost maximize (90%) |

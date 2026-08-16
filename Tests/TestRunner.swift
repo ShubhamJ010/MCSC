@@ -6,7 +6,7 @@ struct TestRunner {
     static func main() {
         let suites: [XCTestSuite] = [
             PinchInRecognizerTests.defaultTestSuite,
-            MoveWindowToSpaceActionTests.defaultTestSuite,
+            CmdSwipeActionsTests.defaultTestSuite,
             GestureEngineRoutingTests.defaultTestSuite
         ]
 
