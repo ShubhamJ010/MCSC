@@ -54,7 +54,7 @@ Two-finger and pinch gestures, also scoped to **Mission Control only**:
 | Gesture | Action |
 |---|---|
 | Two-finger swipe up | Hide / minimize active window |
-| Two-finger swipe down | Toggle fullscreen |
+| Two-finger swipe down | Make larger (+33%) |
 | Two-finger swipe left | Close tab |
 | Two-finger swipe right | Reopen tab |
 | Pinch in | Close window / quit app |
