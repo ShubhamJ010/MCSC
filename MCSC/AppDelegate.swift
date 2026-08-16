@@ -96,11 +96,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         gesturesItem.state = (viewModel?.isGesturesEnabled ?? true) ? .on : .off
         
         let gesturesSubmenu = NSMenu()
-        let swipeLeftItem = NSMenuItem(title: "Swipe Left → Close", action: #selector(toggleSwipeLeft), keyEquivalent: "")
+        let pinchInItem = NSMenuItem(title: "Pinch In → Close / Quit", action: #selector(togglePinchIn), keyEquivalent: "")
+        pinchInItem.state = (viewModel?.isPinchInEnabled ?? true) ? .on : .off
+        gesturesSubmenu.addItem(pinchInItem)
+
+        let swipeLeftItem = NSMenuItem(title: "Swipe Left → Close Tab (Cmd: Next Desktop)", action: #selector(toggleSwipeLeft), keyEquivalent: "")
         swipeLeftItem.state = (viewModel?.isSwipeLeftEnabled ?? true) ? .on : .off
         gesturesSubmenu.addItem(swipeLeftItem)
 
-        let swipeRightItem = NSMenuItem(title: "Swipe Right → Reopen Tab", action: #selector(toggleSwipeRight), keyEquivalent: "")
+        let swipeRightItem = NSMenuItem(title: "Swipe Right → Reopen Tab (Cmd: Prev Desktop)", action: #selector(toggleSwipeRight), keyEquivalent: "")
         swipeRightItem.state = (viewModel?.isSwipeRightEnabled ?? true) ? .on : .off
         gesturesSubmenu.addItem(swipeRightItem)
 
@@ -138,13 +142,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func toggleCmdH(_ sender: NSMenuItem) { handleToggle(sender, key: .cmdH) }
     @objc private func toggleCmdSpace(_ sender: NSMenuItem) { handleToggle(sender, key: .cmdSpace) }
     @objc private func toggleGestures(_ sender: NSMenuItem) { handleToggle(sender, key: .gestures) }
+    @objc private func togglePinchIn(_ sender: NSMenuItem) { handleToggle(sender, key: .pinchIn) }
     @objc private func toggleSwipeLeft(_ sender: NSMenuItem) { handleToggle(sender, key: .swipeLeft) }
     @objc private func toggleSwipeRight(_ sender: NSMenuItem) { handleToggle(sender, key: .swipeRight) }
     @objc private func toggleSwipeDown(_ sender: NSMenuItem) { handleToggle(sender, key: .swipeDown) }
     @objc private func toggleSwipeUp(_ sender: NSMenuItem) { handleToggle(sender, key: .swipeUp) }
     @objc private func toggleTwoFingerDoubleTap(_ sender: NSMenuItem) { handleToggle(sender, key: .twoFingerDoubleTap) }
 
-    private enum ShortcutKey { case cmdW, cmdQ, cmdM, cmdH, cmdSpace, gestures, swipeLeft, swipeRight, swipeDown, swipeUp, twoFingerDoubleTap }
+    private enum ShortcutKey { case cmdW, cmdQ, cmdM, cmdH, cmdSpace, gestures, pinchIn, swipeLeft, swipeRight, swipeDown, swipeUp, twoFingerDoubleTap }
 
     private func handleToggle(_ sender: NSMenuItem, key: ShortcutKey) {
         guard let viewModel = viewModel else { return }
@@ -155,6 +160,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         case .cmdH: viewModel.isCmdHEnabled.toggle(); sender.state = viewModel.isCmdHEnabled ? .on : .off
         case .cmdSpace: viewModel.isCmdSpaceEnabled.toggle(); sender.state = viewModel.isCmdSpaceEnabled ? .on : .off
         case .gestures: viewModel.isGesturesEnabled.toggle(); sender.state = viewModel.isGesturesEnabled ? .on : .off
+        case .pinchIn: viewModel.isPinchInEnabled.toggle(); sender.state = viewModel.isPinchInEnabled ? .on : .off
         case .swipeLeft: viewModel.isSwipeLeftEnabled.toggle(); sender.state = viewModel.isSwipeLeftEnabled ? .on : .off
         case .swipeRight: viewModel.isSwipeRightEnabled.toggle(); sender.state = viewModel.isSwipeRightEnabled ? .on : .off
         case .swipeDown: viewModel.isSwipeDownEnabled.toggle(); sender.state = viewModel.isSwipeDownEnabled ? .on : .off

@@ -281,3 +281,44 @@ struct AlmostMaximizeAction: ShortcutAction {
         _ = service.setFrame(CGRect(x: x, y: y, width: w, height: h), for: window)
     }
 }
+
+// MARK: - Space (Desktop) Migration Actions
+
+enum SpaceDirection {
+    case previous
+    case next
+}
+
+struct MoveWindowToSpaceAction: ShortcutAction {
+    let direction: SpaceDirection
+
+    func perform(at point: CGPoint, service: AccessibilityServiceProtocol) {
+        guard let element = service.getElement(at: point),
+              service.getWindow(for: element) != nil else { return }
+
+        // Activate app to ensure window receives focus
+        if let app = service.getAppFromElement(element) {
+            app.activate()
+        }
+
+        let source = CGEventSource(stateID: .hidSystemState)
+        let mouseDown = CGEvent(mouseEventSource: source, mouseType: .leftMouseDown, mouseCursorPosition: point, mouseButton: .left)
+        let mouseUp = CGEvent(mouseEventSource: source, mouseType: .leftMouseUp, mouseCursorPosition: point, mouseButton: .left)
+
+        // 123 = Left Arrow (Previous Space), 124 = Right Arrow (Next Space)
+        let keyCode: CGKeyCode = (direction == .previous) ? 123 : 124
+        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true)
+        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: false)
+        keyDown?.flags = .maskControl
+        keyUp?.flags = .maskControl
+
+        mouseDown?.post(tap: .cghidEventTap)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            keyDown?.post(tap: .cghidEventTap)
+            keyUp?.post(tap: .cghidEventTap)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                mouseUp?.post(tap: .cghidEventTap)
+            }
+        }
+    }
+}

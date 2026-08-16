@@ -23,6 +23,8 @@ class ShortcutViewModel {
     private let makeLargerAction = MakeLargerAction()
     private let reasonableSizeAction = ReasonableSizeAction()
     private let almostMaximizeAction = AlmostMaximizeAction()
+    private let moveWindowToPrevSpaceAction = MoveWindowToSpaceAction(direction: .previous)
+    private let moveWindowToNextSpaceAction = MoveWindowToSpaceAction(direction: .next)
     
     // Key codes
     private let kKeyW: Int64 = 13
@@ -39,6 +41,7 @@ class ShortcutViewModel {
     var isCmdFEnabled = false
     var isCmdSpaceEnabled = true
     var isGesturesEnabled = true
+    var isPinchInEnabled = true
     var isSwipeLeftEnabled = true
     var isSwipeRightEnabled = true
     var isSwipeDownEnabled = true
@@ -148,6 +151,13 @@ class ShortcutViewModel {
         twoFingerTapRecognizer.isEnabled = { [weak self] in self?.isTwoFingerDoubleTapEnabled ?? false }
         gestureEngine.register(twoFingerTapRecognizer)
 
+        let pinchInRecognizer = PinchInRecognizer()
+        pinchInRecognizer.isCmdHeld = {
+            NSEvent.modifierFlags.contains(.command)
+        }
+        pinchInRecognizer.isEnabled = { [weak self] in self?.isPinchInEnabled ?? false }
+        gestureEngine.register(pinchInRecognizer)
+
         let swipeLeftRecognizer = TwoFingerSwipeLeftRecognizer()
         swipeLeftRecognizer.isCmdHeld = {
             NSEvent.modifierFlags.contains(.command)
@@ -227,20 +237,10 @@ class ShortcutViewModel {
                 } else {
                     self.closeTabAction.perform(at: mouseLocation, service: self.accessibilityService)
                 }
+
             case .cmdSwipeLeft:
                 guard let mouseLocation = CGEvent(source: nil)?.location else { return }
-                
-                self.activateAppIfNeeded(at: mouseLocation)
-                
-                let element = self.accessibilityService.getElement(at: mouseLocation)
-                let isDock = element.map { self.accessibilityService.isDockItem($0) } ?? false
-                let app = isDock ? element.flatMap { self.accessibilityService.getAppFromDockItem($0) } : nil
-                
-                if let app = app {
-                    self.forceQuitAppAction.perform(app: app)
-                } else {
-                    self.forceQuitAction.perform(at: mouseLocation, service: self.accessibilityService)
-                }
+                self.moveWindowToNextSpaceAction.perform(at: mouseLocation, service: self.accessibilityService)
 
             case .swipeRight:
                 guard let mouseLocation = CGEvent(source: nil)?.location else { return }
@@ -257,16 +257,7 @@ class ShortcutViewModel {
 
             case .cmdSwipeRight:
                 guard let mouseLocation = CGEvent(source: nil)?.location else { return }
-
-                let element = self.accessibilityService.getElement(at: mouseLocation)
-                let isDock = element.map { self.accessibilityService.isDockItem($0) } ?? false
-                let app = isDock ? element.flatMap { self.accessibilityService.getAppFromDockItem($0) } : nil
-
-                if let app = app {
-                    self.reopenTabAppAction.perform(app: app)
-                } else {
-                    self.reopenTabAction.perform(at: mouseLocation, service: self.accessibilityService)
-                }
+                self.moveWindowToPrevSpaceAction.perform(at: mouseLocation, service: self.accessibilityService)
 
             case .swipeDown:
                 guard let mouseLocation = CGEvent(source: nil)?.location else { return }
