@@ -10,13 +10,16 @@ class TwoFingerDoubleTapRecognizer: GestureRecognizer {
 
     struct Config {
         /// Maximum time between first lift and second touch (seconds).
-        var doubleTapWindow: Double = 0.4
+        var doubleTapWindow: Double = 0.35
 
         /// Maximum duration of a single tap (finger-down to finger-up).
-        var maxTapDuration: Double = 0.3
+        var maxTapDuration: Double = 0.22
 
         /// Cooldown after a successful gesture.
         var cooldownDuration: Double = 0.8
+
+        /// Maximum normalized finger displacement allowed during a tap.
+        var maxTapDisplacement: Float = 0.025
     }
 
     var config = Config()
@@ -31,7 +34,7 @@ class TwoFingerDoubleTapRecognizer: GestureRecognizer {
 
     private enum State {
         case idle
-        case tap1Down(startTime: Double)
+        case tap1Down(startTime: Double, startTouches: [TouchPoint])
         case tap1Up(liftTime: Double)
         case cooldown(until: Double)
     }
@@ -47,15 +50,26 @@ class TwoFingerDoubleTapRecognizer: GestureRecognizer {
 
         case .idle:
             if touches.count >= 2 {
-                state = .tap1Down(startTime: timestamp)
+                state = .tap1Down(startTime: timestamp, startTouches: touches)
             }
             return nil
 
-        case .tap1Down(let startTime):
+        case .tap1Down(let startTime, let startTouches):
             // Timeout: fingers held too long — not a tap
             if timestamp - startTime > config.maxTapDuration {
                 state = .idle
                 return nil
+            }
+            // Movement guard: if fingers slid, this is a swipe/scroll, not a tap
+            for touch in touches {
+                if let start = startTouches.first(where: { $0.identifier == touch.identifier }) {
+                    let dx = touch.normalizedX - start.normalizedX
+                    let dy = touch.normalizedY - start.normalizedY
+                    if sqrt(dx * dx + dy * dy) > config.maxTapDisplacement {
+                        state = .idle
+                        return nil
+                    }
+                }
             }
             // All 2 fingers lifted → first tap complete
             if touches.count == 0 {
@@ -71,8 +85,8 @@ class TwoFingerDoubleTapRecognizer: GestureRecognizer {
             }
             // Second tap: 2 fingers touch down again
             if touches.count >= 2 {
-                state = .cooldown(until: timestamp + config.cooldownDuration)
                 let cmdHeld = isCmdHeld?() ?? false
+                state = .cooldown(until: timestamp + config.cooldownDuration)
                 return cmdHeld ? .cmdTwoFingerDoubleTap : .twoFingerDoubleTap
             }
             return nil

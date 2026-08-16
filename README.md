@@ -51,18 +51,16 @@ Supported actions:
 
 Two-finger and pinch gestures, also scoped to **Mission Control only**:
 
-| Gesture | Action |
-|---|---|
-| Two-finger swipe up | Hide / minimize active window |
-| Two-finger swipe down | Toggle fullscreen |
-| Two-finger swipe left | Close tab |
-| Two-finger swipe right | Reopen tab |
-| Pinch in | Close window / quit app |
-| Two-finger double tap | Reasonable size / almost maximize |
+| Gesture | Action | `Cmd` + Gesture |
+|---|---|---|
+| Pinch in | Close window / quit app | Force quit app |
+| Two-finger swipe left | Close active tab | Close all tabs (Cmd+Shift+W) |
+| Two-finger swipe right | Reopen closed tab | New window (Cmd+N) |
+| Two-finger swipe up | Minimize active window | Hide application |
+| Two-finger swipe down | Make larger (+33%) | Make larger (+33%) |
+| Two-finger double tap | Reasonable size (60%) | Almost maximize (90%) |
 
-Holding `Cmd` while gesturing maps to the force-quit / app-level variant of the
-same action. Each gesture fires **once per finger lift** — keeping fingers down
-and repeating the motion will not re-trigger it until you lift and touch again.
+Each gesture fires **once per finger lift** — keeping fingers down and repeating the motion will not re-trigger it until you lift and touch again.
 
 ### Accessibility API Integration
 

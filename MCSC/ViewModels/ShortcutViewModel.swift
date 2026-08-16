@@ -20,9 +20,11 @@ class ShortcutViewModel {
     private let forceQuitAction = ForceQuitAction()
     private let minimizeAppAction = MinimizeAppAction()
     private let forceQuitAppAction = ForceQuitAppAction()
-    private let fullscreenAction = FullscreenWindowAction()
+    private let makeLargerAction = MakeLargerAction()
     private let reasonableSizeAction = ReasonableSizeAction()
     private let almostMaximizeAction = AlmostMaximizeAction()
+    private let closeAllTabsAction = CloseAllTabsAction()
+    private let newWindowAction = NewWindowAction()
     
     // Key codes
     private let kKeyW: Int64 = 13
@@ -39,6 +41,7 @@ class ShortcutViewModel {
     var isCmdFEnabled = false
     var isCmdSpaceEnabled = true
     var isGesturesEnabled = true
+    var isPinchInEnabled = true
     var isSwipeLeftEnabled = true
     var isSwipeRightEnabled = true
     var isSwipeDownEnabled = true
@@ -148,6 +151,13 @@ class ShortcutViewModel {
         twoFingerTapRecognizer.isEnabled = { [weak self] in self?.isTwoFingerDoubleTapEnabled ?? false }
         gestureEngine.register(twoFingerTapRecognizer)
 
+        let pinchInRecognizer = PinchInRecognizer()
+        pinchInRecognizer.isCmdHeld = {
+            NSEvent.modifierFlags.contains(.command)
+        }
+        pinchInRecognizer.isEnabled = { [weak self] in self?.isPinchInEnabled ?? false }
+        gestureEngine.register(pinchInRecognizer)
+
         let swipeLeftRecognizer = TwoFingerSwipeLeftRecognizer()
         swipeLeftRecognizer.isCmdHeld = {
             NSEvent.modifierFlags.contains(.command)
@@ -231,13 +241,8 @@ class ShortcutViewModel {
 
             case .cmdSwipeLeft:
                 switch target {
-                case .dock(let app):
-                    app.activate(options: .activateIgnoringOtherApps)
-                    self.forceQuitAppAction.perform(app: app)
-                    HapticService.perform(.swipeLeft)
-                case .window:
-                    self.activateAppIfNeeded(at: mouseLocation)
-                    self.forceQuitAction.perform(at: mouseLocation, service: self.accessibilityService)
+                case .window, .dock:
+                    self.closeAllTabsAction.perform(at: mouseLocation, service: self.accessibilityService)
                     HapticService.perform(.swipeLeft)
                 case .none:
                     break
@@ -257,11 +262,8 @@ class ShortcutViewModel {
 
             case .cmdSwipeRight:
                 switch target {
-                case .dock(let app):
-                    self.reopenTabAppAction.perform(app: app)
-                    HapticService.perform(.swipeRight)
-                case .window:
-                    self.reopenTabAction.perform(at: mouseLocation, service: self.accessibilityService)
+                case .window, .dock:
+                    self.newWindowAction.perform(at: mouseLocation, service: self.accessibilityService)
                     HapticService.perform(.swipeRight)
                 case .none:
                     break
@@ -270,7 +272,7 @@ class ShortcutViewModel {
             case .swipeDown:
                 switch target {
                 case .window:
-                    self.fullscreenAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    self.makeLargerAction.perform(at: mouseLocation, service: self.accessibilityService)
                     HapticService.perform(.swipeDown)
                 case .dock, .none:
                     break
@@ -279,7 +281,7 @@ class ShortcutViewModel {
             case .cmdSwipeDown:
                 switch target {
                 case .window:
-                    self.fullscreenAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    self.makeLargerAction.perform(at: mouseLocation, service: self.accessibilityService)
                     HapticService.perform(.swipeDown)
                 case .dock, .none:
                     break
@@ -322,7 +324,7 @@ class ShortcutViewModel {
                 switch target {
                 case .window:
                     self.almostMaximizeAction.perform(at: mouseLocation, service: self.accessibilityService)
-                    HapticService.perform(.twoFingerDoubleTap)
+                    HapticService.perform(.cmdTwoFingerDoubleTap)
                 case .dock, .none:
                     break
                 }

@@ -6,6 +6,7 @@ enum HapticType {
     case swipeDown
     case swipeUp
     case twoFingerDoubleTap
+    case cmdTwoFingerDoubleTap
     case pinchIn
 }
 
@@ -35,6 +36,17 @@ enum HapticService {
             }
         case .twoFingerDoubleTap:
             performer.perform(.alignment, performanceTime: .now)
+            DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.10) {
+                performer.perform(.alignment, performanceTime: .now)
+            }
+        case .cmdTwoFingerDoubleTap:
+            performer.perform(.alignment, performanceTime: .now)
+            DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.10) {
+                performer.perform(.alignment, performanceTime: .now)
+                DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.08) {
+                    performer.perform(.levelChange, performanceTime: .now)
+                }
+            }
         case .pinchIn:
             performer.perform(.levelChange, performanceTime: .now)
             DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.08) {
