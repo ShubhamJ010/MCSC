@@ -165,7 +165,8 @@ struct ForceQuitAppAction {
 
 struct ReopenTabAction: ShortcutAction {
     func perform(at point: CGPoint, service: AccessibilityServiceProtocol) {
-        guard let element = service.getElement(at: point) else { return }
+        guard let element = service.getElement(at: point),
+              let _ = service.getWindow(for: element) else { return }
 
         var pid: pid_t = 0
         guard AXUIElementGetPid(element, &pid) == .success else { return }

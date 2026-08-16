@@ -1,5 +1,4 @@
 import Foundation
-import Cocoa
 
 /// Detects a "pinch-in" gesture: two fingers move closer together.
 ///
@@ -91,8 +90,6 @@ class PinchInRecognizer: GestureRecognizer {
                 // Check if pinch ratio just crossed the threshold
                 let ratio = initialDist > 0.05 ? (initialDist - currentDist) / initialDist : 0
                 if ratio >= config.pinchRatioThreshold {
-                    // Threshold crossed → fire immediately
-                    fireHaptic()
                     state = .cooldown(until: timestamp + config.cooldownDuration)
                     let cmdHeld = isCmdHeld?() ?? false
                     if cmdHeld {
@@ -125,17 +122,6 @@ class PinchInRecognizer: GestureRecognizer {
 
     func reset() {
         state = .idle
-    }
-
-    // MARK: - Haptic Feedback
-
-    /// Fires a subtle haptic "tick" to confirm the pinch threshold was reached.
-    private func fireHaptic() {
-        let performer = NSHapticFeedbackManager.defaultPerformer
-        performer.perform(.levelChange, performanceTime: .now)
-        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.08) {
-            performer.perform(.levelChange, performanceTime: .now)
-        }
     }
 
     // MARK: - Geometry Helpers

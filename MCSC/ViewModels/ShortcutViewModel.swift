@@ -185,128 +185,171 @@ class ShortcutViewModel {
         
         // GestureEngine -> Actions
         gestureEngine.onGestureRecognized = { [weak self] result in
-            guard let self = self else { return }
+            guard let self = self,
+                  let mouseLocation = CGEvent(source: nil)?.location else { return }
+
+            let target = self.resolveTarget(at: mouseLocation)
+
             switch result {
             case .pinchIn:
-                guard let mouseLocation = CGEvent(source: nil)?.location else { return }
-
-                let element = self.accessibilityService.getElement(at: mouseLocation)
-                let isDock = element.map { self.accessibilityService.isDockItem($0) } ?? false
-                let app = isDock ? element.flatMap { self.accessibilityService.getAppFromDockItem($0) } : nil
-
-                if let app = app {
+                switch target {
+                case .dock(let app):
                     self.closeAppAction.perform(app: app, service: self.accessibilityService)
-                } else {
+                    HapticService.perform(.pinchIn)
+                case .window:
                     self.closeAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    HapticService.perform(.pinchIn)
+                case .none:
+                    break
                 }
 
             case .cmdPinchIn:
-                guard let mouseLocation = CGEvent(source: nil)?.location else { return }
-
-                let element = self.accessibilityService.getElement(at: mouseLocation)
-                let isDock = element.map { self.accessibilityService.isDockItem($0) } ?? false
-                let app = isDock ? element.flatMap { self.accessibilityService.getAppFromDockItem($0) } : nil
-
-                if let app = app {
+                switch target {
+                case .dock(let app):
                     self.forceQuitAppAction.perform(app: app)
-                } else {
+                    HapticService.perform(.pinchIn)
+                case .window:
                     self.forceQuitAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    HapticService.perform(.pinchIn)
+                case .none:
+                    break
                 }
 
             case .swipeLeft:
-                guard let mouseLocation = CGEvent(source: nil)?.location else { return }
-                
-                self.activateAppIfNeeded(at: mouseLocation)
-                
-                let element = self.accessibilityService.getElement(at: mouseLocation)
-                let isDock = element.map { self.accessibilityService.isDockItem($0) } ?? false
-                let app = isDock ? element.flatMap { self.accessibilityService.getAppFromDockItem($0) } : nil
-                
-                if let app = app {
+                switch target {
+                case .dock(let app):
+                    app.activate(options: .activateIgnoringOtherApps)
                     self.closeTabAppAction.perform(app: app, service: self.accessibilityService)
-                } else {
+                    HapticService.perform(.swipeLeft)
+                case .window:
+                    self.activateAppIfNeeded(at: mouseLocation)
                     self.closeTabAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    HapticService.perform(.swipeLeft)
+                case .none:
+                    break
                 }
+
             case .cmdSwipeLeft:
-                guard let mouseLocation = CGEvent(source: nil)?.location else { return }
-                
-                self.activateAppIfNeeded(at: mouseLocation)
-                
-                let element = self.accessibilityService.getElement(at: mouseLocation)
-                let isDock = element.map { self.accessibilityService.isDockItem($0) } ?? false
-                let app = isDock ? element.flatMap { self.accessibilityService.getAppFromDockItem($0) } : nil
-                
-                if let app = app {
+                switch target {
+                case .dock(let app):
+                    app.activate(options: .activateIgnoringOtherApps)
                     self.forceQuitAppAction.perform(app: app)
-                } else {
+                    HapticService.perform(.swipeLeft)
+                case .window:
+                    self.activateAppIfNeeded(at: mouseLocation)
                     self.forceQuitAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    HapticService.perform(.swipeLeft)
+                case .none:
+                    break
                 }
 
             case .swipeRight:
-                guard let mouseLocation = CGEvent(source: nil)?.location else { return }
-
-                let element = self.accessibilityService.getElement(at: mouseLocation)
-                let isDock = element.map { self.accessibilityService.isDockItem($0) } ?? false
-                let app = isDock ? element.flatMap { self.accessibilityService.getAppFromDockItem($0) } : nil
-
-                if let app = app {
+                switch target {
+                case .dock(let app):
                     self.reopenTabAppAction.perform(app: app)
-                } else {
+                    HapticService.perform(.swipeRight)
+                case .window:
                     self.reopenTabAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    HapticService.perform(.swipeRight)
+                case .none:
+                    break
                 }
 
             case .cmdSwipeRight:
-                guard let mouseLocation = CGEvent(source: nil)?.location else { return }
-
-                let element = self.accessibilityService.getElement(at: mouseLocation)
-                let isDock = element.map { self.accessibilityService.isDockItem($0) } ?? false
-                let app = isDock ? element.flatMap { self.accessibilityService.getAppFromDockItem($0) } : nil
-
-                if let app = app {
+                switch target {
+                case .dock(let app):
                     self.reopenTabAppAction.perform(app: app)
-                } else {
+                    HapticService.perform(.swipeRight)
+                case .window:
                     self.reopenTabAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    HapticService.perform(.swipeRight)
+                case .none:
+                    break
                 }
 
             case .swipeDown:
-                guard let mouseLocation = CGEvent(source: nil)?.location else { return }
-                fullscreenAction.perform(at: mouseLocation, service: accessibilityService)
+                switch target {
+                case .window:
+                    self.fullscreenAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    HapticService.perform(.swipeDown)
+                case .dock, .none:
+                    break
+                }
 
             case .cmdSwipeDown:
-                guard let mouseLocation = CGEvent(source: nil)?.location else { return }
-                fullscreenAction.perform(at: mouseLocation, service: accessibilityService)
+                switch target {
+                case .window:
+                    self.fullscreenAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    HapticService.perform(.swipeDown)
+                case .dock, .none:
+                    break
+                }
 
             case .swipeUp:
-                guard let mouseLocation = CGEvent(source: nil)?.location else { return }
-                let element = self.accessibilityService.getElement(at: mouseLocation)
-                let isDock = element.map { self.accessibilityService.isDockItem($0) } ?? false
-                let app = isDock ? element.flatMap { self.accessibilityService.getAppFromDockItem($0) } : nil
-                if let app = app {
+                switch target {
+                case .dock(let app):
                     self.minimizeAppAction.perform(app: app, service: self.accessibilityService)
-                } else {
+                    HapticService.perform(.swipeUp)
+                case .window:
                     self.minimizeAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    HapticService.perform(.swipeUp)
+                case .none:
+                    break
                 }
 
             case .cmdSwipeUp:
-                guard let mouseLocation = CGEvent(source: nil)?.location else { return }
-                let element = self.accessibilityService.getElement(at: mouseLocation)
-                let isDock = element.map { self.accessibilityService.isDockItem($0) } ?? false
-                let app = isDock ? element.flatMap { self.accessibilityService.getAppFromDockItem($0) } : nil
-                if let app = app {
+                switch target {
+                case .dock(let app):
                     app.hide()
-                } else {
+                    HapticService.perform(.swipeUp)
+                case .window:
                     self.hideAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    HapticService.perform(.swipeUp)
+                case .none:
+                    break
                 }
 
             case .twoFingerDoubleTap:
-                guard let mouseLocation = CGEvent(source: nil)?.location else { return }
-                self.reasonableSizeAction.perform(at: mouseLocation, service: self.accessibilityService)
+                switch target {
+                case .window:
+                    self.reasonableSizeAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    HapticService.perform(.twoFingerDoubleTap)
+                case .dock, .none:
+                    break
+                }
 
             case .cmdTwoFingerDoubleTap:
-                guard let mouseLocation = CGEvent(source: nil)?.location else { return }
-                self.almostMaximizeAction.perform(at: mouseLocation, service: self.accessibilityService)
+                switch target {
+                case .window:
+                    self.almostMaximizeAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    HapticService.perform(.twoFingerDoubleTap)
+                case .dock, .none:
+                    break
+                }
             }
         }
+    }
+
+    // MARK: - Target Resolution
+
+    private enum TargetResolution {
+        case dock(NSRunningApplication)
+        case window(AXUIElement)
+        case none
+    }
+
+    private func resolveTarget(at point: CGPoint) -> TargetResolution {
+        guard let element = accessibilityService.getElement(at: point) else { return .none }
+        if accessibilityService.isDockItem(element) {
+            if let app = accessibilityService.getAppFromDockItem(element) {
+                return .dock(app)
+            }
+            return .none
+        }
+        if let window = accessibilityService.getWindow(for: element) {
+            return .window(window)
+        }
+        return .none
     }
 
     // MARK: - App Activation
