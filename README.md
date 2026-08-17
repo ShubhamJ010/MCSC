@@ -62,6 +62,18 @@ Two-finger and pinch gestures, also scoped to **Mission Control only**:
 
 Each gesture fires **once per finger lift** — keeping fingers down and repeating the motion will not re-trigger it until you lift and touch again.
 
+---
+
+### Mission Control Hover Action Buttons
+
+Floating interactive action buttons anchored to the top-left vertex of window thumbnails in Mission Control:
+
+- **Hover Close (`xmark.circle.fill`)**: Hover over any window preview in Mission Control to show the native-styled close overlay button. Click to close the window.
+- **Cmd-Hold Minimize (`minus.circle.fill`)**: Hold `Command` while hovering to dynamically switch the overlay to a minimize action button with smooth symbol transitions. Click to minimize.
+- **Interactive Animations**: Features `.appear.byLayer` / `.drawOn.byLayer` entry symbol animations and `.rotate.byLayer` click feedback with haptic response.
+
+---
+
 ### Accessibility API Integration
 
 Uses `AXUIElement` directly to:

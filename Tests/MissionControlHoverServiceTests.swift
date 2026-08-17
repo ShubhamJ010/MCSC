@@ -47,4 +47,15 @@ final class MissionControlHoverServiceTests: XCTestCase {
         hoverService.isEnabled = true
         XCTAssertTrue(hoverService.isEnabled)
     }
+
+    func testMouseDownWhenNotActiveReturnsFalse() {
+        let result = hoverService.handleMouseDown(at: CGPoint(x: 100, y: 100))
+        XCTAssertFalse(result)
+    }
+
+    func testFlagsChangedDoesNotCrash() {
+        hoverService.start()
+        hoverService.handleFlagsChanged(cmdPressed: true)
+        hoverService.handleFlagsChanged(cmdPressed: false)
+    }
 }

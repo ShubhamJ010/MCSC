@@ -207,8 +207,12 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
                 
                 if type == .flagsChanged {
                     let cmdPressed = event.flags.contains(.maskCommand)
-                    DispatchQueue.main.async {
+                    if Thread.isMainThread {
                         service.handleFlagsChanged(cmdPressed: cmdPressed)
+                    } else {
+                        DispatchQueue.main.async {
+                            service.handleFlagsChanged(cmdPressed: cmdPressed)
+                        }
                     }
                     return Unmanaged.passUnretained(event)
                 }
@@ -217,9 +221,13 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
                     let location = event.location
                     var intercepted = false
                     
-                    // Synchronously check if click hit the overlay button
-                    DispatchQueue.main.sync {
+                    // Safely check if click hit the overlay button without blocking main thread
+                    if Thread.isMainThread {
                         intercepted = service.handleMouseDown(at: location)
+                    } else {
+                        DispatchQueue.main.sync {
+                            intercepted = service.handleMouseDown(at: location)
+                        }
                     }
                     
                     if intercepted {
@@ -229,8 +237,12 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
                 }
                 
                 let location = event.location
-                DispatchQueue.main.async {
+                if Thread.isMainThread {
                     service.handleMouseMoved(at: location)
+                } else {
+                    DispatchQueue.main.async {
+                        service.handleMouseMoved(at: location)
+                    }
                 }
                 
                 return Unmanaged.passUnretained(event)
@@ -346,6 +358,10 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
             performClose(on: windowInfo)
         }
         
+        if let windowID = windowInfo[kCGWindowNumber as String] as? CGWindowID {
+            windows.removeAll { ($0[kCGWindowNumber as String] as? CGWindowID) == windowID }
+        }
+        
         hideOverlay()
     }
     
@@ -359,16 +375,20 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
         let app = AXUIElementCreateApplication(pid)
         var windowsRef: CFTypeRef?
         if AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &windowsRef) == .success,
+           let windowsRef = windowsRef, CFGetTypeID(windowsRef) == CFArrayGetTypeID(),
            let axWindows = windowsRef as? [AXUIElement] {
             for axWindow in axWindows {
                 var axId: CGWindowID = 0
                 _AXUIElementGetWindow(axWindow, &axId)
                 if axId == windowID {
                     var closeButtonRef: CFTypeRef?
-                    if AXUIElementCopyAttributeValue(axWindow, kAXCloseButtonAttribute as CFString, &closeButtonRef) == .success {
-                        let closeBtn = closeButtonRef as! AXUIElement
-                        AXUIElementPerformAction(closeBtn, kAXPressAction as CFString)
-                        return
+                    if AXUIElementCopyAttributeValue(axWindow, kAXCloseButtonAttribute as CFString, &closeButtonRef) == .success,
+                       let closeBtn = closeButtonRef,
+                       CFGetTypeID(closeBtn) == AXUIElementGetTypeID() {
+                        let actionResult = AXUIElementPerformAction((closeBtn as! AXUIElement), kAXPressAction as CFString)
+                        if actionResult == .success {
+                            return
+                        }
                     }
                 }
             }
@@ -402,19 +422,40 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
         let app = AXUIElementCreateApplication(pid)
         var windowsRef: CFTypeRef?
         if AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &windowsRef) == .success,
+           let windowsRef = windowsRef, CFGetTypeID(windowsRef) == CFArrayGetTypeID(),
            let axWindows = windowsRef as? [AXUIElement] {
             for axWindow in axWindows {
                 var axId: CGWindowID = 0
                 _AXUIElementGetWindow(axWindow, &axId)
                 if axId == windowID {
                     var minButtonRef: CFTypeRef?
-                    if AXUIElementCopyAttributeValue(axWindow, kAXMinimizeButtonAttribute as CFString, &minButtonRef) == .success {
-                        let minBtn = minButtonRef as! AXUIElement
-                        AXUIElementPerformAction(minBtn, kAXPressAction as CFString)
-                        return
+                    if AXUIElementCopyAttributeValue(axWindow, kAXMinimizeButtonAttribute as CFString, &minButtonRef) == .success,
+                       let minBtn = minButtonRef,
+                       CFGetTypeID(minBtn) == AXUIElementGetTypeID() {
+                        let actionResult = AXUIElementPerformAction((minBtn as! AXUIElement), kAXPressAction as CFString)
+                        if actionResult == .success {
+                            return
+                        }
                     }
                 }
             }
+        }
+        
+        // Fallback: activate application and trigger minimize action
+        if let app = NSRunningApplication(processIdentifier: pid) {
+            if #available(macOS 14.0, *) {
+                app.activate()
+            } else {
+                app.activate(options: .activateIgnoringOtherApps)
+            }
+        }
+        
+        if let boundsDict = windowInfo[kCGWindowBounds as String] as? [String: CGFloat] {
+            let centerPoint = CGPoint(
+                x: (boundsDict["X"] ?? 0) + (boundsDict["Width"] ?? 0) / 2,
+                y: (boundsDict["Y"] ?? 0) + (boundsDict["Height"] ?? 0) / 2
+            )
+            MinimizeWindowAction().perform(at: centerPoint, service: self.accessibilityService)
         }
     }
     

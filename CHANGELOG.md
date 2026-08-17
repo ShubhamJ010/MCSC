@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1 (17 Aug 2026)
+
+- **Mission Control Hover Buttons**: Added preview close (`xmark.circle.fill`) and minimize (`minus.circle.fill`) action overlay button anchored directly to the top-left vertex of window thumbnails in Mission Control.
+  - Supports Cmd-hold toggle to switch between Close and Minimize modes with smooth symbol content replacement animations.
+  - Integrated `.drawOn.byLayer` / `.appear.byLayer` entry symbol animations and `.rotate.byLayer` click animations.
+- **Bug Fix**: Fixed application crash when clicking the close or minimize overlay button caused by recursive `dispatch_sync` execution on the main queue within the event tap callback.
+- **Reliability & Fallbacks**: Added type-safe AX attribute resolution, fallback application activation + action triggering for non-standard windows, and window list caching cleanups.
+
 ## 16 Aug 2026
 
 - **Haptics & Gesture Target Validation**: Fixed phantom haptic feedback when scrolling or performing two-finger gestures over empty areas (wallpaper / Spaces bar) in Mission Control. Removed premature haptic triggers from recognizers (`SwipeRecognizer`, `TwoFingerSwipeLeftRecognizer`, `TwoFingerSwipeRightRecognizer`, `TwoFingerDoubleTapRecognizer`, `PinchInRecognizer`) to keep models pure. Introduced `HapticService` and added target resolution in `ShortcutViewModel` so haptics and actions only execute when hovering over a valid window thumbnail or Dock item.
