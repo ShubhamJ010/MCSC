@@ -8,7 +8,8 @@ struct TestRunner {
             PinchInRecognizerTests.defaultTestSuite,
             CmdSwipeActionsTests.defaultTestSuite,
             GestureEngineRoutingTests.defaultTestSuite,
-            MissionControlHoverServiceTests.defaultTestSuite
+            MissionControlHoverServiceTests.defaultTestSuite,
+            CursorFeedbackOverlayTests.defaultTestSuite
         ]
 
         var totalFailed = 0

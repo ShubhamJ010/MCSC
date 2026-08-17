@@ -16,6 +16,8 @@ class ShortcutViewModel {
         )
     }()
     
+    private lazy var cursorFeedback = CursorFeedbackOverlay()
+    
     private let closeAction = CloseWindowAction()
     private let closeTabAction = CloseTabAction()
     private let closeTabAppAction = CloseTabAppAction()
@@ -122,6 +124,7 @@ class ShortcutViewModel {
                         } else {
                             self.closeTabAction.perform(at: location, service: self.accessibilityService)
                         }
+                        self.cursorFeedback.show(at: location, mode: .close)
                         return true
                     } else if keyCode == self.kKeyQ && self.isCmdQEnabled {
                         if let app = app {
@@ -136,6 +139,7 @@ class ShortcutViewModel {
                         } else {
                             self.minimizeAction.perform(at: location, service: self.accessibilityService)
                         }
+                        self.cursorFeedback.show(at: location, mode: .minimize)
                         return true
                     } else if keyCode == self.kKeyH && self.isCmdHEnabled {
                         if let app = app {
@@ -218,9 +222,11 @@ class ShortcutViewModel {
                 switch target {
                 case .dock(let app):
                     self.closeAppAction.perform(app: app, service: self.accessibilityService)
+                    self.cursorFeedback.show(at: mouseLocation, mode: .close)
                     HapticService.perform(.pinchIn)
                 case .window:
                     self.closeAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    self.cursorFeedback.show(at: mouseLocation, mode: .close)
                     HapticService.perform(.pinchIn)
                 case .none:
                     break
@@ -304,9 +310,11 @@ class ShortcutViewModel {
                 switch target {
                 case .dock(let app):
                     self.minimizeAppAction.perform(app: app, service: self.accessibilityService)
+                    self.cursorFeedback.show(at: mouseLocation, mode: .minimize)
                     HapticService.perform(.swipeUp)
                 case .window:
                     self.minimizeAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    self.cursorFeedback.show(at: mouseLocation, mode: .minimize)
                     HapticService.perform(.swipeUp)
                 case .none:
                     break
@@ -397,5 +405,6 @@ class ShortcutViewModel {
         multitouchService.stop()
         hoverService.stop()
         gestureEngine.reset()
+        cursorFeedback.hide()
     }
 }

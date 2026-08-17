@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.2 (17 Aug 2026)
+
+- **Cursor-Anchored Action Feedback**: Reused the same `xmark.circle.fill` (Close) and `minus.circle.fill` (Minimize) symbols from the Mission Control hover overlay as a transient, non-interactive visual feedback flash anchored at the mouse cursor whenever a close or minimize action executes:
+  - `Cmd+W` (close) → red X flash at the cursor.
+  - `Cmd+M` (minimize) → yellow minus flash at the cursor.
+  - Pinch-in (close) and swipe-up (minimize) gestures → matching feedback at the cursor.
+  - Auto-fades after ~0.45 s; repeated triggers reset the timer. Click-through (`ignoresMouseEvents`), lazily allocated, and cleaned up on `stop()`.
+
 ## 0.3.1 (17 Aug 2026)
 
 - **Mission Control Hover Buttons**: Added preview close (`xmark.circle.fill`) and minimize (`minus.circle.fill`) action overlay button anchored directly to the top-left vertex of window thumbnails in Mission Control.

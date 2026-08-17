@@ -22,6 +22,7 @@ swiftc \
   "${ROOT_DIR}/MCSC/Services/HapticService.swift" \
   "${ROOT_DIR}/MCSC/Services/MissionControlHoverService.swift" \
   "${ROOT_DIR}/MCSC/Views/PreviewCloseButtonOverlay.swift" \
+  "${ROOT_DIR}/MCSC/Views/CursorFeedbackOverlay.swift" \
   "${ROOT_DIR}/MCSC/Models/GestureRecognizer.swift" \
   "${ROOT_DIR}/MCSC/Models/PinchInRecognizer.swift" \
   "${ROOT_DIR}/MCSC/Models/TwoFingerSwipeLeftRecognizer.swift" \
@@ -34,6 +35,7 @@ swiftc \
   "${SCRIPT_DIR}/CmdSwipeActionsTests.swift" \
   "${SCRIPT_DIR}/GestureEngineRoutingTests.swift" \
   "${SCRIPT_DIR}/MissionControlHoverServiceTests.swift" \
+  "${SCRIPT_DIR}/CursorFeedbackOverlayTests.swift" \
   "${SCRIPT_DIR}/TestRunner.swift"
 
 trap 'rm -f "${SCRIPT_DIR}/bin_test_runner"' EXIT
