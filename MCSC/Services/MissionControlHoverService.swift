@@ -1,0 +1,433 @@
+import Cocoa
+import ApplicationServices
+
+@_silgen_name("_AXUIElementGetWindow")
+@discardableResult
+func _AXUIElementGetWindow(_ element: AXUIElement, _ identifier: UnsafeMutablePointer<CGWindowID>) -> AXError
+
+@MainActor
+protocol MissionControlHoverServiceProtocol: AnyObject {
+    var isEnabled: Bool { get set }
+    var isTracking: Bool { get }
+    
+    func start()
+    func stop()
+}
+
+@MainActor
+final class MissionControlHoverService: MissionControlHoverServiceProtocol {
+    private let accessibilityService: AccessibilityServiceProtocol
+    private let isMissionControlActiveProvider: () -> Bool
+    private let overlay: PreviewCloseButtonOverlay
+    private let closeAction = CloseWindowAction()
+    
+    private var eventTap: CFMachPort?
+    private var runLoopSource: CFRunLoopSource?
+    private var axObserver: AXObserver?
+    private var dockAXElement: AXUIElement?
+    private var windowFetchTimer: Timer?
+    
+    private var windows: [[String: Any]] = []
+    private(set) var isTracking = false
+    private var isMissionControlActive = false
+    private var isCmdHeld = false
+    private var hoveredWindow: [String: Any]?
+    private var overlayRect: CGRect?
+    
+    var isEnabled = true {
+        didSet {
+            if !isEnabled {
+                hideOverlay()
+            }
+        }
+    }
+
+    init(accessibilityService: AccessibilityServiceProtocol,
+         isMissionControlActiveProvider: @escaping () -> Bool,
+         overlay: PreviewCloseButtonOverlay? = nil) {
+        self.accessibilityService = accessibilityService
+        self.isMissionControlActiveProvider = isMissionControlActiveProvider
+        self.overlay = overlay ?? PreviewCloseButtonOverlay()
+        
+        setupOverlayActions()
+    }
+    
+    private func setupOverlayActions() {
+        overlay.onCloseClicked = { [weak self] in
+            guard let self = self, let window = self.hoveredWindow else { return }
+            self.executeAction(on: window)
+        }
+    }
+    
+    func start() {
+        guard !isTracking else { return }
+        isTracking = true
+        
+        setupDockObserver()
+        startInputTap()
+    }
+    
+    func stop() {
+        guard isTracking else { return }
+        stopDockObserver()
+        stopInputTap()
+        stopWindowFetchTimer()
+        hideOverlay()
+        isTracking = false
+    }
+    
+    // MARK: - Dock AXObserver
+    
+    private func setupDockObserver() {
+        guard let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first else {
+            return
+        }
+        
+        let pid = dockApp.processIdentifier
+        let dockElement = AXUIElementCreateApplication(pid)
+        self.dockAXElement = dockElement
+        
+        var observer: AXObserver?
+        let callback: AXObserverCallback = { (observer, element, notification, refcon) in
+            guard let refcon = refcon else { return }
+            let service = Unmanaged<MissionControlHoverService>.fromOpaque(refcon).takeUnretainedValue()
+            let notifName = notification as String
+            
+            DispatchQueue.main.async {
+                service.handleDockNotification(notifName)
+            }
+        }
+        
+        guard AXObserverCreate(pid, callback, &observer) == .success, let obs = observer else {
+            return
+        }
+        
+        let notifications = [
+            "AXExposeShowAllWindows",
+            "AXExposeShowFrontWindows",
+            "AXExposeShowDesktop",
+            "AXExposeExit"
+        ]
+        
+        let selfPtr = Unmanaged.passUnretained(self).toOpaque()
+        for notif in notifications {
+            AXObserverAddNotification(obs, dockElement, notif as CFString, selfPtr)
+        }
+        
+        CFRunLoopAddSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(obs), .commonModes)
+        self.axObserver = obs
+    }
+    
+    private func stopDockObserver() {
+        if let obs = axObserver, let dockElement = dockAXElement {
+            let notifications = [
+                "AXExposeShowAllWindows",
+                "AXExposeShowFrontWindows",
+                "AXExposeShowDesktop",
+                "AXExposeExit"
+            ]
+            for notif in notifications {
+                AXObserverRemoveNotification(obs, dockElement, notif as CFString)
+            }
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(obs), .commonModes)
+            self.axObserver = nil
+            self.dockAXElement = nil
+        }
+    }
+    
+    private func handleDockNotification(_ notification: String) {
+        if notification == "AXExposeExit" {
+            isMissionControlActive = false
+            stopWindowFetchTimer()
+            hideOverlay()
+        } else {
+            isMissionControlActive = true
+            fetchWindows()
+            startWindowFetchTimer()
+            
+            if let mouseLocation = CGEvent(source: nil)?.location {
+                updateOverlay(at: mouseLocation)
+            }
+        }
+    }
+    
+    // MARK: - Window Polling
+    
+    private func startWindowFetchTimer() {
+        stopWindowFetchTimer()
+        windowFetchTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.fetchWindows()
+            }
+        }
+    }
+    
+    private func stopWindowFetchTimer() {
+        windowFetchTimer?.invalidate()
+        windowFetchTimer = nil
+    }
+    
+    private func fetchWindows() {
+        guard let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else {
+            return
+        }
+        
+        self.windows = list.filter { window in
+            guard let layer = window[kCGWindowLayer as String] as? Int, layer == 0,
+                  let owner = window[kCGWindowOwnerName as String] as? String,
+                  owner != "Dock", owner != "MCSC", owner != "Window Server" else {
+                return false
+            }
+            if let bounds = window[kCGWindowBounds as String] as? [String: CGFloat],
+               let w = bounds["Width"], let h = bounds["Height"], w >= 100, h >= 100 {
+                return true
+            }
+            return false
+        }
+    }
+    
+    // MARK: - Input Event Tap
+    
+    private func startInputTap() {
+        guard eventTap == nil else { return }
+        
+        let mask = (1 << CGEventType.mouseMoved.rawValue)
+            | (1 << CGEventType.leftMouseDragged.rawValue)
+            | (1 << CGEventType.leftMouseDown.rawValue)
+            | (1 << CGEventType.flagsChanged.rawValue)
+        
+        guard let tap = CGEvent.tapCreate(
+            tap: .cghidEventTap,
+            place: .headInsertEventTap,
+            options: .defaultTap,
+            eventsOfInterest: CGEventMask(mask),
+            callback: { (proxy, type, event, refcon) -> Unmanaged<CGEvent>? in
+                guard let refcon = refcon else { return Unmanaged.passUnretained(event) }
+                let service = Unmanaged<MissionControlHoverService>.fromOpaque(refcon).takeUnretainedValue()
+                
+                if type == .flagsChanged {
+                    let cmdPressed = event.flags.contains(.maskCommand)
+                    DispatchQueue.main.async {
+                        service.handleFlagsChanged(cmdPressed: cmdPressed)
+                    }
+                    return Unmanaged.passUnretained(event)
+                }
+                
+                if type == .leftMouseDown {
+                    let location = event.location
+                    var intercepted = false
+                    
+                    // Synchronously check if click hit the overlay button
+                    DispatchQueue.main.sync {
+                        intercepted = service.handleMouseDown(at: location)
+                    }
+                    
+                    if intercepted {
+                        return nil // Swallow the click so Mission Control does not dismiss prematurely
+                    }
+                    return Unmanaged.passUnretained(event)
+                }
+                
+                let location = event.location
+                DispatchQueue.main.async {
+                    service.handleMouseMoved(at: location)
+                }
+                
+                return Unmanaged.passUnretained(event)
+            },
+            userInfo: Unmanaged.passUnretained(self).toOpaque()
+        ) else {
+            return
+        }
+        
+        self.eventTap = tap
+        let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
+        self.runLoopSource = source
+        CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
+        CGEvent.tapEnable(tap: tap, enable: true)
+    }
+    
+    private func stopInputTap() {
+        if let source = runLoopSource {
+            CFRunLoopSourceInvalidate(source)
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes)
+            runLoopSource = nil
+        }
+        if let tap = eventTap {
+            CGEvent.tapEnable(tap: tap, enable: false)
+            eventTap = nil
+        }
+    }
+    
+    func handleFlagsChanged(cmdPressed: Bool) {
+        guard isTracking && isEnabled else { return }
+        isCmdHeld = cmdPressed
+        overlay.setMode(cmdPressed ? .minimize : .close)
+    }
+    
+    func handleMouseDown(at location: CGPoint) -> Bool {
+        guard isTracking && isEnabled, isMissionControlActive || isMissionControlActiveProvider() else {
+            return false
+        }
+        
+        guard let rect = overlayRect, rect.contains(location), let window = hoveredWindow else {
+            return false
+        }
+        
+        overlay.triggerRotateEffect()
+        executeAction(on: window)
+        return true
+    }
+    
+    func handleMouseMoved(at mouseLocation: CGPoint) {
+        guard isTracking && isEnabled else {
+            hideOverlay()
+            return
+        }
+        
+        guard isMissionControlActive || isMissionControlActiveProvider() else {
+            hideOverlay()
+            return
+        }
+        
+        if windows.isEmpty {
+            fetchWindows()
+        }
+        
+        updateOverlay(at: mouseLocation)
+    }
+    
+    private func updateOverlay(at mouseLocation: CGPoint) {
+        // If mouse is hovering over the action button itself, keep it visible
+        if let rect = overlayRect, rect.contains(mouseLocation), hoveredWindow != nil {
+            return
+        }
+        
+        // Find window containing cursor
+        for windowInfo in windows {
+            guard let boundsDict = windowInfo[kCGWindowBounds as String] as? [String: CGFloat],
+                  let x = boundsDict["X"],
+                  let y = boundsDict["Y"],
+                  let width = boundsDict["Width"],
+                  let height = boundsDict["Height"] else {
+                continue
+            }
+            
+            let windowFrame = CGRect(x: x, y: y, width: width, height: height)
+            
+            if windowFrame.contains(mouseLocation) {
+                hoveredWindow = windowInfo
+                let halfDim = PreviewCloseButtonOverlay.buttonDimension / 2.0
+                overlayRect = CGRect(x: x - halfDim, y: y - halfDim, width: PreviewCloseButtonOverlay.buttonDimension, height: PreviewCloseButtonOverlay.buttonDimension)
+                overlay.show(at: windowFrame, mode: isCmdHeld ? .minimize : .close)
+                return
+            }
+        }
+        
+        hideOverlay()
+    }
+    
+    private func hideOverlay() {
+        if hoveredWindow != nil || overlay.isVisible {
+            hoveredWindow = nil
+            overlayRect = nil
+            overlay.hide()
+        }
+    }
+    
+    // MARK: - Actions
+    
+    private func executeAction(on windowInfo: [String: Any]) {
+        HapticService.perform(.pinchIn)
+        
+        if isCmdHeld {
+            performMinimize(on: windowInfo)
+        } else {
+            performClose(on: windowInfo)
+        }
+        
+        hideOverlay()
+    }
+    
+    private func performClose(on windowInfo: [String: Any]) {
+        guard let pid = windowInfo[kCGWindowOwnerPID as String] as? pid_t,
+              let windowID = windowInfo[kCGWindowNumber as String] as? CGWindowID else {
+            return
+        }
+        
+        // Press the window's native close button via Accessibility
+        let app = AXUIElementCreateApplication(pid)
+        var windowsRef: CFTypeRef?
+        if AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &windowsRef) == .success,
+           let axWindows = windowsRef as? [AXUIElement] {
+            for axWindow in axWindows {
+                var axId: CGWindowID = 0
+                _AXUIElementGetWindow(axWindow, &axId)
+                if axId == windowID {
+                    var closeButtonRef: CFTypeRef?
+                    if AXUIElementCopyAttributeValue(axWindow, kAXCloseButtonAttribute as CFString, &closeButtonRef) == .success {
+                        let closeBtn = closeButtonRef as! AXUIElement
+                        AXUIElementPerformAction(closeBtn, kAXPressAction as CFString)
+                        return
+                    }
+                }
+            }
+        }
+        
+        // Fallback: activate application and trigger close action
+        if let app = NSRunningApplication(processIdentifier: pid) {
+            if #available(macOS 14.0, *) {
+                app.activate()
+            } else {
+                app.activate(options: .activateIgnoringOtherApps)
+            }
+        }
+        
+        if let boundsDict = windowInfo[kCGWindowBounds as String] as? [String: CGFloat] {
+            let centerPoint = CGPoint(
+                x: (boundsDict["X"] ?? 0) + (boundsDict["Width"] ?? 0) / 2,
+                y: (boundsDict["Y"] ?? 0) + (boundsDict["Height"] ?? 0) / 2
+            )
+            self.closeAction.perform(at: centerPoint, service: self.accessibilityService)
+        }
+    }
+    
+    private func performMinimize(on windowInfo: [String: Any]) {
+        guard let pid = windowInfo[kCGWindowOwnerPID as String] as? pid_t,
+              let windowID = windowInfo[kCGWindowNumber as String] as? CGWindowID else {
+            return
+        }
+        
+        // Press the window's native minimize button via Accessibility
+        let app = AXUIElementCreateApplication(pid)
+        var windowsRef: CFTypeRef?
+        if AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &windowsRef) == .success,
+           let axWindows = windowsRef as? [AXUIElement] {
+            for axWindow in axWindows {
+                var axId: CGWindowID = 0
+                _AXUIElementGetWindow(axWindow, &axId)
+                if axId == windowID {
+                    var minButtonRef: CFTypeRef?
+                    if AXUIElementCopyAttributeValue(axWindow, kAXMinimizeButtonAttribute as CFString, &minButtonRef) == .success {
+                        let minBtn = minButtonRef as! AXUIElement
+                        AXUIElementPerformAction(minBtn, kAXPressAction as CFString)
+                        return
+                    }
+                }
+            }
+        }
+    }
+    
+    deinit {
+        if let source = runLoopSource {
+            CFRunLoopSourceInvalidate(source)
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes)
+        }
+        if let tap = eventTap {
+            CGEvent.tapEnable(tap: tap, enable: false)
+        }
+        if let obs = axObserver {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(obs), .commonModes)
+        }
+    }
+}

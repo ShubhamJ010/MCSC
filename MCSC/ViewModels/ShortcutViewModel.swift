@@ -7,6 +7,14 @@ class ShortcutViewModel {
     private let launchAtLoginService: LaunchAtLoginService
     private lazy var multitouchService = MultitouchService()
     private lazy var gestureEngine = GestureEngine()
+    private lazy var hoverService: MissionControlHoverServiceProtocol = {
+        MissionControlHoverService(
+            accessibilityService: accessibilityService,
+            isMissionControlActiveProvider: { [weak self] in
+                self?.missionControlService.isMissionControlActive ?? false
+            }
+        )
+    }()
     
     private let closeAction = CloseWindowAction()
     private let closeTabAction = CloseTabAction()
@@ -47,6 +55,11 @@ class ShortcutViewModel {
     var isSwipeDownEnabled = true
     var isSwipeUpEnabled = true
     var isTwoFingerDoubleTapEnabled = true
+    
+    var isHoverCloseButtonEnabled: Bool {
+        get { hoverService.isEnabled }
+        set { hoverService.isEnabled = newValue }
+    }
 
     /// Prevents gestures from firing right after Mission Control opens via 3-finger swipe.
     private var isCoolingDown = false
@@ -375,12 +388,14 @@ class ShortcutViewModel {
         eventTapService.start()
         missionControlService.start()
         multitouchService.start()
+        hoverService.start()
     }
     
     func stop() {
         eventTapService.stop()
         missionControlService.stop()
         multitouchService.stop()
+        hoverService.stop()
         gestureEngine.reset()
     }
 }

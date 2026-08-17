@@ -117,7 +117,7 @@ class AccessibilityService: AccessibilityServiceProtocol {
            let bundle = Bundle(url: url as URL),
            let app = runningApps.first(where: { $0.bundleIdentifier == bundle.bundleIdentifier }) {
             if dockDiagnosticsEnabled {
-                print("[MCSC][DockDiag] resolved via AXURL → bundleID '\(bundle.bundleIdentifier)' → '\(app.localizedName ?? "?")'")
+                print("[MCSC][DockDiag] resolved via AXURL → bundleID '\(bundle.bundleIdentifier ?? "?")' → '\(app.localizedName ?? "?")'")
             }
             return app
         }

@@ -124,6 +124,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         menu.addItem(gesturesItem)
         
+        let hoverCloseButtonItem = NSMenuItem(title: "Hover Close Button", action: #selector(toggleHoverCloseButton), keyEquivalent: "")
+        hoverCloseButtonItem.state = (viewModel?.isHoverCloseButtonEnabled ?? true) ? .on : .off
+        menu.addItem(hoverCloseButtonItem)
+        
         menu.addItem(NSMenuItem.separator())
         
         let launchAtLoginItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "l")
@@ -148,8 +152,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func toggleSwipeDown(_ sender: NSMenuItem) { handleToggle(sender, key: .swipeDown) }
     @objc private func toggleSwipeUp(_ sender: NSMenuItem) { handleToggle(sender, key: .swipeUp) }
     @objc private func toggleTwoFingerDoubleTap(_ sender: NSMenuItem) { handleToggle(sender, key: .twoFingerDoubleTap) }
+    @objc private func toggleHoverCloseButton(_ sender: NSMenuItem) { handleToggle(sender, key: .hoverCloseButton) }
 
-    private enum ShortcutKey { case cmdW, cmdQ, cmdM, cmdH, cmdSpace, gestures, pinchIn, swipeLeft, swipeRight, swipeDown, swipeUp, twoFingerDoubleTap }
+    private enum ShortcutKey { case cmdW, cmdQ, cmdM, cmdH, cmdSpace, gestures, pinchIn, swipeLeft, swipeRight, swipeDown, swipeUp, twoFingerDoubleTap, hoverCloseButton }
 
     private func handleToggle(_ sender: NSMenuItem, key: ShortcutKey) {
         guard let viewModel = viewModel else { return }
@@ -166,6 +171,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         case .swipeDown: viewModel.isSwipeDownEnabled.toggle(); sender.state = viewModel.isSwipeDownEnabled ? .on : .off
         case .swipeUp: viewModel.isSwipeUpEnabled.toggle(); sender.state = viewModel.isSwipeUpEnabled ? .on : .off
         case .twoFingerDoubleTap: viewModel.isTwoFingerDoubleTapEnabled.toggle(); sender.state = viewModel.isTwoFingerDoubleTapEnabled ? .on : .off
+        case .hoverCloseButton: viewModel.isHoverCloseButtonEnabled.toggle(); sender.state = viewModel.isHoverCloseButtonEnabled ? .on : .off
         }
     }
     

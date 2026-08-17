@@ -7,7 +7,8 @@ struct TestRunner {
         let suites: [XCTestSuite] = [
             PinchInRecognizerTests.defaultTestSuite,
             CmdSwipeActionsTests.defaultTestSuite,
-            GestureEngineRoutingTests.defaultTestSuite
+            GestureEngineRoutingTests.defaultTestSuite,
+            MissionControlHoverServiceTests.defaultTestSuite
         ]
 
         var totalFailed = 0
