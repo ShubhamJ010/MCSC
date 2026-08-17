@@ -1,16 +1,46 @@
 import Cocoa
 import ApplicationServices
 
+/// Abstraction over the macOS Accessibility (AX) API so higher layers can be
+/// unit-tested with a mock. All methods use Quartz screen coordinates
+/// (origin at the top-left of the primary display) unless noted otherwise.
 protocol AccessibilityServiceProtocol {
+    /// Returns the topmost AX element at `point`, or `nil` if the hit test
+    /// fails (e.g. over the desktop or when Accessibility is not granted).
     func getElement(at point: CGPoint) -> AXUIElement?
+
+    /// Returns the AX window ancestor for `element`. If `element` is itself a
+    /// window, it is returned directly.
     func getWindow(for element: AXUIElement) -> AXUIElement?
+
+    /// Performs a named AX action (e.g. `kAXPressAction`) on `element`.
+    /// Returns `true` if the action was accepted by the target app.
     func performAction(_ action: String, on element: AXUIElement) -> Bool
+
+    /// Reads a typed AX attribute value (e.g. `kAXCloseButtonAttribute`).
+    /// Returns `nil` when the attribute is missing or of a different type.
     func getAttributeValue<T>(_ attribute: String, for element: AXUIElement) -> T?
+
+    /// Returns the element's frame in Quartz/AX coordinates.
     func getFrame(for element: AXUIElement) -> CGRect?
+
+    /// Sets the element's position and size (in Quartz/AX coordinates).
+    /// Returns `true` only if both position and size updates succeeded.
     func setFrame(_ frame: CGRect, for element: AXUIElement) -> Bool
+
+    /// Returns `true` if `element` is (or is nested inside) a Dock item.
     func isDockItem(_ element: AXUIElement) -> Bool
+
+    /// Resolves the `NSRunningApplication` represented by a Dock item hit.
+    /// Returns `nil` if the element is not a Dock item or the app is not
+    /// currently running.
     func getAppFromDockItem(_ element: AXUIElement) -> NSRunningApplication?
+
+    /// Finds the AX close button of the selected tab in a tabbed window.
+    /// Returns `nil` when the window has no accessible tab group.
     func findActiveTabCloseButton(in window: AXUIElement) -> AXUIElement?
+
+    /// Resolves the `NSRunningApplication` that owns `element` via its PID.
     func getAppFromElement(_ element: AXUIElement) -> NSRunningApplication?
 }
 

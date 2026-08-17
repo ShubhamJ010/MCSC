@@ -1,18 +1,32 @@
 import Foundation
 
-/// Snapshot of a single touch point per frame.
+/// Snapshot of a single touch point per frame, in normalized trackpad
+/// coordinates (0.0–1.0) that are independent of device resolution.
 struct TouchPoint {
+    /// Stable per-finger identifier across frames within a touch cycle.
     let identifier: Int32
+    /// Raw Multitouch state: 2=starting, 3=hovering, 4=touching, 5=staying, 7=lifting.
     let state: Int32
     let normalizedX: Float
     let normalizedY: Float
+    /// Contact size, higher = firmer press.
     let size: Float
 }
 
 /// Thin wrapper around MultitouchSupport.framework.
-/// - Starts/stops the trackpad device
+/// - Starts/stops the trackpad device(s)
 /// - Converts raw `Finger` structs into clean `TouchPoint` values
-/// - Forwards frames via callback (no gesture logic here)
+/// - Forwards frames via `onFrame` (no gesture logic lives here)
+///
+/// Threading: the framework's C callback may be invoked on an arbitrary
+/// framework thread, so frames are re-dispatched to the main queue before
+/// reaching consumers.
+///
+/// Cleanup: `stop()` intentionally defers the underlying `deviceStop` call
+/// (see `pendingStop`) because stopping a device synchronously inside the
+/// framework's thread can crash. A stale deferred stop is cancelled by the
+/// next `start()` (e.g. after sleep/wake) so it cannot tear down freshly
+/// re-created devices.
 class MultitouchService {
     typealias FrameCallback = ([TouchPoint], Double) -> Void
 

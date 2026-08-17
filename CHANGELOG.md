@@ -6,7 +6,10 @@
   - `Cmd+W` (close) → red X flash at the cursor.
   - `Cmd+M` (minimize) → yellow minus flash at the cursor.
   - Pinch-in (close) and swipe-up (minimize) gestures → matching feedback at the cursor.
-  - Auto-fades after ~0.45 s; repeated triggers reset the timer. Click-through (`ignoresMouseEvents`), lazily allocated, and cleaned up on `stop()`.
+  - Auto-fades after ~0.6 s; repeated triggers reset the timer. Click-through (`ignoresMouseEvents`), lazily allocated, and cleaned up on `stop()`.
+- **Feedback Timing Fix**: Feedback now emits *before* the (blocking, synchronous) Accessibility action instead of after it, so the symbol and haptic land at the same moment the close/minimize shortcut or gesture fires — rather than once the window has already closed or minimized (which read as janky, out-of-sync feedback).
+  - The overlay sets its opacity synchronously (plus a `CATransaction.flush()`) and actions are deferred one run-loop turn, ensuring the symbol is composited on screen *before* the blocking AX action starves the main run loop — otherwise it would only render as the action completes and immediately fade (a flicker).
+- **Animated Retract**: the symbol exits with a symbol-effect + concurrent panel fade instead of a plain fade. macOS 26 uses `drawOff.reversed.individually` (stroke-by-stroke retract); macOS 14/15 use `.disappear.byLayer` (each symbol layer vanishes sequentially), which is the closest analog available before 26. The retract leads the display window by ~0.12 s so the exit overlaps, rather than waiting for, the end of the flash.
 
 ## 0.3.1 (17 Aug 2026)
 

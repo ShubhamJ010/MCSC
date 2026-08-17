@@ -2,6 +2,16 @@ import Cocoa
 import Foundation
 import CoreGraphics
 
+/// Detects whether Mission Control (or Exposé) is currently active and can
+/// inject a "fix" key sequence when Cmd+Space is pressed while Mission
+/// Control has swallowed the Spotlight shortcut.
+///
+/// Detection is two-pronged:
+/// 1. Distributed Dock notifications (`com.apple.MissionControl.start` etc.) —
+///    unreliable on modern macOS for standalone processes.
+/// 2. A window-list heuristic that recognises Mission Control's full-screen
+///    overlay + Dock bar, cached for `detectionCacheInterval` so gesture
+///    frames never pay for a repeated `CGWindowListCopyWindowInfo` scan.
 class MissionControlService {
     private var _isMissionControlActive = false
     var isMissionControlActive: Bool {

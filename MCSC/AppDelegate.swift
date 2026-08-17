@@ -1,43 +1,60 @@
 import Cocoa
 
+/// The application delegate for the MCSC menu bar utility.
+///
+/// Responsibilities:
+/// - Configures the app as an accessory (menu bar only, no Dock icon).
+/// - Builds the menu bar status item and its toggle menu exactly once.
+/// - Assembles the `ShortcutViewModel` with its service dependencies.
+/// - Requests Accessibility permission (with a polling fallback) and boots
+///   the ViewModel once trust is granted.
+/// - Observes system sleep/wake so the event tap can be stopped and
+///   restarted cleanly around sleep cycles.
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var viewModel: ShortcutViewModel?
     private var statusItem: NSStatusItem?
     private var sleepObserver: NSObjectProtocol?
     private var wakeObserver: NSObjectProtocol?
-    
+
+    /// Repeating poll used while Accessibility permission has not yet been
+    /// granted. Invalidated the moment trust is detected or the app quits.
+    private var accessibilityPollTimer: Timer?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Hide dock icon
+        // Hide dock icon (menu bar utility, no Dock presence).
         NSApp.setActivationPolicy(.accessory)
-        
-        setupStatusBar()
-        
+
         let eventTap = EventTapService()
         let accessibility = AccessibilityService()
         let missionControl = MissionControlService()
         let launchAtLogin = LaunchAtLoginService()
-        
-        viewModel = ShortcutViewModel(eventTapService: eventTap, 
-                                      accessibilityService: accessibility, 
+
+        viewModel = ShortcutViewModel(eventTapService: eventTap,
+                                      accessibilityService: accessibility,
                                       missionControlService: missionControl,
                                       launchAtLoginService: launchAtLogin)
-        
-        // Refresh status bar menu now that view model is ready
+
+        // Build the status bar menu after the ViewModel exists so every toggle
+        // reflects real configuration. This runs exactly once — calling
+        // `statusItem(withLength:)` again would leak a second menu bar icon.
         setupStatusBar()
-        
-        // Request accessibility permissions if needed
+
+        // Request Accessibility permission (prompts via System Settings when
+        // needed). The ViewModel only starts listening once trusted.
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
         let isTrusted = AXIsProcessTrustedWithOptions(options as CFDictionary)
-        
+
         if isTrusted {
             viewModel?.start()
         } else {
             print("Waiting for accessibility permissions...")
-            // Poll for trust or wait for a relaunch
-            Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
+            // Poll for trust so the app boots the moment the user grants
+            // permission in System Settings, without requiring a relaunch.
+            accessibilityPollTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
                 if AXIsProcessTrusted() {
                     self?.viewModel?.start()
+                    self?.accessibilityPollTimer = nil
                     timer.invalidate()
                 }
             }
@@ -63,6 +80,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
     
+    /// Creates the menu bar status item (once) and populates its toggle menu.
+    /// Menu item states are read from the ViewModel so they reflect the
+    /// current configuration at launch.
     private func setupStatusBar() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         
@@ -183,7 +203,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     func applicationWillTerminate(_ notification: Notification) {
         viewModel?.stop()
-        
+        accessibilityPollTimer?.invalidate()
+        accessibilityPollTimer = nil
+
         if let observer = sleepObserver {
             NSWorkspace.shared.notificationCenter.removeObserver(observer)
         }

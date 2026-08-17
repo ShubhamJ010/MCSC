@@ -1,5 +1,6 @@
 import Cocoa
 
+/// The kind of gesture MCSC wants to give the user tactile feedback for.
 enum HapticType {
     case swipeLeft
     case swipeRight
@@ -10,6 +11,12 @@ enum HapticType {
     case pinchIn
 }
 
+/// Plays short, tactile haptic pulses through the built-in trackpad engine.
+///
+/// Each gesture is mapped to a small choreography of `NSHapticFeedbackManager`
+/// patterns so swipes, taps, and pinches feel distinct. The follow-up pulses
+/// are scheduled on a background queue because they are intentionally delayed
+/// relative to the lead pulse; they are cheap, fire-and-forget calls.
 enum HapticService {
     static func perform(_ type: HapticType) {
         let performer = NSHapticFeedbackManager.defaultPerformer

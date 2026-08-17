@@ -19,9 +19,21 @@ final class CursorFeedbackOverlay {
 
     static let dimension: CGFloat = 34.0
 
-    /// How long the symbol stays on screen before fading out.
-    private let displayDuration: TimeInterval = 0.45
-    private let fadeOutDuration: TimeInterval = 0.18
+    /// Nominal window the symbol stays on screen before retracting. The retract
+    /// actually leads this by `retractLead`, so the draw-off bleeds into the tail
+    /// of the flash rather than starting at a hard boundary. Slightly longer than
+    /// the trigger itself so the flash outlives the close / minimize animation.
+    private let displayDuration: TimeInterval = 0.6
+
+    /// How much the retract leads the end of the display window: the draw-off /
+    /// disappear effect starts `retractLead` seconds before `displayDuration`
+    /// elapses, so the symbol begins to thin out while the flash is still
+    /// winding down.
+    private let retractLead: TimeInterval = 0.12
+
+    /// Duration of the retract: the symbol's draw-off / disappear effect
+    /// (macOS 26 / 14+) plus the concurrent panel fade-out.
+    private let retractDuration: TimeInterval = 0.45
 
     private var panel: NSPanel?
     private var imageView: NSImageView?
@@ -89,20 +101,30 @@ final class CursorFeedbackOverlay {
         dismissWork = nil
 
         panel.setFrameOrigin(Self.cocoaAnchorPoint(for: point, panelSize: panel.frame.size))
+
+        // Clear any in-flight symbol effect (e.g. a previous draw-off retract)
+        // before swapping to the new symbol.
+        if #available(macOS 14.0, *) {
+            imageView?.removeAllSymbolEffects(animated: false)
+        }
         imageView?.image = (mode == .close) ? closeImage : minimizeImage
 
-        if panel.isVisible {
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.08
-                panel.animator().alphaValue = 1.0
-            }
-        } else {
+        // Set opacity synchronously instead of via an `animator()` fade-in.
+        // The close/minimize action invoked right after this blocks the main
+        // thread with synchronous AX calls, starving any run-loop animation —
+        // a fade-in would only play *after* the action completes, making the
+        // symbol flicker in and immediately out. Instant alpha guarantees the
+        // symbol is visible from the exact moment the shortcut/gesture fires.
+        if !panel.isVisible {
             panel.orderFrontRegardless()
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.12
-                panel.animator().alphaValue = 1.0
-            }
         }
+        panel.alphaValue = 1.0
+        // Commit the layer tree synchronously. The close/minimize action invoked
+        // right after this blocks the main thread with synchronous AX calls; if
+        // the layer commit waits for the next run loop turn, the symbol's backing
+        // store is only uploaded after the action completes — right before the
+        // auto-dismiss fires — which reads as a flicker ("appears and vanishes").
+        CATransaction.flush()
 
         scheduleDismiss()
     }
@@ -117,19 +139,48 @@ final class CursorFeedbackOverlay {
 
     private func scheduleDismiss() {
         let work = DispatchWorkItem { [weak self] in
-            guard let self = self, let panel = self.panel else { return }
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = self.fadeOutDuration
-                panel.animator().alphaValue = 0.0
-            } completionHandler: {
-                // Only fully dismiss if no newer trigger bumped alpha back up.
-                if panel.alphaValue == 0.0 {
-                    panel.orderOut(nil)
-                }
-            }
+            guard let self = self, let panel = self.panel, let imageView = self.imageView else { return }
+            self.retract(panel: panel, imageView: imageView)
         }
         dismissWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + displayDuration, execute: work)
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + displayDuration - retractLead,
+            execute: work
+        )
+    }
+
+    /// Animates the symbol away: plays the `drawOff` symbol effect so the icon
+    /// retracts stroke-by-stroke (the reverse of how it was drawn in), while the
+    /// whole panel fades out concurrently so no empty "draw-off ghost" frame
+    /// lingers. `addSymbolEffect` exposes no completion callback, so the panel
+    /// is dismissed by the fade's completion handler.
+    ///
+    /// `.drawOn` / `.drawOff` are macOS 26+ only. On macOS 14/15 the closest
+    /// analog is `.disappear` (each symbol layer vanishes sequentially), which
+    /// the deployment target (15.7) always has.
+    private func retract(panel: NSPanel, imageView: NSImageView) {
+        if #available(macOS 26.0, *) {
+            imageView.addSymbolEffect(.drawOff.reversed.individually, options: .nonRepeating)
+        } else {
+            imageView.addSymbolEffect(.disappear.byLayer, options: .nonRepeating)
+        }
+        fadeOut(panel: panel, imageView: imageView, duration: retractDuration)
+    }
+
+    /// Fades the panel to zero over `duration` and dismisses it. The symbol
+    /// effect is safely cleaned up once the fade completes.
+    private func fadeOut(panel: NSPanel, imageView: NSImageView, duration: TimeInterval) {
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = duration
+            panel.animator().alphaValue = 0.0
+        } completionHandler: { [weak self] in
+            guard let self = self else { return }
+            // Only fully dismiss if no newer trigger bumped alpha back up.
+            if panel.alphaValue == 0.0 {
+                panel.orderOut(nil)
+                imageView.removeAllSymbolEffects()
+            }
+        }
     }
 
     /// Converts a Quartz/AX screen point (origin top-left of the primary

@@ -1,5 +1,18 @@
 import Cocoa
 
+/// Central coordinator of the MVVM layer.
+///
+/// `ShortcutViewModel` wires together the low-level services (`EventTapService`,
+/// `MultitouchService`, `AccessibilityService`, `MissionControlService`) and
+/// translates raw keyboard events / trackpad gestures into window-management
+/// actions (close, minimize, resize, hide, …).
+///
+/// - Threading: callbacks from the event taps are delivered on the main thread
+///   (see each service's documentation); gesture frames arrive via `main.async`,
+///   so all state access here is main-thread-confined.
+/// - Retain-cycle safety: every closure handed to a service captures `self`
+///   weakly (`[weak self]`), and heavy blocking AX actions are deferred one
+///   run-loop turn so the UI (feedback overlay, haptics) can commit first.
 class ShortcutViewModel {
     private let eventTapService: EventTapService
     private let accessibilityService: AccessibilityServiceProtocol
@@ -118,13 +131,22 @@ class ShortcutViewModel {
                     let app = isDock ? element.flatMap { self.accessibilityService.getAppFromDockItem($0) } : nil
 
                     if keyCode == self.kKeyW && self.isCmdWEnabled {
-                        self.activateAppIfNeeded(at: location)
-                        if let app = app {
-                            self.closeTabAppAction.perform(app: app, service: self.accessibilityService)
-                        } else {
-                            self.closeTabAction.perform(at: location, service: self.accessibilityService)
-                        }
+                        // Emit feedback BEFORE the (blocking, synchronous AX) action so the
+                        // symbol lands at the moment the shortcut fires instead of after the
+                        // window has already closed.
                         self.cursorFeedback.show(at: location, mode: .close)
+                        // Defer the action one run-loop turn so the feedback panel gets a
+                        // full composite cycle before the blocking AX calls starve the run
+                        // loop — otherwise the symbol only renders as the action completes.
+                        DispatchQueue.main.async { [weak self] in
+                            guard let self = self else { return }
+                            self.activateAppIfNeeded(at: location)
+                            if let app = app {
+                                self.closeTabAppAction.perform(app: app, service: self.accessibilityService)
+                            } else {
+                                self.closeTabAction.perform(at: location, service: self.accessibilityService)
+                            }
+                        }
                         return true
                     } else if keyCode == self.kKeyQ && self.isCmdQEnabled {
                         if let app = app {
@@ -134,12 +156,16 @@ class ShortcutViewModel {
                         }
                         return true
                     } else if keyCode == self.kKeyM && self.isCmdMEnabled {
-                        if let app = app {
-                            self.minimizeAppAction.perform(app: app, service: self.accessibilityService)
-                        } else {
-                            self.minimizeAction.perform(at: location, service: self.accessibilityService)
-                        }
+                        // Feedback first, action second — see Cmd+W above.
                         self.cursorFeedback.show(at: location, mode: .minimize)
+                        DispatchQueue.main.async { [weak self] in
+                            guard let self = self else { return }
+                            if let app = app {
+                                self.minimizeAppAction.perform(app: app, service: self.accessibilityService)
+                            } else {
+                                self.minimizeAction.perform(at: location, service: self.accessibilityService)
+                            }
+                        }
                         return true
                     } else if keyCode == self.kKeyH && self.isCmdHEnabled {
                         if let app = app {
@@ -221,13 +247,23 @@ class ShortcutViewModel {
             case .pinchIn:
                 switch target {
                 case .dock(let app):
-                    self.closeAppAction.perform(app: app, service: self.accessibilityService)
+                    // Feedback and haptic first so they land at gesture onset,
+                    // in parallel with the (slower) blocking AX close action.
                     self.cursorFeedback.show(at: mouseLocation, mode: .close)
                     HapticService.perform(.pinchIn)
+                    // Defer one run-loop turn so the feedback panel composites
+                    // before the blocking AX calls starve the run loop.
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self else { return }
+                        self.closeAppAction.perform(app: app, service: self.accessibilityService)
+                    }
                 case .window:
-                    self.closeAction.perform(at: mouseLocation, service: self.accessibilityService)
                     self.cursorFeedback.show(at: mouseLocation, mode: .close)
                     HapticService.perform(.pinchIn)
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self else { return }
+                        self.closeAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    }
                 case .none:
                     break
                 }
@@ -309,13 +345,23 @@ class ShortcutViewModel {
             case .swipeUp:
                 switch target {
                 case .dock(let app):
-                    self.minimizeAppAction.perform(app: app, service: self.accessibilityService)
+                    // Feedback and haptic first so they land at gesture onset,
+                    // in parallel with the (slower) blocking AX minimize action.
                     self.cursorFeedback.show(at: mouseLocation, mode: .minimize)
                     HapticService.perform(.swipeUp)
+                    // Defer one run-loop turn so the feedback panel composites
+                    // before the blocking AX calls starve the run loop.
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self else { return }
+                        self.minimizeAppAction.perform(app: app, service: self.accessibilityService)
+                    }
                 case .window:
-                    self.minimizeAction.perform(at: mouseLocation, service: self.accessibilityService)
                     self.cursorFeedback.show(at: mouseLocation, mode: .minimize)
                     HapticService.perform(.swipeUp)
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self else { return }
+                        self.minimizeAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    }
                 case .none:
                     break
                 }
