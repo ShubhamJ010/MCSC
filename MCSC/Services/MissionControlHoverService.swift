@@ -31,8 +31,18 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
     private(set) var isTracking = false
     private var isMissionControlActive = false
     private var isCmdHeld = false
+    private var isOptionHeld = false
     private var hoveredWindow: [String: Any]?
     private var overlayRect: CGRect?
+
+    /// The action the hover button currently represents, derived from held
+    /// modifiers: Cmd → force quit, Option → minimize, neither → close.
+    /// Cmd takes precedence when both are held.
+    private var currentOverlayMode: PreviewCloseButtonOverlay.Mode {
+        if isCmdHeld { return .quit }
+        if isOptionHeld { return .minimize }
+        return .close
+    }
     
     var isEnabled = true {
         didSet {
@@ -207,11 +217,12 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
                 
                 if type == .flagsChanged {
                     let cmdPressed = event.flags.contains(.maskCommand)
+                    let optionPressed = event.flags.contains(.maskAlternate)
                     if Thread.isMainThread {
-                        service.handleFlagsChanged(cmdPressed: cmdPressed)
+                        service.handleFlagsChanged(cmdPressed: cmdPressed, optionPressed: optionPressed)
                     } else {
                         DispatchQueue.main.async {
-                            service.handleFlagsChanged(cmdPressed: cmdPressed)
+                            service.handleFlagsChanged(cmdPressed: cmdPressed, optionPressed: optionPressed)
                         }
                     }
                     return Unmanaged.passUnretained(event)
@@ -271,10 +282,11 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
         }
     }
     
-    func handleFlagsChanged(cmdPressed: Bool) {
+    func handleFlagsChanged(cmdPressed: Bool, optionPressed: Bool) {
         guard isTracking && isEnabled else { return }
         isCmdHeld = cmdPressed
-        overlay.setMode(cmdPressed ? .minimize : .close)
+        isOptionHeld = optionPressed
+        overlay.setMode(currentOverlayMode)
     }
     
     func handleMouseDown(at location: CGPoint) -> Bool {
@@ -331,7 +343,7 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
                 hoveredWindow = windowInfo
                 let halfDim = PreviewCloseButtonOverlay.buttonDimension / 2.0
                 overlayRect = CGRect(x: x - halfDim, y: y - halfDim, width: PreviewCloseButtonOverlay.buttonDimension, height: PreviewCloseButtonOverlay.buttonDimension)
-                overlay.show(at: windowFrame, mode: isCmdHeld ? .minimize : .close)
+                overlay.show(at: windowFrame, mode: currentOverlayMode)
                 return
             }
         }
@@ -352,10 +364,13 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
     private func executeAction(on windowInfo: [String: Any]) {
         HapticService.perform(.pinchIn)
         
-        if isCmdHeld {
-            performMinimize(on: windowInfo)
-        } else {
+        switch currentOverlayMode {
+        case .close:
             performClose(on: windowInfo)
+        case .minimize:
+            performMinimize(on: windowInfo)
+        case .quit:
+            performForceQuit(on: windowInfo)
         }
         
         if let windowID = windowInfo[kCGWindowNumber as String] as? CGWindowID {
@@ -459,6 +474,15 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
         }
     }
     
+    private func performForceQuit(on windowInfo: [String: Any]) {
+        guard let pid = windowInfo[kCGWindowOwnerPID as String] as? pid_t,
+              pid != NSRunningApplication.current.processIdentifier,
+              let app = NSRunningApplication(processIdentifier: pid) else {
+            return
+        }
+        app.forceTerminate()
+    }
+
     deinit {
         if let source = runLoopSource {
             CFRunLoopSourceInvalidate(source)

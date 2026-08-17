@@ -2,13 +2,48 @@ import Cocoa
 import Symbols
 
 /// A lightweight, floating overlay panel that anchors an action button
-/// (`xmark.circle.fill` for Close, `minus.circle.fill` for Minimize)
-/// to the top-left corner vertex of a Mission Control window preview.
+/// (`xmark.circle.fill` for Close, `minus.circle.fill` for Minimize, and a
+/// black→purple `xmark.circle.fill` for Force Quit) to the top-left corner
+/// vertex of a Mission Control window preview.
 @MainActor
 final class PreviewCloseButtonOverlay {
-    enum Mode {
+    /// The action the hover button represents, plus its visual treatment.
+    ///
+    /// Data-driven like `CursorFeedbackOverlay.Mode`: adding a new action is a
+    /// `case` plus its descriptors (symbol name, accessibility label, palette).
+    /// `CaseIterable` lets tests enumerate every mode to prove each renders.
+    enum Mode: CaseIterable {
         case close
         case minimize
+        case quit
+
+        /// SF Symbol name rendered by `NSImage(systemSymbolName:)`.
+        var symbolName: String {
+            switch self {
+            case .close: return "xmark.circle.fill"
+            case .minimize: return "minus.circle.fill"
+            case .quit: return "xmark.circle.fill"
+            }
+        }
+
+        /// Accessibility description of the action the symbol represents.
+        var accessibilityDescription: String {
+            switch self {
+            case .close: return "Close Window"
+            case .minimize: return "Minimize Window"
+            case .quit: return "Force Quit"
+            }
+        }
+
+        /// Tint palette painted through the symbol. `nil` keeps the system
+        /// multicolor default.
+        var paletteColors: [NSColor]? {
+            switch self {
+            case .close: return nil
+            case .minimize: return [.black, .systemYellow]
+            case .quit: return [.black, .purple, .purple]
+            }
+        }
     }
 
     static let buttonDimension: CGFloat = 32.0
@@ -118,17 +153,31 @@ final class CloseButtonView: NSView {
     private var isHovered = false
     private(set) var currentMode: PreviewCloseButtonOverlay.Mode = .close
     
-    private let closeImage: NSImage? = {
-        let config = NSImage.SymbolConfiguration.preferringMulticolor()
-            .applying(NSImage.SymbolConfiguration(pointSize: 24, weight: .semibold))
-        return NSImage(systemSymbolName: "xmark.circle.fill", accessibilityDescription: "Close Window")?.withSymbolConfiguration(config)
-    }()
-    
-    private let minimizeImage: NSImage? = {
-        let paletteConfig = NSImage.SymbolConfiguration(paletteColors: [.black, .systemYellow])
-            .applying(NSImage.SymbolConfiguration(pointSize: 24, weight: .semibold))
-        return NSImage(systemSymbolName: "minus.circle.fill", accessibilityDescription: "Minimize Window")?.withSymbolConfiguration(paletteConfig)
-    }()
+    /// Cache of rendered action symbols, keyed by mode. Populated lazily so
+    /// each symbol is rasterized at most once and reused across hovers.
+    private var imageCache: [PreviewCloseButtonOverlay.Mode: NSImage] = [:]
+
+    /// Returns the cached — or freshly rendered — symbol image for `mode`.
+    private func image(for mode: PreviewCloseButtonOverlay.Mode) -> NSImage? {
+        if let cached = imageCache[mode] { return cached }
+        guard let image = makeSymbolImage(for: mode) else { return nil }
+        imageCache[mode] = image
+        return image
+    }
+
+    /// Builds the SF Symbol image for `mode`: semibold 24 pt, tinted with the
+    /// mode's palette (or the system multicolor default).
+    private func makeSymbolImage(for mode: PreviewCloseButtonOverlay.Mode) -> NSImage? {
+        var config = NSImage.SymbolConfiguration(pointSize: 24, weight: .semibold)
+        if let colors = mode.paletteColors {
+            config = config.applying(NSImage.SymbolConfiguration(paletteColors: colors))
+        } else {
+            config = config.applying(NSImage.SymbolConfiguration.preferringMulticolor())
+        }
+        return NSImage(systemSymbolName: mode.symbolName,
+                       accessibilityDescription: mode.accessibilityDescription)?
+            .withSymbolConfiguration(config)
+    }
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -156,7 +205,7 @@ final class CloseButtonView: NSView {
     private func setupImageView() {
         imageView.imageScaling = .scaleProportionallyUpOrDown
         imageView.wantsLayer = true
-        imageView.image = closeImage
+        imageView.image = image(for: .close)
         
         imageView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(imageView)
@@ -173,8 +222,7 @@ final class CloseButtonView: NSView {
         guard mode != currentMode else { return }
         currentMode = mode
         
-        let targetImage = (mode == .close) ? closeImage : minimizeImage
-        guard let image = targetImage else { return }
+        guard let image = image(for: mode) else { return }
         
         if animated, #available(macOS 14.0, *) {
             imageView.setSymbolImage(

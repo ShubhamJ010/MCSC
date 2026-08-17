@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- **Tab Swipe Feedback**: two-finger swipe-left (Close Tab) flashes `xmark.rectangle.fill`, swipe-right (Reopen Tab) `plus.rectangle.fill`, Cmd+swipe-left (Close All Tabs) `rectangle.badge.xmark`, and Cmd+swipe-right (New Window) `rectangle.badge.plus` at the cursor — all animated with `.wiggle.byLayer` on macOS 26+ (`.bounce` fallback before). This closes the last cursor-feedback gaps: every shortcut and gesture now flashes.
+- **Maximize Feedback**: swipe-down (Make Larger) now flashes an accent-coloured `rectangle.fill` at the cursor, animated with a `.replace.downUp.byLayer` content transition.
+- **Hover Button Modifier Actions**: the Mission Control hover button now supports three actions. No modifier shows the Close button; holding **Option** switches it to Minimize (`minus.circle.fill`); holding **Cmd** switches it to Force Quit (the black→purple `xmark.circle.fill`). Clicking performs the shown action. Cmd takes precedence when both modifiers are held.
+- **Resize Feedback**: two-finger double-tap (Reasonable Size), Cmd+two-finger double-tap (Almost Maximize), and swipe-down (Maximize) now flash accent-tinted symbols at the cursor — `inset.filled.center.rectangle` for Reasonable, `inset.filled.rectangle` for Almost, and `rectangle.fill` for Maximize — all sharing the same accent colour and `.replace.downUp.byLayer` content transition.
+- **Extensible Replace Transitions**: `CursorFeedbackOverlay.Mode` gained a second animation descriptor — `replaceTransition` — so a feedback type can choose a `setSymbolImage` content transition (symbol morphs from the previous symbol) instead of an in-place `addSymbolEffect`. New replacement styles are one `case` plus one line in `show()`.
+- **Hide Feedback**: `Cmd+H` and Cmd+swipe-up (hide) now flash a distinct `smallcircle.filled.circle.fill` at the cursor, tinted with a Primary / Accent / None palette (black / system blue / clear) and a `.bounce` entry animation.
+- **Extensible Feedback Modes**: `CursorFeedbackOverlay.Mode` is now data-driven — each mode declares its SF Symbol name, accessibility label, tint palette, and optional entry symbol effect. Adding a new feedback type is a single `case` plus four descriptor lines; the image factory, caching, and animation plumbing are shared.
+- **Force-Quit Feedback**: `Cmd+Q` and Cmd+pinch-in (force quit) now flash a distinct `xmark.circle.fill` at the cursor, rendered with a Black → Purple gradient variable palette and a `.scale.up.byLayer` entry animation, so quit actions read differently from close (red X) and minimize (black/yellow minus).
+
 ## 0.3.2 (17 Aug 2026)
 
 - **Cursor-Anchored Action Feedback**: Reused the same `xmark.circle.fill` (Close) and `minus.circle.fill` (Minimize) symbols from the Mission Control hover overlay as a transient, non-interactive visual feedback flash anchored at the mouse cursor whenever a close or minimize action executes:

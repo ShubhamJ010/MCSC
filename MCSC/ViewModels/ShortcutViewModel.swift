@@ -149,10 +149,15 @@ class ShortcutViewModel {
                         }
                         return true
                     } else if keyCode == self.kKeyQ && self.isCmdQEnabled {
-                        if let app = app {
-                            self.forceQuitAppAction.perform(app: app)
-                        } else {
-                            self.forceQuitAction.perform(at: location, service: self.accessibilityService)
+                        // Feedback first, action second — see Cmd+W above.
+                        self.cursorFeedback.show(at: location, mode: .quit)
+                        DispatchQueue.main.async { [weak self] in
+                            guard let self = self else { return }
+                            if let app = app {
+                                self.forceQuitAppAction.perform(app: app)
+                            } else {
+                                self.forceQuitAction.perform(at: location, service: self.accessibilityService)
+                            }
                         }
                         return true
                     } else if keyCode == self.kKeyM && self.isCmdMEnabled {
@@ -168,10 +173,15 @@ class ShortcutViewModel {
                         }
                         return true
                     } else if keyCode == self.kKeyH && self.isCmdHEnabled {
-                        if let app = app {
-                            app.hide()
-                        } else {
-                            self.hideAction.perform(at: location, service: self.accessibilityService)
+                        // Feedback first, action second — see Cmd+W above.
+                        self.cursorFeedback.show(at: location, mode: .hide)
+                        DispatchQueue.main.async { [weak self] in
+                            guard let self = self else { return }
+                            if let app = app {
+                                app.hide()
+                            } else {
+                                self.hideAction.perform(at: location, service: self.accessibilityService)
+                            }
                         }
                         return true
                     }
@@ -271,11 +281,21 @@ class ShortcutViewModel {
             case .cmdPinchIn:
                 switch target {
                 case .dock(let app):
-                    self.forceQuitAppAction.perform(app: app)
+                    // Feedback and haptic first so they land at gesture onset,
+                    // in parallel with the (slower) blocking AX force-quit action.
+                    self.cursorFeedback.show(at: mouseLocation, mode: .quit)
                     HapticService.perform(.pinchIn)
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self else { return }
+                        self.forceQuitAppAction.perform(app: app)
+                    }
                 case .window:
-                    self.forceQuitAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    self.cursorFeedback.show(at: mouseLocation, mode: .quit)
                     HapticService.perform(.pinchIn)
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self else { return }
+                        self.forceQuitAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    }
                 case .none:
                     break
                 }
@@ -283,13 +303,23 @@ class ShortcutViewModel {
             case .swipeLeft:
                 switch target {
                 case .dock(let app):
-                    app.activate(options: .activateIgnoringOtherApps)
-                    self.closeTabAppAction.perform(app: app, service: self.accessibilityService)
+                    // Feedback and haptic first so they land at gesture onset,
+                    // in parallel with the (slower) blocking tab action.
+                    self.cursorFeedback.show(at: mouseLocation, mode: .closeTab)
                     HapticService.perform(.swipeLeft)
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self else { return }
+                        app.activate(options: .activateIgnoringOtherApps)
+                        self.closeTabAppAction.perform(app: app, service: self.accessibilityService)
+                    }
                 case .window:
-                    self.activateAppIfNeeded(at: mouseLocation)
-                    self.closeTabAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    self.cursorFeedback.show(at: mouseLocation, mode: .closeTab)
                     HapticService.perform(.swipeLeft)
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self else { return }
+                        self.activateAppIfNeeded(at: mouseLocation)
+                        self.closeTabAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    }
                 case .none:
                     break
                 }
@@ -297,8 +327,14 @@ class ShortcutViewModel {
             case .cmdSwipeLeft:
                 switch target {
                 case .window, .dock:
-                    self.closeAllTabsAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    // Feedback and haptic first so they land at gesture onset,
+                    // in parallel with the (slower) blocking tab action.
+                    self.cursorFeedback.show(at: mouseLocation, mode: .closeAllTabs)
                     HapticService.perform(.swipeLeft)
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self else { return }
+                        self.closeAllTabsAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    }
                 case .none:
                     break
                 }
@@ -306,11 +342,21 @@ class ShortcutViewModel {
             case .swipeRight:
                 switch target {
                 case .dock(let app):
-                    self.reopenTabAppAction.perform(app: app)
+                    // Feedback and haptic first so they land at gesture onset,
+                    // in parallel with the (slower) blocking tab action.
+                    self.cursorFeedback.show(at: mouseLocation, mode: .reopenTab)
                     HapticService.perform(.swipeRight)
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self else { return }
+                        self.reopenTabAppAction.perform(app: app)
+                    }
                 case .window:
-                    self.reopenTabAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    self.cursorFeedback.show(at: mouseLocation, mode: .reopenTab)
                     HapticService.perform(.swipeRight)
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self else { return }
+                        self.reopenTabAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    }
                 case .none:
                     break
                 }
@@ -318,8 +364,14 @@ class ShortcutViewModel {
             case .cmdSwipeRight:
                 switch target {
                 case .window, .dock:
-                    self.newWindowAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    // Feedback and haptic first so they land at gesture onset,
+                    // in parallel with the (slower) blocking new-window action.
+                    self.cursorFeedback.show(at: mouseLocation, mode: .newWindow)
                     HapticService.perform(.swipeRight)
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self else { return }
+                        self.newWindowAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    }
                 case .none:
                     break
                 }
@@ -327,8 +379,14 @@ class ShortcutViewModel {
             case .swipeDown:
                 switch target {
                 case .window:
-                    self.makeLargerAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    // Feedback and haptic first so they land at gesture onset,
+                    // in parallel with the (slower) blocking AX resize action.
+                    self.cursorFeedback.show(at: mouseLocation, mode: .maximize)
                     HapticService.perform(.swipeDown)
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self else { return }
+                        self.makeLargerAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    }
                 case .dock, .none:
                     break
                 }
@@ -336,8 +394,14 @@ class ShortcutViewModel {
             case .cmdSwipeDown:
                 switch target {
                 case .window:
-                    self.makeLargerAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    // Feedback and haptic first so they land at gesture onset,
+                    // in parallel with the (slower) blocking AX resize action.
+                    self.cursorFeedback.show(at: mouseLocation, mode: .maximize)
                     HapticService.perform(.swipeDown)
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self else { return }
+                        self.makeLargerAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    }
                 case .dock, .none:
                     break
                 }
@@ -369,11 +433,20 @@ class ShortcutViewModel {
             case .cmdSwipeUp:
                 switch target {
                 case .dock(let app):
-                    app.hide()
+                    // Feedback and haptic first so they land at gesture onset,
+                    // in parallel with the (slower) hide action.
+                    self.cursorFeedback.show(at: mouseLocation, mode: .hide)
                     HapticService.perform(.swipeUp)
+                    DispatchQueue.main.async {
+                        app.hide()
+                    }
                 case .window:
-                    self.hideAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    self.cursorFeedback.show(at: mouseLocation, mode: .hide)
                     HapticService.perform(.swipeUp)
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self else { return }
+                        self.hideAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    }
                 case .none:
                     break
                 }
@@ -381,8 +454,14 @@ class ShortcutViewModel {
             case .twoFingerDoubleTap:
                 switch target {
                 case .window:
-                    self.reasonableSizeAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    // Feedback and haptic first so they land at gesture onset,
+                    // in parallel with the (slower) blocking AX resize action.
+                    self.cursorFeedback.show(at: mouseLocation, mode: .reasonable)
                     HapticService.perform(.twoFingerDoubleTap)
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self else { return }
+                        self.reasonableSizeAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    }
                 case .dock, .none:
                     break
                 }
@@ -390,8 +469,14 @@ class ShortcutViewModel {
             case .cmdTwoFingerDoubleTap:
                 switch target {
                 case .window:
-                    self.almostMaximizeAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    // Feedback and haptic first so they land at gesture onset,
+                    // in parallel with the (slower) blocking AX resize action.
+                    self.cursorFeedback.show(at: mouseLocation, mode: .almost)
                     HapticService.perform(.cmdTwoFingerDoubleTap)
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self else { return }
+                        self.almostMaximizeAction.perform(at: mouseLocation, service: self.accessibilityService)
+                    }
                 case .dock, .none:
                     break
                 }

@@ -55,7 +55,9 @@ final class MissionControlHoverServiceTests: XCTestCase {
 
     func testFlagsChangedDoesNotCrash() {
         hoverService.start()
-        hoverService.handleFlagsChanged(cmdPressed: true)
-        hoverService.handleFlagsChanged(cmdPressed: false)
+        hoverService.handleFlagsChanged(cmdPressed: true, optionPressed: false)
+        hoverService.handleFlagsChanged(cmdPressed: false, optionPressed: true)
+        hoverService.handleFlagsChanged(cmdPressed: true, optionPressed: true)
+        hoverService.handleFlagsChanged(cmdPressed: false, optionPressed: false)
     }
 }
