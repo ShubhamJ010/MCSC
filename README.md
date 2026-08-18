@@ -1,282 +1,142 @@
-# MCSC — Mission Control Shortcuts
+<div align="center">
 
-A lightweight, high-performance macOS utility focused on fast window management and keyboard-driven workflows.
+# MCSC
 
-MCSC is a small background app built as a learning project to explore low-level macOS APIs, event systems, accessibility automation, and performance-focused desktop tooling.
+### Mission Control Shortcuts — keyboard and trackpad window management for macOS
 
-It is heavily inspired by the original Mission Control Plus app.
+[![Platform](https://img.shields.io/badge/platform-macOS-000000)](https://www.apple.com/macos/)
+[![Language](https://img.shields.io/badge/language-Swift-FA7343)](https://swift.org)
+[![License](https://img.shields.io/badge/license-MIT-blue)](https://opensource.org/licenses/MIT)
 
-> “Wouldn’t be possible without the original Mission Control Plus.”
+A lightweight, event-driven menu bar utility that adds window-management
+shortcuts and gestures to Mission Control.
 
----
+[Features](#features) · [Installation](#installation) · [Usage](#usage) · [Documentation](#documentation)
 
-## Why This Exists
-
-Most macOS utilities in this category are either:
-- Electron-heavy
-- Resource intensive
-- Over-engineered
-- Closed ecosystems
-
-MCSC was built with a different goal:
-- native macOS APIs
-- minimal memory usage
-- near-zero idle CPU usage
-- instant keyboard response
-- small and understandable codebase
-
-This project intentionally avoids unnecessary abstraction layers where possible and uses direct AppKit/Core Foundation integration instead of large UI frameworks.
+</div>
 
 ---
+
+MCSC is a small background app that brings fast window management to Mission
+Control. It is built as a learning project to explore low-level macOS APIs,
+event systems, and accessibility automation while staying tiny — near-zero idle
+CPU and a memory footprint under 13 MB.
+
+It is heavily inspired by the original [Mission Control Plus](https://www.folivora.ai/missionscontrol)
+and by [Swish](https://highlyopinionated.co/swish/), whose trackpad gestures MCSC
+tries to replicate.
+
+> [!NOTE]
+> Every shortcut and gesture is **scoped to Mission Control only**. It fires
+> while Mission Control is open and stays silent on the desktop, in Launchpad,
+> and in expanded Finder folder stacks.
 
 ## Features
 
-### Global Keyboard Shortcuts
+- **Global keyboard shortcuts** — `Cmd + W`, `Cmd + Q`, `Cmd + M`, `Cmd + H`,
+  a `Cmd + Space` recovery sequence, and a clickable hover button on each window
+  preview. See [SHORTCUTS.md](./SHORTCUTS.md).
+- **Trackpad gestures** — pinch, directional swipes, and a two-finger double
+  tap, each with a `Command` variant. See [GESTURES.md](./GESTURES.md).
+- **Mission Control scoping** — window-layer detection that activates the app
+  only inside Mission Control, with a recovery sequence for stuck states.
+  See [MISSION_CONTROL.md](./MISSION_CONTROL.md).
+- **Accessibility API integration** — drives `AXUIElement` directly to inspect
+  and manipulate windows in other apps.
+- **Launch at login** — registers MCSC through `SMAppService`.
+- **Performance focused** — a near-zero-footprint, event-driven background
+  agent. See [PERFORMANCE.md](./PERFORMANCE.md) and
+  [ARCHITECTURE.md](./ARCHITECTURE.md).
 
-System-wide shortcuts powered by low-level `CGEventTap`.
+## Requirements
 
-Supported actions:
+MCSC needs the **Accessibility** permission to inspect windows and intercept
+global input. Grant it from:
 
-| Shortcut | Action |
-|---|---|
-| `Cmd + W` | Close active window |
-| `Cmd + Q` | Quit active application |
-| `Cmd + M` | Minimize active window |
-| `Cmd + H` | Hide active application |
-| `Cmd + Space` | Trigger Mission Control UI fix |
+```text
+System Settings → Privacy & Security → Accessibility
+```
 
----
-
-### Trackpad Gestures
-
-Two-finger and pinch gestures, also scoped to **Mission Control only**:
-
-| Gesture | Action | `Cmd` + Gesture |
-|---|---|---|
-| Pinch in | Close window / quit app | Force quit app |
-| Two-finger swipe left | Close active tab | Close all tabs (Cmd+Shift+W) |
-| Two-finger swipe right | Reopen closed tab | New window (Cmd+N) |
-| Two-finger swipe up | Minimize active window | Hide application |
-| Two-finger swipe down | Make larger (+33%) | Make larger (+33%) |
-| Two-finger double tap | Reasonable size (60%) | Almost maximize (90%) |
-
-Each gesture fires **once per finger lift** — keeping fingers down and repeating the motion will not re-trigger it until you lift and touch again.
-
----
-
-### Mission Control Hover Action Buttons
-
-Floating interactive action buttons anchored to the top-left vertex of window thumbnails in Mission Control:
-
-- **Hover Close (`xmark.circle.fill`)**: Hover over any window preview in Mission Control to show the native-styled close overlay button. Click to close the window.
-- **Cmd-Hold Minimize (`minus.circle.fill`)**: Hold `Command` while hovering to dynamically switch the overlay to a minimize action button with smooth symbol transitions. Click to minimize.
-- **Interactive Animations**: Features `.appear.byLayer` / `.drawOn.byLayer` entry symbol animations and `.rotate.byLayer` click feedback with haptic response.
-
----
-
-### Accessibility API Integration
-
-Uses `AXUIElement` directly to:
-- inspect windows
-- manipulate application state
-- interact with windows from other apps
-- manage focus and visibility
-
----
-
-### Mission Control Monitoring
-
-All gestures and `Cmd` shortcuts are scoped to **Mission Control only**. They
-fire while Mission Control is open and are deliberately suppressed in:
-
-- **Launchpad**
-- expanded **Finder folder stacks** in the Dock
-- the **normal desktop**
-
-Detection is performed by inspecting the Dock's window layers via
-`CGWindowListCopyWindowInfo` — Mission Control exposes a full-screen Dock overlay
-at layer 20 together with the Dock bar at layer ≤ 18, whereas Launchpad
-(layers 27–29) and Finder folder stacks (overlay only, no Dock bar) do not match
-this signature. The result is cached for 200ms to avoid polling on every
-trackpad frame.
-
-MCSC can also automatically attempt recovery sequences (`Cmd + Space`) when
-macOS gets stuck during Mission Control interactions.
-
----
-
-### Launch at Login
-
-Integrated using `SMAppService`.
-
-The app can automatically start with macOS and remain quietly available in the background.
-
----
-
-### Performance Focused
-
-MCSC is designed to stay lightweight at all times.
-
-Typical runtime characteristics:
-- ~0% idle CPU usage
-- ~14MB memory usage
-- negligible battery impact
-- event-driven architecture
-- no unnecessary polling loops
-
----
-
-## Technical Overview
-
-MCSC uses a service-oriented architecture inspired by MVVM principles.
-
-### Core Services
-
-- `EventTapService`
-  - global keyboard interception
-  - low-level event processing
-
-- `AccessibilityService`
-  - window inspection and manipulation
-  - AX API communication
-
-- `MissionControlService`
-  - Mission Control detection via Dock window-layer analysis (`CGWindowList`)
-  - scopes gestures & shortcuts to Mission Control only
-  - recovery handling (`Cmd + Space` fix sequence)
-
-- `LaunchAtLoginService`
-  - startup integration using `SMAppService`
-
----
-
-## Technologies Used
-
-- Swift
-- AppKit
-- Core Foundation
-- Accessibility APIs
-- CGEventTap
-- SMAppService
-
-The project also experiments with:
-- explicit Core Foundation memory management
-- `Unmanaged<T>`
-- manual teardown strategies
-- low-level macOS event handling
-
----
+Without it, the app runs but cannot act on windows. The first launch prompts
+for the permission, and MCSC boots the moment it is granted.
 
 ## Installation
 
-### Clone the Repository
+Clone the repository and build with Xcode:
 
 ```bash
 git clone https://github.com/yourusername/MCSC.git
 cd MCSC
-```
-
-### Open in Xcode
-
-```bash
 open MCSC.xcodeproj
 ```
 
-### Build
-
-Build using the `MCSC` scheme inside Xcode.
-
----
-
-## First Launch
-
-When launching for the first time, macOS will ask for:
-
-### Accessibility Permissions
-
-Required for:
-- controlling windows
-- listening to global shortcuts
-- interacting with other applications
-
-Grant access from:
-
-```text
-System Settings
-→ Privacy & Security
-→ Accessibility
-```
-
----
-
-## Code Signing
-
-If you use Sentinel for signing:
+Build using the `MCSC` scheme, then run. To sign a distributed build, for
+example with Sentinel:
 
 ```bash
 sentinel sign --app MCSC.app --identity "Developer ID Application: Your Name (TeamID)"
-```
-
-Verify signature:
-
-```bash
 codesign -dv --verbose=4 MCSC.app
 ```
 
----
+## Usage
 
-## Performance Notes
+MCSC runs as a menu bar icon (no Dock presence). Use the menu to toggle
+individual shortcuts and gestures on or off, enable launch at login, and quit.
 
-Observed during runtime testing on macOS:
+Once Mission Control is open, point at a window preview and use any of the
+actions below.
 
-| Metric | Typical Usage |
-|---|---|
-| CPU | ~0% idle |
-| Memory | ~14MB RSS |
-| Battery Impact | Negligible |
+**Keyboard shortcuts**
 
-The app is intentionally event-driven to avoid unnecessary background activity.
+| Shortcut | Action |
+| --- | --- |
+| `Cmd + W` | Close window / active tab |
+| `Cmd + Q` | Force quit app |
+| `Cmd + M` | Minimize window |
+| `Cmd + H` | Hide app |
+| `Cmd + Space` | Recover a stuck Mission Control / Spotlight state |
 
----
+**Trackpad gestures**
 
-## Learning Project Disclosure
+| Gesture | Action | `Cmd` + gesture |
+| --- | --- | --- |
+| Pinch in | Close window / quit app | Force quit app |
+| Swipe left | Close active tab | Close all tabs |
+| Swipe right | Reopen closed tab | New window |
+| Swipe up | Minimize window | Hide app |
+| Swipe down | Fill screen | Make larger (+33%) |
+| Two-finger double tap | Reasonable size (60%) | Almost maximize (90%) |
 
-This project exists primarily as an educational exercise.
+Each gesture fires **once per finger lift**, so holding your fingers down and
+repeating the motion will not re-trigger it. For the full mapping, hover
+buttons, and how recognition works, see [SHORTCUTS.md](./SHORTCUTS.md) and
+[GESTURES.md](./GESTURES.md).
 
-It was built to better understand:
-- macOS internals
-- accessibility APIs
-- event taps
-- Mission Control behavior
-- low-level Swift patterns
-- background utilities
+## Documentation
 
-### AI Usage Disclosure
+These guides go deeper than the summaries above:
 
-Codex / AI agentic coding tools were used during development.
-
-This project is not presented as fully handcrafted from scratch.
-
----
-
-## Important Note
-
-> “It is an educational project for me.  
-> Except bugs — if you want something better, pay for the original app.”
-
-Support the original developers if you want a polished production-grade experience.
-
----
+- [SHORTCUTS.md](./SHORTCUTS.md) — every keyboard shortcut and the hover button.
+- [GESTURES.md](./GESTURES.md) — every trackpad gesture and how recognition works.
+- [MISSION_CONTROL.md](./MISSION_CONTROL.md) — how MCSC detects and scopes to Mission Control.
+- [SYMBOLS.md](./SYMBOLS.md) — the SF Symbol map behind the feedback overlays.
+- [PERFORMANCE.md](./PERFORMANCE.md) — memory and CPU budget and how it stays light.
+- [ARCHITECTURE.md](./ARCHITECTURE.md) — the MVVM design and low-level choices.
 
 ## Credits
 
-Inspired by:
-- Mission Control Plus
+MCSC is inspired by [Mission Control Plus](https://www.folivora.ai/missionscontrol) and
+by [Swish](https://highlyopinionated.co/swish/). Its trackpad gestures are an attempt to
+replicate the interaction model that Swish popularized, so MCSC can serve as a partial,
+open alternative to Swish.
 
-Massive respect to the original creators whose work inspired this project.
+> [!NOTE]
+> MCSC approximates Swish's gestures but is not a full replacement. Reaching parity with
+> Swish's feature set requires crediting and respecting the original authors and their work.
 
----
+> [!NOTE]
+> This is an educational project. It was built with the help of AI coding
+> tools, and is not presented as fully handcrafted from scratch. If you want a
+> polished, production-grade experience, support the original developers.
 
-## License
-
-MIT License
+Licensed under the MIT License.

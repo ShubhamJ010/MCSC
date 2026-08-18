@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0-beta (18 Aug 2026)
 
 - **Tab Swipe Feedback**: two-finger swipe-left (Close Tab) flashes `xmark.rectangle.fill`, swipe-right (Reopen Tab) `plus.rectangle.fill`, Cmd+swipe-left (Close All Tabs) `rectangle.badge.xmark`, and Cmd+swipe-right (New Window) `rectangle.badge.plus` at the cursor — all animated with `.wiggle.byLayer` on macOS 26+ (`.bounce` fallback before). This closes the last cursor-feedback gaps: every shortcut and gesture now flashes.
 - **Maximize Feedback**: swipe-down (Make Larger) now flashes an accent-coloured `rectangle.fill` at the cursor, animated with a `.replace.downUp.byLayer` content transition.

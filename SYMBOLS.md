@@ -86,7 +86,7 @@ Feedback mode = the symbol shown at the cursor when the trigger fires.
 | `Cmd + swipe right` | `.newWindow` | `rectangle.badge.plus` | New window |
 | Two-finger swipe up | `.minimize` | `minus.circle.fill` | Minimize window |
 | `Cmd + swipe up` | `.hide` | `smallcircle.filled.circle.fill` | Hide app |
-| Two-finger swipe down | `.maximize` | `rectangle.fill` | Make larger (+33 %) |
+| Two-finger swipe down | `.maximize` | `rectangle.fill` | Fill screen |
 | `Cmd + swipe down` | `.maximize` | `rectangle.fill` | Make larger (+33 %) |
 | Two-finger double tap | `.reasonable` | `inset.filled.center.rectangle` | Reasonable size (60 %) |
 | `Cmd + double tap` | `.almost` | `inset.filled.rectangle` | Almost maximize (90 %) |
