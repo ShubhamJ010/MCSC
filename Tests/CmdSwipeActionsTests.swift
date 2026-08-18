@@ -30,4 +30,13 @@ final class CmdSwipeActionsTests: XCTestCase {
         action.perform(at: point, service: mockService)
         XCTAssertEqual(mockService.getElementCalledWith, point)
     }
+
+    func testFillScreenActionWithNilElementDoesNotCrash() {
+        mockService.mockElement = nil
+        let action = FillScreenAction()
+        let point = CGPoint(x: 150, y: 250)
+        action.perform(at: point, service: mockService)
+        XCTAssertEqual(mockService.getElementCalledWith, point)
+        XCTAssertNil(mockService.setFrameCalledWith)
+    }
 }

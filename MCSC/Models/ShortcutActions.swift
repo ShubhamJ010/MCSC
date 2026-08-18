@@ -205,6 +205,37 @@ struct ReopenTabAppAction {
 
 // MARK: - Tiling Actions
 
+/// Expands the window at `point` to fill its screen's full bounds.
+struct FillScreenAction: ShortcutAction {
+    func perform(at point: CGPoint, service: AccessibilityServiceProtocol) {
+        guard let element = service.getElement(at: point),
+              let window = service.getWindow(for: element) else { return }
+
+        let primaryHeight = NSScreen.screens.first?.frame.height ?? 0
+        let screen = NSScreen.screens.first(where: {
+            let axBounds = CGRect(
+                x: $0.frame.origin.x,
+                y: primaryHeight - $0.frame.origin.y - $0.frame.height,
+                width: $0.frame.width,
+                height: $0.frame.height
+            )
+            return axBounds.contains(point)
+        }) ?? NSScreen.main ?? NSScreen.screens.first
+
+        guard let screenFrame = screen?.frame else { return }
+
+        // Convert to AX coordinates (origin at the top-left of the primary display).
+        let axScreenBounds = CGRect(
+            x: screenFrame.origin.x,
+            y: primaryHeight - screenFrame.origin.y - screenFrame.height,
+            width: screenFrame.width,
+            height: screenFrame.height
+        )
+
+        _ = service.setFrame(axScreenBounds, for: window)
+    }
+}
+
 /// Increases the size of the target window by 33% (anchored at center, clamped to screen bounds).
 struct MakeLargerAction: ShortcutAction {
     /// Multiplier used to scale window dimensions (+33%).

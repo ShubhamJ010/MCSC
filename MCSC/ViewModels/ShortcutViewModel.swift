@@ -44,6 +44,7 @@ class ShortcutViewModel {
     private let minimizeAppAction = MinimizeAppAction()
     private let forceQuitAppAction = ForceQuitAppAction()
     private let makeLargerAction = MakeLargerAction()
+    private let fillScreenAction = FillScreenAction()
     private let reasonableSizeAction = ReasonableSizeAction()
     private let almostMaximizeAction = AlmostMaximizeAction()
     private let closeAllTabsAction = CloseAllTabsAction()
@@ -385,7 +386,7 @@ class ShortcutViewModel {
                     HapticService.perform(.swipeDown)
                     DispatchQueue.main.async { [weak self] in
                         guard let self = self else { return }
-                        self.makeLargerAction.perform(at: mouseLocation, service: self.accessibilityService)
+                        self.fillScreenAction.perform(at: mouseLocation, service: self.accessibilityService)
                     }
                 case .dock, .none:
                     break
