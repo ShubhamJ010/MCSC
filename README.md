@@ -132,7 +132,7 @@ open alternative to Swish.
 
 > [!NOTE]
 > MCSC approximates Swish's gestures but is not a full replacement. Reaching parity with
-> Swish's feature set requires crediting and respecting the original authors and their work.
+> Swish's feature set according to my needs only works in mission control right now.
 
 > [!NOTE]
 > This is an educational project. It was built with the help of AI coding
