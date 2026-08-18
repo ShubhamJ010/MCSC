@@ -2,8 +2,9 @@ import Cocoa
 
 /// A lightweight, non-interactive, transient overlay that flashes an action
 /// symbol — red `xmark.circle.fill` for Close, `minus.circle.fill` for
-/// Minimize, a black→purple gradient `xmark.circle.fill` for Force Quit, a
-/// black/accent `smallcircle.filled.circle.fill` for Hide, a pastel
+/// Minimize, a purple `xmark.circle.fill` with a white cross for Force
+/// Quit, a
+/// black/yellow `eye.slash.circle.fill` for Hide, a pastel
 /// `inset.filled.rectangle` for Almost Maximize, an accent
 /// `inset.filled.center.rectangle` for Reasonable Size, an accent
 /// `rectangle.fill` for Maximize, a `xmark.rectangle.fill` for Close Tab, a
@@ -11,7 +12,9 @@ import Cocoa
 /// All Tabs, and a `rectangle.badge.plus` for New Window — centered at the
 /// mouse cursor as visual feedback whenever a close, minimize, quit, hide, or
 /// resize action executes (Cmd+W / Cmd+M / Cmd+Q / Cmd+H shortcuts and the
-/// matching trackpad gestures).
+/// matching trackpad gestures). The three resize symbols (Almost Maximize,
+/// Reasonable Size, Maximize) first paint an empty `rectangle` and then morph
+/// into their filled glyph via a replace transition.
 ///
 /// Unlike `PreviewCloseButtonOverlay` (which is anchored to the top-left of a
 /// Mission Control window preview and is clickable), this overlay ignores all
@@ -46,7 +49,7 @@ final class CursorFeedbackOverlay {
             case .close: return "xmark.circle.fill"
             case .minimize: return "minus.circle.fill"
             case .quit: return "xmark.circle.fill"
-            case .hide: return "smallcircle.filled.circle.fill"
+            case .hide: return "eye.slash.circle.fill"
             case .almost: return "inset.filled.rectangle"
             case .reasonable: return "inset.filled.center.rectangle"
             case .maximize: return "rectangle.fill"
@@ -81,8 +84,8 @@ final class CursorFeedbackOverlay {
             switch self {
             case .close: return nil
             case .minimize: return [.black, .systemYellow]
-            case .quit: return [.black, .purple, .purple]
-            case .hide: return [.black, .systemBlue, .clear]
+            case .quit: return [.white, NSColor(red: 0.749, green: 0.353, blue: 0.949, alpha: 1.0)]
+            case .hide: return [.black, .systemYellow]
             case .almost, .reasonable:
                 // Single Accent layer (the user's system accent colour), same as Maximize.
                 return [.controlAccentColor]
@@ -144,6 +147,17 @@ final class CursorFeedbackOverlay {
             case .close, .minimize, .quit, .hide, .closeTab, .reopenTab, .closeAllTabs, .newWindow: return nil
             }
         }
+
+        /// Plain symbol painted *before* the replacement transition fires, so
+        /// the swap-in always morphs from a stable base instead of whatever
+        /// symbol previously occupied the overlay. The resize modes
+        /// (maximize / reasonable / almost) all start from an empty rectangle.
+        var baseSymbol: String? {
+            switch self {
+            case .almost, .reasonable, .maximize: return "rectangle"
+            default: return nil
+            }
+        }
     }
 
     static let dimension: CGFloat = 34.0
@@ -185,13 +199,20 @@ final class CursorFeedbackOverlay {
     /// mode's palette (or the system multicolor default). Pure factory — no
     /// state — so new modes only need their `Mode` descriptors.
     private func makeSymbolImage(for mode: Mode) -> NSImage? {
+        makeSymbolImage(symbolName: mode.symbolName, mode: mode)
+    }
+
+    /// Renders an arbitrary SF Symbol with the given mode's tint palette. Used
+    /// for the base symbols (e.g. empty rectangle) painted just before a
+    /// replacement transition fires.
+    private func makeSymbolImage(symbolName: String, mode: Mode) -> NSImage? {
         var config = NSImage.SymbolConfiguration(pointSize: 24, weight: .semibold)
         if let colors = mode.paletteColors {
             config = config.applying(NSImage.SymbolConfiguration(paletteColors: colors))
         } else {
             config = config.applying(NSImage.SymbolConfiguration.preferringMulticolor())
         }
-        return NSImage(systemSymbolName: mode.symbolName,
+        return NSImage(systemSymbolName: symbolName,
                        accessibilityDescription: mode.accessibilityDescription)?
             .withSymbolConfiguration(config)
     }
@@ -253,10 +274,36 @@ final class CursorFeedbackOverlay {
 
         let feedbackImage = image(for: mode)
 
+        // Modes with a replacement transition first paint a stable base symbol
+        // (an empty rectangle for the resize modes), so the morph below always
+        // starts from a clean silhouette instead of whatever symbol previously
+        // occupied the overlay.
+        let baseImage = mode.baseSymbol.flatMap { makeSymbolImage(symbolName: $0, mode: mode) }
+
+        // Set opacity synchronously instead of via an `animator()` fade-in.
+        // The close/minimize action invoked right after this blocks the main
+        // thread with synchronous AX calls, starving any run-loop animation —
+        // a fade-in would only play *after* the action completes, making the
+        // symbol flicker in and immediately out. Instant alpha guarantees the
+        // symbol is visible from the exact moment the shortcut/gesture fires.
+        if !panel.isVisible {
+            panel.orderFrontRegardless()
+        }
+        panel.alphaValue = 1.0
+        imageView?.image = baseImage ?? feedbackImage
+        // Commit the base symbol synchronously so the replacement transition
+        // below morphs from it rather than from stale pixels. The close/minimize
+        // action invoked right after this blocks the main thread with synchronous
+        // AX calls; if the layer commit waits for the next run loop turn, the
+        // symbol's backing store is only uploaded after the action completes —
+        // right before the auto-dismiss fires — which reads as a flicker
+        // ("appears and vanishes").
+        CATransaction.flush()
+
         // Symbol swap: plain assignment, or a "replace" content transition for
-        // modes that request one (almost / reasonable morph from the previous
-        // symbol via `.replace.magic`). `setSymbolImage` needs a live SF Symbol
-        // image, which the cache always provides.
+        // modes that request one (almost / reasonable / maximize morph from the
+        // painted base symbol). `setSymbolImage` needs a live SF Symbol image,
+        // which the cache always provides.
         if let replace = mode.replaceTransition, let feedbackImage {
             switch replace {
             case .magicReveal:
@@ -269,26 +316,7 @@ final class CursorFeedbackOverlay {
             case .downUpReveal:
                 imageView?.setSymbolImage(feedbackImage, contentTransition: .replace.downUp.byLayer, options: .nonRepeating)
             }
-        } else {
-            imageView?.image = feedbackImage
         }
-
-        // Set opacity synchronously instead of via an `animator()` fade-in.
-        // The close/minimize action invoked right after this blocks the main
-        // thread with synchronous AX calls, starving any run-loop animation —
-        // a fade-in would only play *after* the action completes, making the
-        // symbol flicker in and immediately out. Instant alpha guarantees the
-        // symbol is visible from the exact moment the shortcut/gesture fires.
-        if !panel.isVisible {
-            panel.orderFrontRegardless()
-        }
-        panel.alphaValue = 1.0
-        // Commit the layer tree synchronously. The close/minimize action invoked
-        // right after this blocks the main thread with synchronous AX calls; if
-        // the layer commit waits for the next run loop turn, the symbol's backing
-        // store is only uploaded after the action completes — right before the
-        // auto-dismiss fires — which reads as a flicker ("appears and vanishes").
-        CATransaction.flush()
 
         // Play the mode's entry animation (scale-up for quit, bounce for hide,
         // none for close/minimize) now that the panel is composited. Effects

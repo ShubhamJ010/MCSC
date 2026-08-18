@@ -3,8 +3,8 @@ import Symbols
 
 /// A lightweight, floating overlay panel that anchors an action button
 /// (`xmark.circle.fill` for Close, `minus.circle.fill` for Minimize, and a
-/// black→purple `xmark.circle.fill` for Force Quit) to the top-left corner
-/// vertex of a Mission Control window preview.
+/// purple `xmark.circle.fill` with a white cross for Force Quit) to the
+/// top-left corner vertex of a Mission Control window preview.
 @MainActor
 final class PreviewCloseButtonOverlay {
     /// The action the hover button represents, plus its visual treatment.
@@ -41,7 +41,7 @@ final class PreviewCloseButtonOverlay {
             switch self {
             case .close: return nil
             case .minimize: return [.black, .systemYellow]
-            case .quit: return [.black, .purple, .purple]
+            case .quit: return [.white, NSColor(red: 0.749, green: 0.353, blue: 0.949, alpha: 1.0)]
             }
         }
     }
