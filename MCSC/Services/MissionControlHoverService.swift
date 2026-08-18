@@ -34,6 +34,7 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
     private var isOptionHeld = false
     private var hoveredWindow: [String: Any]?
     private var overlayRect: CGRect?
+    private var isOverlayHovered = false
 
     /// The action the hover button currently represents, derived from held
     /// modifiers: Cmd → force quit, Option → minimize, neither → close.
@@ -58,15 +59,6 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
         self.accessibilityService = accessibilityService
         self.isMissionControlActiveProvider = isMissionControlActiveProvider
         self.overlay = overlay ?? PreviewCloseButtonOverlay()
-        
-        setupOverlayActions()
-    }
-    
-    private func setupOverlayActions() {
-        overlay.onCloseClicked = { [weak self] in
-            guard let self = self, let window = self.hoveredWindow else { return }
-            self.executeAction(on: window)
-        }
     }
     
     func start() {
@@ -324,7 +316,17 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
     private func updateOverlay(at mouseLocation: CGPoint) {
         // If mouse is hovering over the action button itself, keep it visible
         if let rect = overlayRect, rect.contains(mouseLocation), hoveredWindow != nil {
+            if !isOverlayHovered {
+                isOverlayHovered = true
+                overlay.setHovered(true)
+            }
             return
+        }
+        
+        // Mouse left the button: release hover state.
+        if isOverlayHovered {
+            isOverlayHovered = false
+            overlay.setHovered(false)
         }
         
         // Find window containing cursor
@@ -355,6 +357,10 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
         if hoveredWindow != nil || overlay.isVisible {
             hoveredWindow = nil
             overlayRect = nil
+            if isOverlayHovered {
+                isOverlayHovered = false
+                overlay.setHovered(false)
+            }
             overlay.hide()
         }
     }

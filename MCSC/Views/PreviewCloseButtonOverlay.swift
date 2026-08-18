@@ -51,12 +51,6 @@ final class PreviewCloseButtonOverlay {
     private var panel: NSPanel?
     private var buttonView: CloseButtonView?
     
-    var onCloseClicked: (() -> Void)? {
-        didSet {
-            buttonView?.onCloseClicked = onCloseClicked
-        }
-    }
-    
     private(set) var isVisible = false
     private var currentAnchorOrigin: CGPoint = .zero
 
@@ -82,9 +76,6 @@ final class PreviewCloseButtonOverlay {
         panel.isReleasedWhenClosed = false
         
         let button = CloseButtonView(frame: contentRect)
-        button.onCloseClicked = { [weak self] in
-            self?.onCloseClicked?()
-        }
         
         panel.contentView = button
         self.buttonView = button
@@ -129,6 +120,13 @@ final class PreviewCloseButtonOverlay {
         buttonView?.setMode(mode, animated: true)
     }
 
+    /// Reflects mouse-over state on the anchor button with a scale animation.
+    /// Driven by the service's input event tap (AppKit tracking areas don't
+    /// fire while this app is inactive behind Mission Control).
+    func setHovered(_ isHovered: Bool) {
+        buttonView?.setHovered(isHovered)
+    }
+
     func triggerRotateEffect() {
         buttonView?.triggerRotateEffect()
     }
@@ -146,11 +144,8 @@ final class PreviewCloseButtonOverlay {
 
 @MainActor
 final class CloseButtonView: NSView {
-    var onCloseClicked: (() -> Void)?
-    
     private let imageView = NSImageView()
-    private var trackingArea: NSTrackingArea?
-    private var isHovered = false
+    private(set) var isHovered = false
     private(set) var currentMode: PreviewCloseButtonOverlay.Mode = .close
     
     /// Cache of rendered action symbols, keyed by mode. Populated lazily so
@@ -251,67 +246,22 @@ final class CloseButtonView: NSView {
         }
     }
 
-    // MARK: - Hover and Cursor Tracking
+// MARK: - Hover State (driven by MissionControlHoverService event tap)
 
-    override func updateTrackingAreas() {
-        super.updateTrackingAreas()
-        if let existing = trackingArea {
-            removeTrackingArea(existing)
-        }
-        
-        let options: NSTrackingArea.Options = [.mouseEnteredAndExited, .activeAlways, .inVisibleRect]
-        let area = NSTrackingArea(rect: bounds, options: options, owner: self, userInfo: nil)
-        addTrackingArea(area)
-        self.trackingArea = area
-    }
-
-    override func mouseEntered(with event: NSEvent) {
-        super.mouseEntered(with: event)
-        isHovered = true
-        NSCursor.pointingHand.push()
+    /// Scales the button up while the cursor is over it and back to resting
+    /// size when it leaves. Called from the service's global mouse-move tap —
+    /// AppKit tracking areas don't deliver enter/exit while this app is
+    /// inactive behind Mission Control.
+    func setHovered(_ hovered: Bool) {
+        guard hovered != isHovered else { return }
+        isHovered = hovered
         
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.12
-            self.animator().alphaValue = 1.0
-            self.layer?.transform = CATransform3DMakeScale(1.12, 1.12, 1.0)
-        }
-    }
-
-    override func mouseExited(with event: NSEvent) {
-        super.mouseExited(with: event)
-        isHovered = false
-        NSCursor.pop()
-        
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.12
-            self.animator().alphaValue = 0.95
-            self.layer?.transform = CATransform3DIdentity
-        }
-    }
-
-    override func resetCursorRects() {
-        addCursorRect(bounds, cursor: .pointingHand)
-    }
-
-    // MARK: - Mouse Click Handling
-
-    override func mouseDown(with event: NSEvent) {
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.08
-            self.layer?.transform = CATransform3DMakeScale(0.92, 0.92, 1.0)
-        }
-    }
-
-    override func mouseUp(with event: NSEvent) {
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.08
-            self.layer?.transform = isHovered ? CATransform3DMakeScale(1.12, 1.12, 1.0) : CATransform3DIdentity
-        }
-        
-        let pointInView = convert(event.locationInWindow, from: nil)
-        if bounds.contains(pointInView) {
-            triggerRotateEffect()
-            onCloseClicked?()
+            context.duration = 0.15
+            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            context.allowsImplicitAnimation = true
+            self.animator().alphaValue = hovered ? 1.0 : 0.97
+            self.layer?.transform = hovered ? CATransform3DMakeScale(1.08, 1.08, 1.0) : CATransform3DIdentity
         }
     }
 }
