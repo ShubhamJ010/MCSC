@@ -32,7 +32,7 @@ replacement transition.
 |---|---|---|---|---|---|
 | `.close` | `xmark.circle.fill` | Close Window | System multicolor (red X) | — | — |
 | `.minimize` | `minus.circle.fill` | Minimize Window | Black + system yellow | — | — |
-| `.quit` | `xmark.circle.fill` | Force Quit | Black → purple gradient | `.scaleUpByLayer` | — |
+| `.quit` | `xmark.circle.fill` | Force Quit | Black → purple gradient | hover-style scale-up + fade-in\* | — |
 | `.hide` | `smallcircle.filled.circle.fill` | Hide Application | Black + system blue + clear | `.bounce` | — |
 | `.almost` | `inset.filled.rectangle` | Almost Maximize Window | Accent (`controlAccentColor`) | — | `.downUpReveal` |
 | `.reasonable` | `inset.filled.center.rectangle` | Reasonable Size | Accent (`controlAccentColor`) | — | `.downUpReveal` |
@@ -43,6 +43,9 @@ replacement transition.
 | `.newWindow` | `rectangle.badge.plus` | New Window | System green | `.wiggleByLayer`\* | — |
 
 \* `.wiggleByLayer` is macOS 26+ only; macOS 14/15 fall back to `.bounce`.
+\* `.quit`'s "hover-style scale-up + fade-in" is not a symbol effect; it is the
+  same `NSAnimationContext` scale (1.08×) + alpha (0.97 → 1.0) over 0.15 s
+  ease-out used by `CloseButtonView.setHovered`, applied on entry.
 
 **Source:** the `Mode` enum in `CursorFeedbackOverlay.swift`. `CaseIterable`
 lets the unit tests walk the whole set (see [§ 8](#8-verification)).
