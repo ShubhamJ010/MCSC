@@ -80,7 +80,7 @@ ceiling means the change needs redesign before merge.
 
 - Memory and framework choices: [ARCHITECTURE.md](./ARCHITECTURE.md)
 - Project memory rules: `AGENTS.md`
-- Lazy, cached, and event-driven wiring: `MCSC/ViewModels/ShortcutViewModel.swift`
-- Cached Mission Control detection: `MCSC/Services/MissionControlService.swift`
-- Minimal hover polling: `MCSC/Services/MissionControlHoverService.swift`
-- Lightweight action structs: `MCSC/Models/ShortcutActions.swift`
+- Lazy, cached, and event-driven wiring: `../MCSC/ViewModels/ShortcutViewModel.swift`
+- Cached Mission Control detection: `../MCSC/Services/MissionControlService.swift`
+- Minimal hover polling: `../MCSC/Services/MissionControlHoverService.swift`
+- Lightweight action structs: `../MCSC/Models/ShortcutActions.swift`

@@ -94,13 +94,13 @@ does not dismiss prematurely, plays a haptic, and runs the selected action.
 ## Source references
 
 - Key handling and shortcut-to-action mapping:
-  `MCSC/ViewModels/ShortcutViewModel.swift`
+  `../MCSC/ViewModels/ShortcutViewModel.swift`
 - Window- and app-level action implementations:
-  `MCSC/Models/ShortcutActions.swift`
+  `../MCSC/Models/ShortcutActions.swift`
 - Hover overlay, modifier precedence, and click handling:
-  `MCSC/Services/MissionControlHoverService.swift`
-- Low-level key interception: `MCSC/Services/EventTapService.swift`
+  `../MCSC/Services/MissionControlHoverService.swift`
+- Low-level key interception: `../MCSC/Services/EventTapService.swift`
 - Mission Control detection and `Cmd + Space` recovery:
-  `MCSC/Services/MissionControlService.swift`
-- Feedback symbols shown at the cursor: `MCSC/Views/CursorFeedbackOverlay.swift`
-- Hover button rendering: `MCSC/Views/PreviewCloseButtonOverlay.swift`
+  `../MCSC/Services/MissionControlService.swift`
+- Feedback symbols shown at the cursor: `../MCSC/Views/CursorFeedbackOverlay.swift`
+- Hover button rendering: `../MCSC/Views/PreviewCloseButtonOverlay.swift`

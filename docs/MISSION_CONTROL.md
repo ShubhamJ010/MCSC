@@ -69,8 +69,8 @@ own injected events.
 
 ## Source references
 
-- Detection heuristic and caching: `MCSC/Services/MissionControlService.swift`
-- Cooldown hook: `MCSC/ViewModels/ShortcutViewModel.swift` (`onActivated`)
-- Scoped delivery of gestures: `MCSC/Services/MultitouchService.swift`
-- Scoped delivery of shortcuts: `MCSC/Services/EventTapService.swift`
-- Hover tracking gated on activity: `MCSC/Services/MissionControlHoverService.swift`
+- Detection heuristic and caching: `../MCSC/Services/MissionControlService.swift`
+- Cooldown hook: `../MCSC/ViewModels/ShortcutViewModel.swift` (`onActivated`)
+- Scoped delivery of gestures: `../MCSC/Services/MultitouchService.swift`
+- Scoped delivery of shortcuts: `../MCSC/Services/EventTapService.swift`
+- Hover tracking gated on activity: `../MCSC/Services/MissionControlHoverService.swift`

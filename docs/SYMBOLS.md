@@ -12,8 +12,8 @@ MCSC renders symbols in two distinct places, both data-driven:
 
 | System | File | Anchoring | Interactive | Lifecycle |
 |---|---|---|---|---|
-| `CursorFeedbackOverlay` | `MCSC/Views/CursorFeedbackOverlay.swift` | Mouse cursor | No — ignores all mouse events | Transient flash (~0.6 s), auto-retracts |
-| `PreviewCloseButtonOverlay` | `MCSC/Views/PreviewCloseButtonOverlay.swift` | Top-left vertex of a Mission Control window preview | Yes — clickable hover button | Persistent while hovering the window |
+| `CursorFeedbackOverlay` | `../MCSC/Views/CursorFeedbackOverlay.swift` | Mouse cursor | No — ignores all mouse events | Transient flash (~0.6 s), auto-retracts |
+| `PreviewCloseButtonOverlay` | `../MCSC/Views/PreviewCloseButtonOverlay.swift` | Top-left vertex of a Mission Control window preview | Yes — clickable hover button | Persistent while hovering the window |
 
 - **Cursor feedback** plays *before* the underlying (blocking AX) action runs so
   the flash commits on the run loop before the action starves it.
@@ -92,4 +92,4 @@ Feedback mode = the symbol shown at the cursor when the trigger fires.
 | `Cmd + double tap` | `.almost` | `inset.filled.rectangle` | Almost maximize (90 %) |
 
 **Source:** `ShortcutViewModel` (key-down and gesture paths in
-`MCSC/ViewModels/ShortcutViewModel.swift`).
+`../MCSC/ViewModels/ShortcutViewModel.swift`).

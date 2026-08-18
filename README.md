@@ -35,18 +35,18 @@ tries to replicate.
 
 - **Global keyboard shortcuts** — `Cmd + W`, `Cmd + Q`, `Cmd + M`, `Cmd + H`,
   a `Cmd + Space` recovery sequence, and a clickable hover button on each window
-  preview. See [SHORTCUTS.md](./SHORTCUTS.md).
+  preview. See [SHORTCUTS.md](./docs/SHORTCUTS.md).
 - **Trackpad gestures** — pinch, directional swipes, and a two-finger double
-  tap, each with a `Command` variant. See [GESTURES.md](./GESTURES.md).
+  tap, each with a `Command` variant. See [GESTURES.md](./docs/GESTURES.md).
 - **Mission Control scoping** — window-layer detection that activates the app
   only inside Mission Control, with a recovery sequence for stuck states.
-  See [MISSION_CONTROL.md](./MISSION_CONTROL.md).
+  See [MISSION_CONTROL.md](./docs/MISSION_CONTROL.md).
 - **Accessibility API integration** — drives `AXUIElement` directly to inspect
   and manipulate windows in other apps.
 - **Launch at login** — registers MCSC through `SMAppService`.
 - **Performance focused** — a near-zero-footprint, event-driven background
-  agent. See [PERFORMANCE.md](./PERFORMANCE.md) and
-  [ARCHITECTURE.md](./ARCHITECTURE.md).
+  agent. See [PERFORMANCE.md](./docs/PERFORMANCE.md) and
+  [ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 
 ## Requirements
 
@@ -109,19 +109,19 @@ actions below.
 
 Each gesture fires **once per finger lift**, so holding your fingers down and
 repeating the motion will not re-trigger it. For the full mapping, hover
-buttons, and how recognition works, see [SHORTCUTS.md](./SHORTCUTS.md) and
-[GESTURES.md](./GESTURES.md).
+buttons, and how recognition works, see [SHORTCUTS.md](./docs/SHORTCUTS.md) and
+[GESTURES.md](./docs/GESTURES.md).
 
 ## Documentation
 
 These guides go deeper than the summaries above:
 
-- [SHORTCUTS.md](./SHORTCUTS.md) — every keyboard shortcut and the hover button.
-- [GESTURES.md](./GESTURES.md) — every trackpad gesture and how recognition works.
-- [MISSION_CONTROL.md](./MISSION_CONTROL.md) — how MCSC detects and scopes to Mission Control.
-- [SYMBOLS.md](./SYMBOLS.md) — the SF Symbol map behind the feedback overlays.
-- [PERFORMANCE.md](./PERFORMANCE.md) — memory and CPU budget and how it stays light.
-- [ARCHITECTURE.md](./ARCHITECTURE.md) — the MVVM design and low-level choices.
+- [SHORTCUTS.md](./docs/SHORTCUTS.md) — every keyboard shortcut and the hover button.
+- [GESTURES.md](./docs/GESTURES.md) — every trackpad gesture and how recognition works.
+- [MISSION_CONTROL.md](./docs/MISSION_CONTROL.md) — how MCSC detects and scopes to Mission Control.
+- [SYMBOLS.md](./docs/SYMBOLS.md) — the SF Symbol map behind the feedback overlays.
+- [PERFORMANCE.md](./docs/PERFORMANCE.md) — memory and CPU budget and how it stays light.
+- [ARCHITECTURE.md](./docs/ARCHITECTURE.md) — the MVVM design and low-level choices.
 
 ## Credits
 

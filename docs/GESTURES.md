@@ -87,15 +87,15 @@ Accessibility actions and the same feedback-symbol system described in
 ## Source references
 
 - Gesture recognition and dispatch:
-  `MCSC/Models/GestureRecognizer.swift` (`GestureEngine`, `GestureResult`)
-- Individual recognizers: `MCSC/Models/PinchInRecognizer.swift`,
-  `MCSC/Models/SwipeRecognizer.swift`,
-  `MCSC/Models/TwoFingerSwipeLeftRecognizer.swift`,
-  `MCSC/Models/TwoFingerSwipeRightRecognizer.swift`,
-  `MCSC/Models/TwoFingerDoubleTapRecognizer.swift`
-- Raw multitouch input: `MCSC/Services/MultitouchService.swift`,
-  `MCSC/Services/MultitouchBridge.swift`
+  `../MCSC/Models/GestureRecognizer.swift` (`GestureEngine`, `GestureResult`)
+- Individual recognizers: `../MCSC/Models/PinchInRecognizer.swift`,
+  `../MCSC/Models/SwipeRecognizer.swift`,
+  `../MCSC/Models/TwoFingerSwipeLeftRecognizer.swift`,
+  `../MCSC/Models/TwoFingerSwipeRightRecognizer.swift`,
+  `../MCSC/Models/TwoFingerDoubleTapRecognizer.swift`
+- Raw multitouch input: `../MCSC/Services/MultitouchService.swift`,
+  `../MCSC/Services/MultitouchBridge.swift`
 - Gesture-to-action mapping and target resolution:
-  `MCSC/ViewModels/ShortcutViewModel.swift`
-- Action implementations: `MCSC/Models/ShortcutActions.swift`
-- Haptics: `MCSC/Services/HapticService.swift`
+  `../MCSC/ViewModels/ShortcutViewModel.swift`
+- Action implementations: `../MCSC/Models/ShortcutActions.swift`
+- Haptics: `../MCSC/Services/HapticService.swift`
