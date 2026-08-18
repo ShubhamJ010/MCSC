@@ -93,6 +93,16 @@ struct CloseAppAction {
     }
 }
 
+/// Closes the tab in the window currently under the cursor.
+///
+/// Resolution order:
+/// 1. Hit-test the cursor position to the AX element, then to its owning window.
+/// 2. If the window exposes an accessible tab strip, press the selected tab's
+///    close button directly — this closes the hovered window's active tab
+///    regardless of which window is key, so it is robust in Mission Control.
+/// 3. Otherwise fall back to posting ⌘W to the app, first attempting to focus
+///    the hovered window so the key window matches the cursor (best-effort;
+///    some apps ignore programmatic focus while Mission Control is active).
 struct CloseTabAction: ShortcutAction {
     func perform(at point: CGPoint, service: AccessibilityServiceProtocol) {
         guard let element = service.getElement(at: point),
@@ -102,6 +112,11 @@ struct CloseTabAction: ShortcutAction {
             _ = service.performAction(kAXPressAction, on: closeBtn)
             return
         }
+
+        // Steer Cmd+W toward the hovered window (the resolved `window`), not the
+        // app's previously focused key window. Best-effort: if the app ignores
+        // programmatic focus, the key window path is unchanged.
+        _ = service.focusWindow(window)
 
         var pid: pid_t = 0
         guard AXUIElementGetPid(element, &pid) == .success else { return }
@@ -119,29 +134,37 @@ struct CloseTabAction: ShortcutAction {
     }
 }
 
+/// Closes a tab when the Cmd+W shortcut is fired from a Dock item.
+///
+/// Targets the app's key window (the one the user is acting on from the Dock)
+/// and, when it exposes an accessible tab strip, presses that window's selected
+/// tab close button. Falls back to posting ⌘W to the app's key window, which
+/// matches the Dock-item targeting expectation.
 struct CloseTabAppAction {
     func perform(app: NSRunningApplication, service: AccessibilityServiceProtocol) {
         let appElement = AXUIElementCreateApplication(app.processIdentifier)
 
-        var windows: CFTypeRef?
-        AXUIElementCopyAttributeValue(appElement, kAXWindowsAttribute as CFString, &windows)
-
-        if let windowList = windows as? [AXUIElement], !windowList.isEmpty {
-            for window in windowList {
-                if let closeBtn = service.findActiveTabCloseButton(in: window) {
-                    _ = service.performAction(kAXPressAction, on: closeBtn)
-                    return
-                }
-            }
+        // Target the app's key window (the one the user is acting on from the
+        // Dock), not an arbitrary window in the list.
+        if let keyWindow: AXUIElement = service.getAttributeValue(kAXFocusedWindowAttribute, for: appElement),
+           let closeBtn = service.findActiveTabCloseButton(in: keyWindow) {
+            _ = service.performAction(kAXPressAction, on: closeBtn)
+            return
         }
 
+        // Fallback: Cmd+W delivered to the app's key window, which matches the
+        // Dock-item targeting expectation.
+        postCmdW(to: app.processIdentifier)
+    }
+
+    private func postCmdW(to pid: pid_t) {
         let source = CGEventSource(stateID: .hidSystemState)
         let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 0x0D, keyDown: true)
         let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 0x0D, keyDown: false)
         keyDown?.flags = .maskCommand
         keyUp?.flags = .maskCommand
-        keyDown?.postToPid(app.processIdentifier)
-        keyUp?.postToPid(app.processIdentifier)
+        keyDown?.postToPid(pid)
+        keyUp?.postToPid(pid)
     }
 }
 
