@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /// Raw finger data from MultitouchSupport.framework.
 /// Memory layout must exactly match the C struct.
@@ -39,7 +40,7 @@ typealias MTContactFrameCallback = @convention(c) (
     Int32                                   // frame
 ) -> Int32
 
-class MultitouchBridge {
+final class MultitouchBridge {
     static let shared = MultitouchBridge()
     
     private var frameworkHandle: UnsafeMutableRawPointer?
@@ -62,7 +63,8 @@ class MultitouchBridge {
     private func loadFramework() {
         let path = "/System/Library/PrivateFrameworks/MultitouchSupport.framework/Versions/A/MultitouchSupport"
         guard let handle = dlopen(path, RTLD_NOW) else {
-            print("[MultitouchBridge] Failed to load MultitouchSupport.framework: \(String(cString: dlerror()))")
+            let errorMsg = dlerror().map { String(cString: $0) } ?? "unknown"
+            AppLogger.multitouch.error("Failed to load MultitouchSupport.framework: \(errorMsg, privacy: .public)")
             return
         }
         
@@ -84,7 +86,7 @@ class MultitouchBridge {
             unregisterContactFrameCallback = unsafeBitCast(sym, to: (@convention(c) (MTDeviceRef, MTContactFrameCallback) -> Void).self)
         }
         
-        print("[MultitouchBridge] Successfully loaded and resolved framework symbols")
+        AppLogger.multitouch.info("Successfully loaded and resolved framework symbols")
     }
     
     deinit {

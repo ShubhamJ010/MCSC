@@ -9,7 +9,8 @@ struct TestRunner {
             CmdSwipeActionsTests.defaultTestSuite,
             GestureEngineRoutingTests.defaultTestSuite,
             MissionControlHoverServiceTests.defaultTestSuite,
-            CursorFeedbackOverlayTests.defaultTestSuite
+            CursorFeedbackOverlayTests.defaultTestSuite,
+            RouterTests.defaultTestSuite
         ]
 
         var totalFailed = 0

@@ -1,4 +1,6 @@
 import Cocoa
+import ApplicationServices
+import os
 
 /// The application delegate for the MCSC menu bar utility.
 ///
@@ -11,7 +13,7 @@ import Cocoa
 /// - Observes system sleep/wake so the event tap can be stopped and
 ///   restarted cleanly around sleep cycles.
 @MainActor
-class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate {
     private var viewModel: ShortcutViewModel?
     private var statusItem: NSStatusItem?
     private var sleepObserver: NSObjectProtocol?
@@ -48,7 +50,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if isTrusted {
             viewModel?.start()
         } else {
-            print("Waiting for accessibility permissions...")
+            AppLogger.app.info("Waiting for accessibility permissions...")
             // Poll for trust so the app boots the moment the user grants
             // permission in System Settings, without requiring a relaunch.
             accessibilityPollTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
@@ -66,7 +68,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            print("System sleeping - stopping event tap")
+            AppLogger.app.info("System sleeping - stopping event tap")
             self?.viewModel?.stop()
         }
         
@@ -75,7 +77,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            print("System woke up - restarting event tap")
+            AppLogger.app.info("System woke up - restarting event tap")
             self?.viewModel?.start()
         }
     }

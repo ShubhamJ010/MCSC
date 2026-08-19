@@ -86,17 +86,12 @@ final class PreviewCloseButtonOverlay {
     func show(at windowBounds: CGRect, mode: Mode = .close) {
         guard let panel = panel else { return }
         
-        let primaryHeight = NSScreen.screens.first?.frame.height ?? 0
-        let x = windowBounds.origin.x
-        let y = windowBounds.origin.y
+        let cocoaAnchor = ScreenGeometry.cocoaPoint(for: windowBounds.origin)
         let halfDim = Self.buttonDimension / 2.0
         
-        let cocoaX = x - halfDim
-        let cocoaY = (primaryHeight - y) - halfDim
-        
         let targetRect = NSRect(
-            x: cocoaX,
-            y: cocoaY,
+            x: cocoaAnchor.x - halfDim,
+            y: cocoaAnchor.y - halfDim,
             width: Self.buttonDimension,
             height: Self.buttonDimension
         )
@@ -163,15 +158,11 @@ final class CloseButtonView: NSView {
     /// Builds the SF Symbol image for `mode`: semibold 24 pt, tinted with the
     /// mode's palette (or the system multicolor default).
     private func makeSymbolImage(for mode: PreviewCloseButtonOverlay.Mode) -> NSImage? {
-        var config = NSImage.SymbolConfiguration(pointSize: 24, weight: .semibold)
-        if let colors = mode.paletteColors {
-            config = config.applying(NSImage.SymbolConfiguration(paletteColors: colors))
-        } else {
-            config = config.applying(NSImage.SymbolConfiguration.preferringMulticolor())
-        }
-        return NSImage(systemSymbolName: mode.symbolName,
-                       accessibilityDescription: mode.accessibilityDescription)?
-            .withSymbolConfiguration(config)
+        SymbolImageFactory.make(
+            symbolName: mode.symbolName,
+            description: mode.accessibilityDescription,
+            paletteColors: mode.paletteColors
+        )
     }
 
     override init(frame frameRect: NSRect) {

@@ -1,7 +1,7 @@
 import Cocoa
 
 /// The kind of gesture MCSC wants to give the user tactile feedback for.
-enum HapticType {
+enum HapticType: Equatable {
     case swipeLeft
     case swipeRight
     case swipeDown

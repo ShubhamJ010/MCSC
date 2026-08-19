@@ -27,7 +27,7 @@ protocol GestureRecognizer: AnyObject {
 
 /// Dispatches touch frames to all registered recognizers.
 /// First recognizer to return a result wins (prevents double-firing).
-class GestureEngine {
+final class GestureEngine {
     private var recognizers: [GestureRecognizer] = []
     var onGestureRecognized: ((GestureResult) -> Void)?
     private var poisoned = false

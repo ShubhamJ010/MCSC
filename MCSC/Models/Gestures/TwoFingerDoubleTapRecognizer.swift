@@ -6,7 +6,7 @@ import Foundation
 ///   idle → tap1Down (2 fingers detected)
 ///        → tap1Up (all 2 lifted, waiting for second tap)
 ///        → cooldown (second tap detected → action fired) → idle
-class TwoFingerDoubleTapRecognizer: GestureRecognizer {
+final class TwoFingerDoubleTapRecognizer: GestureRecognizer {
 
     struct Config {
         /// Maximum time between first lift and second touch (seconds).

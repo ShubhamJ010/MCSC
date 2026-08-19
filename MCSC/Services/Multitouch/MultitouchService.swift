@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /// Snapshot of a single touch point per frame, in normalized trackpad
 /// coordinates (0.0–1.0) that are independent of device resolution.
@@ -27,7 +28,7 @@ struct TouchPoint {
 /// framework's thread can crash. A stale deferred stop is cancelled by the
 /// next `start()` (e.g. after sleep/wake) so it cannot tear down freshly
 /// re-created devices.
-class MultitouchService {
+final class MultitouchService {
     typealias FrameCallback = ([TouchPoint], Double) -> Void
 
     private var devices: [MTDeviceRef] = []
@@ -73,14 +74,14 @@ class MultitouchService {
     private func beginListening() {
         let bridge = MultitouchBridge.shared
         guard bridge.isLoaded else {
-            print("[MultitouchService] Cannot start, MultitouchBridge is not loaded")
+            AppLogger.multitouch.error("Cannot start, MultitouchBridge is not loaded")
             return
         }
 
         MultitouchService.shared = self
 
         guard let listRef = bridge.deviceCreateList?() else {
-            print("[MultitouchService] Failed to create device list")
+            AppLogger.multitouch.error("Failed to create device list")
             return
         }
         let deviceList = listRef.takeRetainedValue() as NSArray
@@ -93,7 +94,7 @@ class MultitouchService {
             bridge.deviceStart?(mtRef, 0)
         }
         isRunning = true
-        print("[MultitouchService] Started listening on \(devices.count) trackpad device(s)")
+        AppLogger.multitouch.info("Started listening on \(self.devices.count, privacy: .public) trackpad device(s)")
     }
 
     func stop() {
@@ -126,7 +127,7 @@ class MultitouchService {
         // ViewModel and must survive a stop()/start() cycle so gestures keep
         // working after the system wakes from sleep. (The closure captures
         // the ViewModel weakly, so there is no retain cycle.)
-        print("[MultitouchService] Stopped listening")
+        AppLogger.multitouch.info("Stopped listening")
     }
 }
 

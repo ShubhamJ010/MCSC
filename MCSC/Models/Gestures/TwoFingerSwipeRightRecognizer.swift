@@ -5,7 +5,7 @@ import Foundation
 /// State machine:
 ///   idle → tracking (2 fingers detected, recording start X)
 ///        → cooldown (threshold crossed → action fired) → idle
-class TwoFingerSwipeRightRecognizer: GestureRecognizer {
+final class TwoFingerSwipeRightRecognizer: GestureRecognizer {
 
     struct Config {
         /// Minimum horizontal displacement (normalized 0–1) to trigger a swipe right.

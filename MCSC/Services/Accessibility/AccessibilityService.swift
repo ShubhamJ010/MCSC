@@ -1,5 +1,6 @@
 import Cocoa
 import ApplicationServices
+import os
 
 /// Abstraction over the macOS Accessibility (AX) API so higher layers can be
 /// unit-tested with a mock. All methods use Quartz screen coordinates
@@ -44,7 +45,7 @@ protocol AccessibilityServiceProtocol {
     func getAppFromElement(_ element: AXUIElement) -> NSRunningApplication?
 }
 
-class AccessibilityService: AccessibilityServiceProtocol {
+final class AccessibilityService: AccessibilityServiceProtocol {
     private let systemWide = AXUIElementCreateSystemWide()
 
     /// When `true`, `getAppFromDockItem` logs the Dock item's AX attributes and
@@ -71,7 +72,7 @@ class AccessibilityService: AccessibilityServiceProtocol {
         var window: CFTypeRef?
         let result = AXUIElementCopyAttributeValue(element, kAXWindowAttribute as CFString, &window)
         
-        if result == .success {
+        if result == .success, let window = window, CFGetTypeID(window) == AXUIElementGetTypeID() {
             return (window as! AXUIElement)
         }
         
@@ -119,10 +120,10 @@ class AccessibilityService: AccessibilityServiceProtocol {
             }
             var parent: CFTypeRef?
             guard AXUIElementCopyAttributeValue(el, kAXParentAttribute as CFString, &parent) == .success,
-                  let parentEl = parent as! AXUIElement? else {
+                  let parent = parent, CFGetTypeID(parent) == AXUIElementGetTypeID() else {
                 return nil
             }
-            current = parentEl
+            current = (parent as! AXUIElement)
             depth += 1
         }
         return nil
@@ -133,7 +134,7 @@ class AccessibilityService: AccessibilityServiceProtocol {
         // such as a notification badge), then map it to a running app.
         guard let dockItem = dockItemAncestor(for: element) else {
             if dockDiagnosticsEnabled {
-                print("[MCSC][DockDiag] no AXDockItem ancestor found for hit element")
+                AppLogger.dock.debug("no AXDockItem ancestor found for hit element")
             }
             return nil
         }
@@ -147,7 +148,7 @@ class AccessibilityService: AccessibilityServiceProtocol {
            let bundle = Bundle(url: url as URL),
            let app = runningApps.first(where: { $0.bundleIdentifier == bundle.bundleIdentifier }) {
             if dockDiagnosticsEnabled {
-                print("[MCSC][DockDiag] resolved via AXURL → bundleID '\(bundle.bundleIdentifier ?? "?")' → '\(app.localizedName ?? "?")'")
+                AppLogger.dock.debug("resolved via AXURL → bundleID '\(bundle.bundleIdentifier ?? "?", privacy: .public)' → '\(app.localizedName ?? "?", privacy: .public)'")
             }
             return app
         }
@@ -160,7 +161,7 @@ class AccessibilityService: AccessibilityServiceProtocol {
                 let role: String? = getAttributeValue(kAXRoleAttribute, for: dockItem)
                 let subrole: String? = getAttributeValue(kAXSubroleAttribute, for: dockItem)
                 let url: NSURL? = getAttributeValue(kAXURLAttribute, for: dockItem)
-                print("[MCSC][DockDiag] AXURL match failed; AXTitle missing — role='\(role ?? "?"))' subrole='\(subrole ?? "?")' AXURL=\(url?.absoluteString ?? "nil")")
+                AppLogger.dock.debug("AXURL match failed; AXTitle missing — role='\(role ?? "?", privacy: .public)' subrole='\(subrole ?? "?", privacy: .public)' AXURL=\(url?.absoluteString ?? "nil", privacy: .public)")
             }
             return nil
         }
@@ -171,7 +172,7 @@ class AccessibilityService: AccessibilityServiceProtocol {
                                      options: opts) == .orderedSame
         }) {
             if dockDiagnosticsEnabled {
-                print("[MCSC][DockDiag] resolved via tolerant AXTitle '\(normalizedTitle)' → '\(app.localizedName ?? "?")'")
+                AppLogger.dock.debug("resolved via tolerant AXTitle '\(normalizedTitle, privacy: .public)' → '\(app.localizedName ?? "?", privacy: .public)'")
             }
             return app
         }
@@ -179,14 +180,14 @@ class AccessibilityService: AccessibilityServiceProtocol {
             let role: String? = getAttributeValue(kAXRoleAttribute, for: dockItem)
             let subrole: String? = getAttributeValue(kAXSubroleAttribute, for: dockItem)
             let url: NSURL? = getAttributeValue(kAXURLAttribute, for: dockItem)
-            print("[MCSC][DockDiag] NO match — AXTitle='\(title)' role='\(role ?? "?")' subrole='\(subrole ?? "?")' AXURL=\(url?.absoluteString ?? "nil")' running=\(runningApps.compactMap { $0.localizedName })")
+            AppLogger.dock.debug("NO match — AXTitle='\(title, privacy: .public)' role='\(role ?? "?", privacy: .public)' subrole='\(subrole ?? "?", privacy: .public)' AXURL=\(url?.absoluteString ?? "nil", privacy: .public)")
         }
         return nil
     }
 
     func findActiveTabCloseButton(in window: AXUIElement) -> AXUIElement? {
         guard let children: [AXUIElement] = getAttributeValue(kAXChildrenAttribute, for: window) else {
-            print("[MCSC] findActiveTabCloseButton: no children on window")
+            AppLogger.accessibility.debug("findActiveTabCloseButton: no children on window")
             return nil
         }
         for child in children {
@@ -243,11 +244,11 @@ class AccessibilityService: AccessibilityServiceProtocol {
     func setFrame(_ frame: CGRect, for element: AXUIElement) -> Bool {
         // Set position first, then size — some apps fail if done in one shot
         var position = CGPoint(x: frame.origin.x, y: frame.origin.y)
-        let posValue = AXValueCreate(.cgPoint, &position)!
+        guard let posValue = AXValueCreate(.cgPoint, &position) else { return false }
         let posResult = AXUIElementSetAttributeValue(element, kAXPositionAttribute as CFString, posValue)
 
         var size = CGSize(width: frame.width, height: frame.height)
-        let sizeValue = AXValueCreate(.cgSize, &size)!
+        guard let sizeValue = AXValueCreate(.cgSize, &size) else { return false }
         let sizeResult = AXUIElementSetAttributeValue(element, kAXSizeAttribute as CFString, sizeValue)
 
         return posResult == .success && sizeResult == .success

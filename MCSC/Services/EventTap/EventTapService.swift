@@ -1,4 +1,5 @@
 import Cocoa
+import os
 
 /// Alias bridging the legacy `CFEventTimestamp` name to the Quartz timestamp
 /// type used by `CGEvent`.
@@ -15,11 +16,17 @@ typealias CFEventTimestamp = CGEventTimestamp
 ///   so the pointer is never dereferenced after teardown.
 /// - Contract: `onShortcutDetected` returns `true` to consume (swallow) the
 ///   key event and `false` to let it pass through to other apps.
-final class EventTapService {
+protocol EventTapServiceProtocol: AnyObject {
+    typealias ShortcutDetectedCallback = (Int64, CGEventFlags, CGPoint) -> Bool
+    var onShortcutDetected: ShortcutDetectedCallback? { get set }
+    func start()
+    func stop()
+}
+
+final class EventTapService: EventTapServiceProtocol {
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
 
-    typealias ShortcutDetectedCallback = (Int64, CGEventFlags, CGPoint) -> Bool
     var onShortcutDetected: ShortcutDetectedCallback?
 
     /// Installs a `keyDown` event tap on the current run loop and enables it.
@@ -52,7 +59,7 @@ final class EventTapService {
             },
             userInfo: Unmanaged.passUnretained(self).toOpaque()
         ) else {
-            print("Failed to create event tap")
+            AppLogger.eventTap.error("Failed to create event tap")
             return
         }
 

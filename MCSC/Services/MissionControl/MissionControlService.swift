@@ -12,7 +12,17 @@ import CoreGraphics
 /// 2. A window-list heuristic that recognises Mission Control's full-screen
 ///    overlay + Dock bar, cached for `detectionCacheInterval` so gesture
 ///    frames never pay for a repeated `CGWindowListCopyWindowInfo` scan.
-class MissionControlService {
+protocol MissionControlServiceProtocol: AnyObject {
+    var isMissionControlActive: Bool { get }
+    var isSimulating: Bool { get set }
+    var onActivated: (() -> Void)? { get set }
+    func checkMissionControlActive() -> Bool
+    func executeFixSequence()
+    func start()
+    func stop()
+}
+
+final class MissionControlService: MissionControlServiceProtocol {
     private var _isMissionControlActive = false
     var isMissionControlActive: Bool {
         return checkMissionControlActive()
@@ -37,9 +47,7 @@ class MissionControlService {
     private var cachedIsActive: Bool?
     private var lastDetectionTime: Double = 0
 
-    init() {
-        start()
-    }
+    init() {}
     
     func start() {
         setupNotifications()
@@ -74,6 +82,8 @@ class MissionControlService {
             center.removeObserver(observer)
         }
         observers.removeAll()
+        _isMissionControlActive = false
+        cachedIsActive = nil
     }
     
     /// Returns `true` only while Mission Control is open.

@@ -5,7 +5,7 @@ import Foundation
 /// State machine:
 ///   idle → tracking (2 fingers detected, recording start Y)
 ///        → cooldown (threshold crossed → action fired) → idle
-class SwipeRecognizer: GestureRecognizer {
+final class SwipeRecognizer: GestureRecognizer {
 
     struct Config {
         /// Minimum vertical displacement (normalized 0–1) to trigger a swipe.

@@ -39,4 +39,22 @@ final class CmdSwipeActionsTests: XCTestCase {
         XCTAssertEqual(mockService.getElementCalledWith, point)
         XCTAssertNil(mockService.setFrameCalledWith)
     }
+
+    func testReasonableSizeActionWithNilElementDoesNotCrash() {
+        mockService.mockElement = nil
+        let action = ReasonableSizeAction()
+        let point = CGPoint(x: 150, y: 250)
+        action.perform(at: point, service: mockService)
+        XCTAssertEqual(mockService.getElementCalledWith, point)
+        XCTAssertNil(mockService.setFrameCalledWith)
+    }
+
+    func testAlmostMaximizeActionWithNilElementDoesNotCrash() {
+        mockService.mockElement = nil
+        let action = AlmostMaximizeAction()
+        let point = CGPoint(x: 150, y: 250)
+        action.perform(at: point, service: mockService)
+        XCTAssertEqual(mockService.getElementCalledWith, point)
+        XCTAssertNil(mockService.setFrameCalledWith)
+    }
 }

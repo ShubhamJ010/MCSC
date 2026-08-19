@@ -1,13 +1,12 @@
 # MCSC Architecture & Engineering Deep Dive
 
-This document serves as an educational resource and architectural blueprint for **MCSC (Mission Control Shortcuts)**. It explains the "why" behind our technical decisions, specifically focusing on performance optimization and system-level integration.
+This document serves as an educational resource and architectural blueprint for **MCSC (Mac Shortcut Control)**. It explains the design decisions, structural patterns, and performance optimizations behind the codebase.
+
+---
 
 ## 🏛 The Core Dilemma: AppKit vs. SwiftUI
 
-One of the most significant architectural choices in MCSC was the transition from SwiftUI to a pure AppKit/Core Foundation foundation.
-
-### Why AppKit?
-For a background utility like MCSC, memory efficiency and low-level control are paramount.
+One of the most foundational architectural choices in MCSC was committing to a pure AppKit / Core Foundation foundation rather than SwiftUI.
 
 | Feature | SwiftUI | AppKit (Current) |
 | :--- | :--- | :--- |
@@ -16,37 +15,65 @@ For a background utility like MCSC, memory efficiency and low-level control are 
 | **Control** | Declarative (Abstracted) | Imperative (Granular) |
 | **Lifecycle** | Managed by `@main` | Managed via `main.swift` & `AppDelegate` |
 
-**Enlightenment:** SwiftUI is excellent for data-driven, UI-heavy applications. However, it brings a large runtime overhead. For a "headless" agent that lives in the background, the SwiftUI framework is a heavy guest. By using `main.swift` and `NSApplication`, we bypass the SwiftUI initialization sequence entirely, saving ~4-6 MB of RAM.
+**Memory Footprint:** For a background utility that lives in the menu bar and processes trackpad/keyboard events, SwiftUI's runtime introduces unnecessary allocations. By using `main.swift`, `NSApplication`, and lightweight Cocoa panels, MCSC maintains a baseline memory footprint under 13 MB.
 
-## 🏗 MVVM Architecture
+---
 
-We strictly adhere to the **Model-View-ViewModel** pattern, even without a traditional "View." In MCSC, the "View" is the system's event stream.
+## 🏗 Modular MVVM Architecture
 
--   **Models (`MCSC/Models`):** Encapsulate the *actions*. They don't know about shortcuts; they only know how to talk to the Accessibility API to close a window or kill a process.
--   **Services (`MCSC/Services`):** The "Workhorses." These are low-level wrappers.
-    -   `EventTapService`: Uses C-level APIs (`CGEvent.tapCreate`) to listen for system-wide key presses.
-    -   `AccessibilityService`: Communicates with `AXUIElement` to query and manipulate windows.
--   **ViewModels (`MCSC/ViewModels`):** The "Brain." It receives raw key codes from the `EventTapService`, determines if they match our target shortcuts (Cmd+W/Cmd+Q), and triggers the corresponding `Model` action.
+MCSC strictly follows the **Model-View-ViewModel (MVVM)** pattern with protocol-driven dependency inversion and clear single-responsibility components:
 
-## 🛠 System-Level Integration
+```
+[System Events: Quartz CGEventTap / Multitouch / AX Notifications]
+                           │
+                           ▼
+                    [Services Layer]
+  (AccessibilityService, EventTapService, MultitouchService, MissionControlService)
+                           │
+                           ▼
+                   [ViewModel Layer]
+  (ShortcutViewModel ──► ShortcutActionRouter & GestureActionRouter)
+                           │
+             ┌─────────────┴─────────────┐
+             ▼                           ▼
+      [Actions (Models)]          [Views (Overlays)]
+ (WindowActions, AppActions,     (CursorFeedbackOverlay,
+  TabActions, TilingActions)      PreviewCloseButtonOverlay)
+```
 
-### Global Event Taps
-MCSC uses a `CGEventTap`. This is a low-level hook into the macOS windowing system (Quartz).
-- **Placement:** We place the tap at `.headInsertEventTap` to ensure we see the event before the target application does.
-- **Efficiency:** The callback is written to be extremely fast. If we don't handle the shortcut, we pass the event through immediately to avoid lag.
+### 1. Models (`MCSC/Models`)
+- **Single-Responsibility Structs:** `CloseWindowAction`, `MinimizeWindowAction`, `HideApplicationAction`, `ForceQuitAction`, `CloseAppAction`, `MinimizeAppAction`, `ForceQuitAppAction`, `CloseTabAction`, `ReopenTabAction`, `CloseAllTabsAction`, `NewWindowAction`, `FillScreenAction`, `MakeLargerAction`, `ReasonableSizeAction`, `AlmostMaximizeAction`.
+- **Mission Control Window Actions:** `MissionControlWindowActions` encapsulates window button pressing (`kAXCloseButtonAttribute`, `kAXMinimizeButtonAttribute`) and fallback activation.
+- **Pure Helpers:** `KeyboardEventPoster` (C-level Quartz event injection), `ScreenGeometry` (coordinate conversions between Quartz AX space and Cocoa screen space).
+- **Recognizers:** Gesture engines (`PinchInRecognizer`, `SwipeRecognizer`, `TwoFingerSwipeLeftRecognizer`, `TwoFingerSwipeRightRecognizer`, `TwoFingerDoubleTapRecognizer`) evaluating multitouch frames against geometric thresholds.
 
-### Accessibility API (AXUIElement)
-To interact with windows we don't own, we use the `Accessibility API`. 
-- **The Concept:** Every UI element on macOS is an `AXUIElement`. By using `AXUIElementCopyElementAtPosition`, we can find exactly what the user is pointing at.
-- **Optimization:** We cache the `SystemWide` element. Re-creating it on every event is a common performance pitfall in macOS tools.
+### 2. ViewModels (`MCSC/ViewModels`)
+- **`ShortcutViewModel`:** Lifecycle orchestrator that instantiates and connects services, manages user configuration, and coordinates overlay feedback before action execution.
+- **`ShortcutActionRouter`:** Pure router mapping keyboard events (`Cmd+W`, `Cmd+Q`, `Cmd+M`, `Cmd+H`) to concrete actions.
+- **`GestureActionRouter`:** Pure router mapping recognized multitouch gestures to actions based on target resolution (dock vs. window).
+- **`ActionRegistry`:** Container holding shared instances of all actions to eliminate runtime heap allocations.
+- **`ShortcutConfiguration`:** Pure data struct holding toggle states for all shortcuts and gestures.
 
-## 🧠 Memory Management Best Practices
+### 3. Services (`MCSC/Services`)
+- **`AccessibilityServiceProtocol` / `AccessibilityService`:** Low-level wrapper for `AXUIElement` APIs with cached system-wide elements and safe CoreFoundation type checking.
+- **`EventTapServiceProtocol` / `EventTapService`:** C-level Quartz event tap (`CGEvent.tapCreate`) for intercepting keyboard shortcuts.
+- **`MissionControlServiceProtocol` / `MissionControlService`:** Dual-mode detection (Dock notifications + cached window list scans) for Mission Control activation state.
+- **`MultitouchService` & `MultitouchBridge`:** Private MultitouchSupport.framework dynamic loader and frame listener with wake/sleep lifecycle management.
+- **`MissionControlHoverServiceProtocol` / `MissionControlHoverService`:** Tracks mouse movement in Mission Control and positions hover action buttons on active window previews.
+- **`AppLogger`:** Zero-allocation logging using Apple's unified `os.Logger` framework.
 
-To achieve our **< 13MB goal**, we employ several advanced Swift techniques:
+### 4. Views (`MCSC/Views`)
+- **`CursorFeedbackOverlay`:** Floating non-activating Cocoa panel that renders animated SF Symbols under the cursor.
+- **`CursorFeedbackMode`:** Data-driven enumeration of visual feedback descriptors, accessibility labels, and tint palettes.
+- **`PreviewCloseButtonOverlay`:** Floating close/action button rendered directly on hovered Mission Control previews.
+- **`SymbolImageFactory`:** Cached SF Symbol generator configuring point sizes, variable color palettes, and weights.
 
-1.  **Unmanaged Memory:** When working with Core Foundation (C-based) objects like `CGEvent`, we use `Unmanaged`. We prefer `passUnretained` when we don't need to take ownership, preventing the overhead of extra ARC (Automatic Reference Counting) increments.
-2.  **Weak Reference Cycles:** All closures in our ViewModels use `[weak self]` to ensure that stopping the service actually releases the memory.
-3.  **Manual Resource Teardown:** Our services have explicit `stop()` methods that invalidate run loops and ports. We don't rely solely on `deinit`.
+---
 
-## 🎓 Educational Takeaway
-High-performance macOS development often requires stepping away from modern, high-level abstractions (SwiftUI) and returning to the robust, low-level primitives (AppKit, Core Foundation) that have powered the OS for decades. MCSC is a testament that "simple" tasks should have "simple" footprints.
+## 🛠 System-Level Integration & Memory Best Practices
+
+1. **Unmanaged Core Foundation Memory:** When dealing with C-level objects (`CGEvent`, `AXUIElement`, `CFMachPort`), we use `Unmanaged.passUnretained` unless explicit ownership transfer is required.
+2. **Safe Core Foundation Downcasting:** All `CFTypeRef` downcasts verify `CFGetTypeID(ref) == AXUIElementGetTypeID()` (or corresponding type ID) before force-casting to eliminate runtime invalid pointer dereferences.
+3. **No Retain Cycles:** All closures capture `[weak self]` or weak references to dependencies.
+4. **Explicit Teardown:** Every service implements `start()` and `stop()` to invalidate run loop sources, remove notification observers, and tear down Mach ports.
+5. **No Polling:** System event-driven architecture using event taps, observers, and multitouch frame callbacks without high-frequency polling timers.

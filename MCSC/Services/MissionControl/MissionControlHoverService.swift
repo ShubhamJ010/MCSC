@@ -19,7 +19,6 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
     private let accessibilityService: AccessibilityServiceProtocol
     private let isMissionControlActiveProvider: () -> Bool
     private let overlay: PreviewCloseButtonOverlay
-    private let closeAction = CloseWindowAction()
     
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
@@ -80,6 +79,13 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
     
     // MARK: - Dock AXObserver
     
+    private static let dockNotifications = [
+        "AXExposeShowAllWindows",
+        "AXExposeShowFrontWindows",
+        "AXExposeShowDesktop",
+        "AXExposeExit"
+    ]
+
     private func setupDockObserver() {
         guard let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first else {
             return
@@ -104,15 +110,8 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
             return
         }
         
-        let notifications = [
-            "AXExposeShowAllWindows",
-            "AXExposeShowFrontWindows",
-            "AXExposeShowDesktop",
-            "AXExposeExit"
-        ]
-        
         let selfPtr = Unmanaged.passUnretained(self).toOpaque()
-        for notif in notifications {
+        for notif in Self.dockNotifications {
             AXObserverAddNotification(obs, dockElement, notif as CFString, selfPtr)
         }
         
@@ -122,13 +121,7 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
     
     private func stopDockObserver() {
         if let obs = axObserver, let dockElement = dockAXElement {
-            let notifications = [
-                "AXExposeShowAllWindows",
-                "AXExposeShowFrontWindows",
-                "AXExposeShowDesktop",
-                "AXExposeExit"
-            ]
-            for notif in notifications {
+            for notif in Self.dockNotifications {
                 AXObserverRemoveNotification(obs, dockElement, notif as CFString)
             }
             CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(obs), .commonModes)
@@ -158,7 +151,7 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
     private func startWindowFetchTimer() {
         stopWindowFetchTimer()
         windowFetchTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
+            MainActor.assumeIsolated {
                 self?.fetchWindows()
             }
         }
@@ -372,11 +365,11 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
         
         switch currentOverlayMode {
         case .close:
-            performClose(on: windowInfo)
+            MissionControlWindowActions.performClose(on: windowInfo, accessibilityService: accessibilityService)
         case .minimize:
-            performMinimize(on: windowInfo)
+            MissionControlWindowActions.performMinimize(on: windowInfo, accessibilityService: accessibilityService)
         case .quit:
-            performForceQuit(on: windowInfo)
+            MissionControlWindowActions.performForceQuit(on: windowInfo)
         }
         
         if let windowID = windowInfo[kCGWindowNumber as String] as? CGWindowID {
@@ -384,109 +377,6 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
         }
         
         hideOverlay()
-    }
-    
-    private func performClose(on windowInfo: [String: Any]) {
-        guard let pid = windowInfo[kCGWindowOwnerPID as String] as? pid_t,
-              let windowID = windowInfo[kCGWindowNumber as String] as? CGWindowID else {
-            return
-        }
-        
-        // Press the window's native close button via Accessibility
-        let app = AXUIElementCreateApplication(pid)
-        var windowsRef: CFTypeRef?
-        if AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &windowsRef) == .success,
-           let windowsRef = windowsRef, CFGetTypeID(windowsRef) == CFArrayGetTypeID(),
-           let axWindows = windowsRef as? [AXUIElement] {
-            for axWindow in axWindows {
-                var axId: CGWindowID = 0
-                _AXUIElementGetWindow(axWindow, &axId)
-                if axId == windowID {
-                    var closeButtonRef: CFTypeRef?
-                    if AXUIElementCopyAttributeValue(axWindow, kAXCloseButtonAttribute as CFString, &closeButtonRef) == .success,
-                       let closeBtn = closeButtonRef,
-                       CFGetTypeID(closeBtn) == AXUIElementGetTypeID() {
-                        let actionResult = AXUIElementPerformAction((closeBtn as! AXUIElement), kAXPressAction as CFString)
-                        if actionResult == .success {
-                            return
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Fallback: activate application and trigger close action
-        if let app = NSRunningApplication(processIdentifier: pid) {
-            if #available(macOS 14.0, *) {
-                app.activate()
-            } else {
-                app.activate(options: .activateIgnoringOtherApps)
-            }
-        }
-        
-        if let boundsDict = windowInfo[kCGWindowBounds as String] as? [String: CGFloat] {
-            let centerPoint = CGPoint(
-                x: (boundsDict["X"] ?? 0) + (boundsDict["Width"] ?? 0) / 2,
-                y: (boundsDict["Y"] ?? 0) + (boundsDict["Height"] ?? 0) / 2
-            )
-            self.closeAction.perform(at: centerPoint, service: self.accessibilityService)
-        }
-    }
-    
-    private func performMinimize(on windowInfo: [String: Any]) {
-        guard let pid = windowInfo[kCGWindowOwnerPID as String] as? pid_t,
-              let windowID = windowInfo[kCGWindowNumber as String] as? CGWindowID else {
-            return
-        }
-        
-        // Press the window's native minimize button via Accessibility
-        let app = AXUIElementCreateApplication(pid)
-        var windowsRef: CFTypeRef?
-        if AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &windowsRef) == .success,
-           let windowsRef = windowsRef, CFGetTypeID(windowsRef) == CFArrayGetTypeID(),
-           let axWindows = windowsRef as? [AXUIElement] {
-            for axWindow in axWindows {
-                var axId: CGWindowID = 0
-                _AXUIElementGetWindow(axWindow, &axId)
-                if axId == windowID {
-                    var minButtonRef: CFTypeRef?
-                    if AXUIElementCopyAttributeValue(axWindow, kAXMinimizeButtonAttribute as CFString, &minButtonRef) == .success,
-                       let minBtn = minButtonRef,
-                       CFGetTypeID(minBtn) == AXUIElementGetTypeID() {
-                        let actionResult = AXUIElementPerformAction((minBtn as! AXUIElement), kAXPressAction as CFString)
-                        if actionResult == .success {
-                            return
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Fallback: activate application and trigger minimize action
-        if let app = NSRunningApplication(processIdentifier: pid) {
-            if #available(macOS 14.0, *) {
-                app.activate()
-            } else {
-                app.activate(options: .activateIgnoringOtherApps)
-            }
-        }
-        
-        if let boundsDict = windowInfo[kCGWindowBounds as String] as? [String: CGFloat] {
-            let centerPoint = CGPoint(
-                x: (boundsDict["X"] ?? 0) + (boundsDict["Width"] ?? 0) / 2,
-                y: (boundsDict["Y"] ?? 0) + (boundsDict["Height"] ?? 0) / 2
-            )
-            MinimizeWindowAction().perform(at: centerPoint, service: self.accessibilityService)
-        }
-    }
-    
-    private func performForceQuit(on windowInfo: [String: Any]) {
-        guard let pid = windowInfo[kCGWindowOwnerPID as String] as? pid_t,
-              pid != NSRunningApplication.current.processIdentifier,
-              let app = NSRunningApplication(processIdentifier: pid) else {
-            return
-        }
-        app.forceTerminate()
     }
 
     deinit {

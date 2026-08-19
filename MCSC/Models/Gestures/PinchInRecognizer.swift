@@ -5,7 +5,7 @@ import Foundation
 /// State machine:
 ///   idle → tracking (2 fingers detected, recording initial distance)
 ///        → cooldown (threshold crossed → action fired) → idle
-class PinchInRecognizer: GestureRecognizer {
+final class PinchInRecognizer: GestureRecognizer {
 
     // MARK: - Configuration
 
