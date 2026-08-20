@@ -21,5 +21,10 @@ final class ActionRegistry {
     let newWindowAction = NewWindowAction()
     let newTabAction = NewTabAction()
     let toggleFullscreenAction = ToggleFullscreenAction()
+    let toggleFullscreenAppAction = ToggleFullscreenAppAction()
+    let fillScreenAppAction = FillScreenAppAction()
+    let makeLargerAppAction = MakeLargerAppAction()
+    let reasonableSizeAppAction = ReasonableSizeAppAction()
+    let almostMaximizeAppAction = AlmostMaximizeAppAction()
     let ejectVolumeAction = EjectVolumeAction()
 }

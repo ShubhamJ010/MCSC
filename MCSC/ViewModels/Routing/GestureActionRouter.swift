@@ -160,21 +160,29 @@ final class GestureActionRouter {
 
         case .swipeDown:
             switch target {
+            case .dock(let app):
+                return .execute(feedbackMode: .maximize, haptic: .swipeDown) { [weak self] in
+                    self?.actions.fillScreenAppAction.perform(app: app, service: service)
+                }
             case .window:
                 return .execute(feedbackMode: .maximize, haptic: .swipeDown) { [weak self] in
                     self?.actions.fillScreenAction.perform(at: point, service: service)
                 }
-            case .dock, .none:
+            case .none:
                 return .none
             }
 
         case .cmdSwipeDown:
             switch target {
+            case .dock(let app):
+                return .execute(feedbackMode: .maximize, haptic: .swipeDown) { [weak self] in
+                    self?.actions.makeLargerAppAction.perform(app: app, service: service)
+                }
             case .window:
                 return .execute(feedbackMode: .maximize, haptic: .swipeDown) { [weak self] in
                     self?.actions.makeLargerAction.perform(at: point, service: service)
                 }
-            case .dock, .none:
+            case .none:
                 return .none
             }
 
@@ -209,31 +217,43 @@ final class GestureActionRouter {
 
         case .twoFingerDoubleTap:
             switch target {
+            case .dock(let app):
+                return .execute(feedbackMode: .reasonable, haptic: .twoFingerDoubleTap) { [weak self] in
+                    self?.actions.reasonableSizeAppAction.perform(app: app, service: service)
+                }
             case .window:
                 return .execute(feedbackMode: .reasonable, haptic: .twoFingerDoubleTap) { [weak self] in
                     self?.actions.reasonableSizeAction.perform(at: point, service: service)
                 }
-            case .dock, .none:
+            case .none:
                 return .none
             }
 
         case .cmdTwoFingerDoubleTap:
             switch target {
+            case .dock(let app):
+                return .execute(feedbackMode: .almost, haptic: .cmdTwoFingerDoubleTap) { [weak self] in
+                    self?.actions.almostMaximizeAppAction.perform(app: app, service: service)
+                }
             case .window:
                 return .execute(feedbackMode: .almost, haptic: .cmdTwoFingerDoubleTap) { [weak self] in
                     self?.actions.almostMaximizeAction.perform(at: point, service: service)
                 }
-            case .dock, .none:
+            case .none:
                 return .none
             }
 
         case .pinchOut:
             switch target {
+            case .dock(let app):
+                return .execute(feedbackMode: .fullscreen, haptic: .pinchOut) { [weak self] in
+                    self?.actions.toggleFullscreenAppAction.perform(app: app, service: service)
+                }
             case .window:
                 return .execute(feedbackMode: .fullscreen, haptic: .pinchOut) { [weak self] in
                     self?.actions.toggleFullscreenAction.perform(at: point, service: service)
                 }
-            case .dock, .none:
+            case .none:
                 return .none
             }
 
