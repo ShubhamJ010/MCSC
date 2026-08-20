@@ -41,12 +41,18 @@ protocol AccessibilityServiceProtocol {
     /// Returns `nil` when the window has no accessible tab group.
     func findActiveTabCloseButton(in window: AXUIElement) -> AXUIElement?
 
+    /// Makes `window` the application's focused (key) window via the
+    /// `kAXFocusedAttribute` AX attribute. Best-effort: some apps ignore
+    /// programmatic focus changes. Returns `true` if the attribute was set.
+    func focusWindow(_ window: AXUIElement) -> Bool
+
     /// Resolves the `NSRunningApplication` that owns `element` via its PID.
     func getAppFromElement(_ element: AXUIElement) -> NSRunningApplication?
 }
 
 final class AccessibilityService: AccessibilityServiceProtocol {
     private let systemWide = AXUIElementCreateSystemWide()
+    private static let maxTabSearchDepth = 8
 
     /// When `true`, `getAppFromDockItem` logs the Dock item's AX attributes and
     /// which resolution strategy matched. Flip on to verify Catalyst/Electron
@@ -185,28 +191,61 @@ final class AccessibilityService: AccessibilityServiceProtocol {
         return nil
     }
 
+    /// Finds the AX close button of the selected tab in a tabbed window.
+    ///
+    /// Browsers nest the `AXTabGroup` at different depths: Chrome places it one
+    /// level under an `AXGroup` rather than as a direct child of the window, so
+    /// a shallow, single-level scan misses it and forces the unreliable Cmd+W
+    /// fallback. We therefore descend the AX subtree — but only to a bounded
+    /// depth and skipping the (potentially huge) web-content area, so the scan
+    /// stays cheap and can never hang on a large page.
     func findActiveTabCloseButton(in window: AXUIElement) -> AXUIElement? {
-        guard let children: [AXUIElement] = getAttributeValue(kAXChildrenAttribute, for: window) else {
-            AppLogger.accessibility.debug("findActiveTabCloseButton: no children on window")
-            return nil
-        }
+        findTabCloseButton(in: window, depth: 0)
+    }
+
+    /// Recursively searches `element`'s subtree for an `AXTabGroup` and returns
+    /// the close button of its selected tab. Depth is bounded by
+    /// `maxTabSearchDepth`; `AXWebArea` nodes are pruned so the search never
+    /// walks an entire rendered page.
+    private func findTabCloseButton(in element: AXUIElement, depth: Int) -> AXUIElement? {
+        guard depth < Self.maxTabSearchDepth else { return nil }
+        guard let children: [AXUIElement] = getAttributeValue(kAXChildrenAttribute, for: element) else { return nil }
+
+        // Pass 1: is there a tab group at this level?
         for child in children {
-            guard let role: String = getAttributeValue(kAXRoleAttribute, for: child),
-                  role == "AXTabGroup" else { continue }
-            guard let tabs: [AXUIElement] = getAttributeValue(kAXChildrenAttribute, for: child) else {
-                continue
+            guard let role: String = getAttributeValue(kAXRoleAttribute, for: child) else { continue }
+            if role == "AXTabGroup" {
+                if let btn = closeButtonForSelectedTab(in: child) {
+                    return btn
+                }
             }
-            for tab in tabs {
-                guard let tabRole: String = getAttributeValue(kAXRoleAttribute, for: tab),
-                      tabRole == "AXRadioButton" else { continue }
-                let isSelected: Bool? = getAttributeValue(kAXValueAttribute, for: tab)
-                if isSelected == true {
-                    if let tabChildren: [AXUIElement] = getAttributeValue(kAXChildrenAttribute, for: tab) {
-                        for tabChild in tabChildren {
-                            if let childRole: String = getAttributeValue(kAXRoleAttribute, for: tabChild),
-                               childRole == "AXButton" {
-                                return tabChild
-                            }
+        }
+
+        // Pass 2: descend, but never traverse the (enormous) web content area.
+        for child in children {
+            guard let role: String = getAttributeValue(kAXRoleAttribute, for: child) else { continue }
+            if role == "AXWebArea" { continue }
+            if let btn = findTabCloseButton(in: child, depth: depth + 1) {
+                return btn
+            }
+        }
+        return nil
+    }
+
+    /// Returns the close `AXButton` of the selected (`AXRadioButton` with
+    /// `kAXValueAttribute == true`) tab within a tab group, or `nil`.
+    private func closeButtonForSelectedTab(in tabGroup: AXUIElement) -> AXUIElement? {
+        guard let tabs: [AXUIElement] = getAttributeValue(kAXChildrenAttribute, for: tabGroup) else { return nil }
+        for tab in tabs {
+            guard let tabRole: String = getAttributeValue(kAXRoleAttribute, for: tab),
+                   tabRole == "AXRadioButton" else { continue }
+            let isSelected: Bool? = getAttributeValue(kAXValueAttribute, for: tab)
+            if isSelected == true {
+                if let tabChildren: [AXUIElement] = getAttributeValue(kAXChildrenAttribute, for: tab) {
+                    for tabChild in tabChildren {
+                        if let childRole: String = getAttributeValue(kAXRoleAttribute, for: tabChild),
+                           childRole == "AXButton" {
+                            return tabChild
                         }
                     }
                 }
@@ -220,6 +259,14 @@ final class AccessibilityService: AccessibilityServiceProtocol {
         let result = AXUIElementGetPid(element, &pid)
         guard result == .success else { return nil }
         return NSRunningApplication(processIdentifier: pid)
+    }
+
+    /// Makes `window` the application's focused (key) window. Used to steer the
+    /// Cmd+W fallback path toward the window under the user's cursor in Mission
+    /// Control rather than the app's previously focused key window.
+    func focusWindow(_ window: AXUIElement) -> Bool {
+        let result = AXUIElementSetAttributeValue(window, kAXFocusedAttribute as CFString, kCFBooleanTrue)
+        return result == .success
     }
 
     /// Retrieves the current frame (origin and size in Quartz AX coordinates) for an accessibility element.

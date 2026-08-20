@@ -1,5 +1,15 @@
 import Cocoa
 
+/// Closes the tab in the window currently under the cursor.
+///
+/// Resolution order:
+/// 1. Hit-test the cursor position to the AX element, then to its owning window.
+/// 2. If the window exposes an accessible tab strip, press the selected tab's
+///    close button directly — this closes the hovered window's active tab
+///    regardless of which window is key, so it is robust in Mission Control.
+/// 3. Otherwise fall back to posting ⌘W to the app, first attempting to focus
+///    the hovered window so the key window matches the cursor (best-effort;
+///    some apps ignore programmatic focus while Mission Control is active).
 struct CloseTabAction: ShortcutAction {
     func perform(at point: CGPoint, service: AccessibilityServiceProtocol) {
         guard let element = service.getElement(at: point),
@@ -9,6 +19,11 @@ struct CloseTabAction: ShortcutAction {
             _ = service.performAction(kAXPressAction, on: closeBtn)
             return
         }
+
+        // Steer Cmd+W toward the hovered window (the resolved `window`), not the
+        // app's previously focused key window. Best-effort: if the app ignores
+        // programmatic focus, the key window path is unchanged.
+        _ = service.focusWindow(window)
 
         var pid: pid_t = 0
         guard AXUIElementGetPid(element, &pid) == .success else { return }

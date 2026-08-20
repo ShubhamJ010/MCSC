@@ -9,6 +9,10 @@ class MockAccessibilityService: AccessibilityServiceProtocol {
     var performActionCalledWith: (action: String, element: AXUIElement)?
     var setFrameCalledWith: (frame: CGRect, element: AXUIElement)?
     var isDockItemValue: Bool = false
+    var focusWindowCalledWith: AXUIElement?
+    var focusWindowReturnValue: Bool = true
+    var mockFocusedWindow: AXUIElement?
+    var mockTabCloseButton: AXUIElement?
 
     func getElement(at point: CGPoint) -> AXUIElement? {
         getElementCalledWith = point
@@ -25,6 +29,9 @@ class MockAccessibilityService: AccessibilityServiceProtocol {
     }
 
     func getAttributeValue<T>(_ attribute: String, for element: AXUIElement) -> T? {
+        if attribute == kAXFocusedWindowAttribute, let window = mockFocusedWindow {
+            return window as? T
+        }
         return nil
     }
 
@@ -46,10 +53,15 @@ class MockAccessibilityService: AccessibilityServiceProtocol {
     }
 
     func findActiveTabCloseButton(in window: AXUIElement) -> AXUIElement? {
-        return nil
+        return mockTabCloseButton
     }
 
     func getAppFromElement(_ element: AXUIElement) -> NSRunningApplication? {
         return mockApp
+    }
+
+    func focusWindow(_ window: AXUIElement) -> Bool {
+        focusWindowCalledWith = window
+        return focusWindowReturnValue
     }
 }

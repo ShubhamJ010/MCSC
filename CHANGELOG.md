@@ -2,6 +2,7 @@
 
 ## 0.4.0-beta (18 Aug 2026)
 
+- **Cmd+W Multi-Window Targeting Fix**: `CloseTabAction`/`CloseTabAppAction` now close the hovered window's active tab reliably in Mission Control. `findActiveTabCloseButton` recursively descends the AX tree (bounded depth, skipping `AXWebArea`) to locate the `AXTabGroup`/`AXRadioButton` close button — fixing browsers whose tab strip is nested under an `AXGroup` (e.g. Chrome) rather than a direct window child, which previously forced the unreliable ⌘W fallback. When no accessible tab button exists, the ⌘W fallback now focuses the hovered window first via `kAXFocusedAttribute` (best-effort). Browsers with non-standard tab UIs (Zen, Dia) or limited AX exposure (Safari) still fall back to the ⌘W path.
 - **Tab Swipe Feedback**: two-finger swipe-left (Close Tab) flashes `xmark.rectangle.fill`, swipe-right (Reopen Tab) `plus.rectangle.fill`, Cmd+swipe-left (Close All Tabs) `rectangle.badge.xmark`, and Cmd+swipe-right (New Window) `rectangle.badge.plus` at the cursor — all animated with `.wiggle.byLayer` on macOS 26+ (`.bounce` fallback before). This closes the last cursor-feedback gaps: every shortcut and gesture now flashes.
 - **Maximize Feedback**: swipe-down (Make Larger) now flashes an accent-coloured `rectangle.fill` at the cursor, animated with a `.replace.downUp.byLayer` content transition.
 - **Hover Button Modifier Actions**: the Mission Control hover button now supports three actions. No modifier shows the Close button; holding **Option** switches it to Minimize (`minus.circle.fill`); holding **Cmd** switches it to Force Quit (the black→purple `xmark.circle.fill`). Clicking performs the shown action. Cmd takes precedence when both modifiers are held.
@@ -9,7 +10,7 @@
 - **Extensible Replace Transitions**: `CursorFeedbackOverlay.Mode` gained a second animation descriptor — `replaceTransition` — so a feedback type can choose a `setSymbolImage` content transition (symbol morphs from the previous symbol) instead of an in-place `addSymbolEffect`. New replacement styles are one `case` plus one line in `show()`.
 - **Hide Feedback**: `Cmd+H` and Cmd+swipe-up (hide) now flash a distinct `smallcircle.filled.circle.fill` at the cursor, tinted with a Primary / Accent / None palette (black / system blue / clear) and a `.bounce` entry animation.
 - **Extensible Feedback Modes**: `CursorFeedbackOverlay.Mode` is now data-driven — each mode declares its SF Symbol name, accessibility label, tint palette, and optional entry symbol effect. Adding a new feedback type is a single `case` plus four descriptor lines; the image factory, caching, and animation plumbing are shared.
-- **Force-Quit Feedback**: `Cmd+Q` and Cmd+pinch-in (force quit) now flash a distinct `xmark.circle.fill` at the cursor, rendered with a Black → Purple gradient variable palette and a `.scale.up.byLayer` entry animation, so quit actions read differently from close (red X) and minimize (black/yellow minus).
+- **Force-Quit Feedback**: `Cmd+Q` and Cmd+pinch-in (force quit) now flash a distinct `xmark.circle.fill` at the cursor, rendered with a Black → Purple gradient variable palette and a hover-style scale-up + fade-in (1.08×, 0.15 s ease-out) entry animation matching the close button's hover, so quit actions read differently from close (red X) and minimize (black/yellow minus) through their palette.
 
 ## 0.3.2 (17 Aug 2026)
 
@@ -18,15 +19,16 @@
   - `Cmd+M` (minimize) → yellow minus flash at the cursor.
   - Pinch-in (close) and swipe-up (minimize) gestures → matching feedback at the cursor.
   - Auto-fades after ~0.6 s; repeated triggers reset the timer. Click-through (`ignoresMouseEvents`), lazily allocated, and cleaned up on `stop()`.
+  - Close and force-quit feedback share a hover-style scale-up + fade-in (1.08×, 0.15 s ease-out) entry animation matching `CloseButtonView.setHovered`.
 - **Feedback Timing Fix**: Feedback now emits *before* the (blocking, synchronous) Accessibility action instead of after it, so the symbol and haptic land at the same moment the close/minimize shortcut or gesture fires — rather than once the window has already closed or minimized (which read as janky, out-of-sync feedback).
   - The overlay sets its opacity synchronously (plus a `CATransaction.flush()`) and actions are deferred one run-loop turn, ensuring the symbol is composited on screen *before* the blocking AX action starves the main run loop — otherwise it would only render as the action completes and immediately fade (a flicker).
-- **Animated Retract**: the symbol exits with a symbol-effect + concurrent panel fade instead of a plain fade. macOS 26 uses `drawOff.reversed.individually` (stroke-by-stroke retract); macOS 14/15 use `.disappear.byLayer` (each symbol layer vanishes sequentially), which is the closest analog available before 26. The retract leads the display window by ~0.12 s so the exit overlaps, rather than waiting for, the end of the flash.
+- **Animated Retract**: the symbol exits with a `.disappear.byLayer` symbol effect (each symbol layer vanishes sequentially) and a concurrent panel fade instead of a plain fade. Available on macOS 14+. The retract leads the display window by ~0.12 s so the exit overlaps, rather than waiting for, the end of the flash.
 
 ## 0.3.1 (17 Aug 2026)
 
 - **Mission Control Hover Buttons**: Added preview close (`xmark.circle.fill`) and minimize (`minus.circle.fill`) action overlay button anchored directly to the top-left vertex of window thumbnails in Mission Control.
   - Supports Cmd-hold toggle to switch between Close and Minimize modes with smooth symbol content replacement animations.
-  - Integrated `.drawOn.byLayer` / `.appear.byLayer` entry symbol animations and `.rotate.byLayer` click animations.
+  - Integrated an `.appear.byLayer` entry symbol animation.
 - **Bug Fix**: Fixed application crash when clicking the close or minimize overlay button caused by recursive `dispatch_sync` execution on the main queue within the event tap callback.
 - **Reliability & Fallbacks**: Added type-safe AX attribute resolution, fallback application activation + action triggering for non-standard windows, and window list caching cleanups.
 

@@ -20,22 +20,26 @@ struct CloseAppAction {
     }
 }
 
+/// Closes a tab when the Cmd+W shortcut is fired from a Dock item.
+///
+/// Targets the app's key window (the one the user is acting on from the Dock)
+/// and, when it exposes an accessible tab strip, presses that window's selected
+/// tab close button. Falls back to posting ⌘W to the app's key window, which
+/// matches the Dock-item targeting expectation.
 struct CloseTabAppAction {
     func perform(app: NSRunningApplication, service: AccessibilityServiceProtocol) {
         let appElement = AXUIElementCreateApplication(app.processIdentifier)
 
-        var windows: CFTypeRef?
-        AXUIElementCopyAttributeValue(appElement, kAXWindowsAttribute as CFString, &windows)
-
-        if let windowList = windows as? [AXUIElement], !windowList.isEmpty {
-            for window in windowList {
-                if let closeBtn = service.findActiveTabCloseButton(in: window) {
-                    _ = service.performAction(kAXPressAction, on: closeBtn)
-                    return
-                }
-            }
+        // Target the app's key window (the one the user is acting on from the
+        // Dock), not an arbitrary window in the list.
+        if let keyWindow: AXUIElement = service.getAttributeValue(kAXFocusedWindowAttribute, for: appElement),
+           let closeBtn = service.findActiveTabCloseButton(in: keyWindow) {
+            _ = service.performAction(kAXPressAction, on: closeBtn)
+            return
         }
 
+        // Fallback: Cmd+W delivered to the app's key window, which matches the
+        // Dock-item targeting expectation.
         KeyboardEventPoster.postShortcut(virtualKey: 0x0D, flags: .maskCommand, to: app.processIdentifier)
     }
 }
