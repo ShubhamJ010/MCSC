@@ -109,9 +109,9 @@ final class PreviewCloseButtonOverlay {
         if !isVisible {
             panel.orderFrontRegardless()
             isVisible = true
-            buttonView?.triggerDrawOnEffect()
+            buttonView?.triggerAppearEffect()
         } else if isNewOrigin {
-            buttonView?.triggerDrawOnEffect()
+            buttonView?.triggerAppearEffect()
         }
     }
 
@@ -124,10 +124,6 @@ final class PreviewCloseButtonOverlay {
     /// fire while this app is inactive behind Mission Control).
     func setHovered(_ isHovered: Bool) {
         buttonView?.setHovered(isHovered)
-    }
-
-    func triggerRotateEffect() {
-        buttonView?.triggerRotateEffect()
     }
 
     /// Hides the overlay panel.
@@ -225,19 +221,10 @@ final class CloseButtonView: NSView {
         }
     }
 
-    /// Plays the `.drawOn.byLayer` symbol effect on the image.
-    func triggerDrawOnEffect() {
-        if #available(macOS 26.0, *) {
-            imageView.addSymbolEffect(.drawOn.byLayer, options: .nonRepeating)
-        } else if #available(macOS 14.0, *) {
-            imageView.addSymbolEffect(.appear.byLayer, options: .nonRepeating)
-        }
-    }
-
-    /// Plays the non-repeating rotate symbol effect when clicked.
-    func triggerRotateEffect() {
+    /// Plays the `.appear.byLayer` symbol effect on the image.
+    func triggerAppearEffect() {
         if #available(macOS 14.0, *) {
-            imageView.addSymbolEffect(.rotate.byLayer, options: .nonRepeating)
+            imageView.addSymbolEffect(.appear.byLayer, options: .nonRepeating)
         }
     }
 

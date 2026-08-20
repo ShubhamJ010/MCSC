@@ -93,17 +93,15 @@ extension CursorFeedbackOverlay {
         /// which can't be fed from an `any SymbolEffect` box. The overlay's
         /// single `switch` here is the only place new animations need wiring.
         enum EntryAnimation {
-            case scaleUpByLayer
             case bounce
             case wiggleByLayer
         }
 
         var entryAnimation: EntryAnimation? {
             switch self {
-            case .quit: return .scaleUpByLayer
             case .hide: return .bounce
             case .closeTab, .reopenTab, .closeAllTabs, .newWindow: return .wiggleByLayer
-            case .close, .minimize, .almost, .reasonable, .maximize: return nil
+            case .close, .minimize, .quit, .almost, .reasonable, .maximize: return nil
             }
         }
 

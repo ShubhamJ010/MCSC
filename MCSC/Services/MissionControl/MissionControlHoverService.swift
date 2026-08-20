@@ -339,7 +339,6 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
             return false
         }
         
-        overlay.triggerRotateEffect()
         executeAction(on: window)
         return true
     }
