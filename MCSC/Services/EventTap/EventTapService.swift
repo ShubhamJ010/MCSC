@@ -44,6 +44,10 @@ final class EventTapService: EventTapServiceProtocol {
                 guard let refcon = refcon else { return Unmanaged.passUnretained(event) }
                 let service = Unmanaged<EventTapService>.fromOpaque(refcon).takeUnretainedValue()
 
+                // macOS disables event taps on timeout or user input; re-enable
+                // so shortcuts survive without an app restart.
+                service.reEnableTapIfDisabled(for: type)
+
                 if type == .keyDown {
                     let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
                     let flags = event.flags
@@ -67,6 +71,16 @@ final class EventTapService: EventTapServiceProtocol {
         runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0)
         CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
         CGEvent.tapEnable(tap: eventTap, enable: true)
+    }
+
+    /// Re-enables the event tap when the system disables it (timeout or user
+    /// input). Without this, the tap silently dies and shortcuts stop working
+    /// until the app is restarted.
+    private func reEnableTapIfDisabled(for type: CGEventType) {
+        guard type == .tapDisabledByTimeout || type == .tapDisabledByUserInput else { return }
+        guard let eventTap = eventTap else { return }
+        CGEvent.tapEnable(tap: eventTap, enable: true)
+        AppLogger.eventTap.info("Event tap was disabled by the system; re-enabled.")
     }
 
     /// Disables the tap, invalidates its run-loop source, and releases the

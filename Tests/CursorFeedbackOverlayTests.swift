@@ -86,8 +86,8 @@ final class CursorFeedbackOverlayTests: XCTestCase {
     }
 
     func testHoverButtonModesAllRenderSymbols() {
-        // Close / Minimize / Force-Quit hover buttons must all render.
-        XCTAssertEqual(PreviewCloseButtonOverlay.Mode.allCases.count, 3,
+        // Close / Minimize / Force-Quit / Fullscreen hover buttons must all render.
+        XCTAssertEqual(PreviewCloseButtonOverlay.Mode.allCases.count, 4,
                        "Adding a hover mode must update this coverage")
         for mode in PreviewCloseButtonOverlay.Mode.allCases {
             let image = renderedSymbol(symbolName: mode.symbolName,
@@ -98,5 +98,19 @@ final class CursorFeedbackOverlayTests: XCTestCase {
             XCTAssertFalse(mode.accessibilityDescription.isEmpty,
                            "PreviewCloseButtonOverlay.Mode.\(mode) needs an accessibility description")
         }
+    }
+
+    func testFullscreenModeUsesArrowsSymbol() {
+        let mode = PreviewCloseButtonOverlay.Mode.fullscreen
+        XCTAssertEqual(mode.symbolName, "arrow.down.left.and.arrow.up.right.circle.fill")
+    }
+
+    func testFullscreenModePaletteIsBlackAndGreen() {
+        let mode = PreviewCloseButtonOverlay.Mode.fullscreen
+        let palette = mode.paletteColors
+        XCTAssertEqual(palette?.count, 2)
+        // First layer (glyph outline) black, second (fill) green.
+        XCTAssertEqual(palette?[0], .black)
+        XCTAssertEqual(palette?[1], .systemGreen)
     }
 }

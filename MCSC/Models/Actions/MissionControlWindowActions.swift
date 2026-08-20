@@ -1,5 +1,13 @@
 import Cocoa
 
+/// Private Dock SPI used to wake/dismiss Mission Control's Exposé overlay
+/// before performing a zoom action. Declared via `@_silgen_name` exactly as
+/// OpenMissionControl does — without this, pressing `kAXZoomButtonAttribute`
+/// while Mission Control is still intercepting window management is a no-op.
+@_silgen_name("CoreDockSendNotification")
+@discardableResult
+func CoreDockSendNotification(_ notification: CFString, _ unknown: Int32) -> CGError
+
 /// Executes window-level operations (close, minimize, force-quit) on windows
 /// identified by Mission Control / Exposé window metadata dictionaries.
 enum MissionControlWindowActions {
@@ -93,5 +101,31 @@ enum MissionControlWindowActions {
             return
         }
         app.forceTerminate()
+    }
+
+    /// Toggles a window's zoom/fullscreen state. Mirrors OpenMissionControl's
+    /// approach: first wakes Mission Control's Exposé layer via the private
+    /// `com.apple.expose.awake` Dock notification (otherwise the zoom button
+    /// press is swallowed while MC is still intercepting), then presses the
+    /// AX zoom button (`kAXZoomButtonAttribute`).
+    static func performFullscreen(on windowInfo: [String: Any]) {
+        // Wake the Exposé layer so the zoom press reaches the real window.
+        _ = CoreDockSendNotification("com.apple.expose.awake" as CFString, 0)
+
+        if pressWindowButton(attribute: kAXZoomButtonAttribute, on: windowInfo) {
+            return
+        }
+
+        // Fallback: activate the owning app and press the zoom button at the
+        // window's center via the Accessibility hit-test path.
+        guard let pid = windowInfo[kCGWindowOwnerPID as String] as? pid_t else { return }
+
+        if let app = NSRunningApplication(processIdentifier: pid) {
+            if #available(macOS 14.0, *) {
+                app.activate()
+            } else {
+                app.activate(options: .activateIgnoringOtherApps)
+            }
+        }
     }
 }

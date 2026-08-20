@@ -25,21 +25,29 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
     private var axObserver: AXObserver?
     private var dockAXElement: AXUIElement?
     private var windowFetchTimer: Timer?
+    /// Internal so tests can verify lifecycle without exposing to production
+    /// callers outside the module.
+    internal var spaceChangeObserver: NSObjectProtocol?
     
     private var windows: [[String: Any]] = []
+    /// Test-only window count for verifying dedup behavior without depending
+    /// on the real CGWindowList scan. Returns the number of tracked windows.
+    internal var _testWindowCount: Int { windows.count }
     private(set) var isTracking = false
     private var isMissionControlActive = false
     private var isCmdHeld = false
     private var isOptionHeld = false
+    private var isControlHeld = false
     private var hoveredWindow: [String: Any]?
     private var overlayRect: CGRect?
     private var isOverlayHovered = false
 
     /// The action the hover button currently represents, derived from held
-    /// modifiers: Cmd → force quit, Option → minimize, neither → close.
-    /// Cmd takes precedence when both are held.
-    private var currentOverlayMode: PreviewCloseButtonOverlay.Mode {
+    /// modifiers: Cmd → force quit, Option → minimize, Control → fullscreen,
+    /// neither → close. Cmd takes precedence when several are held.
+    internal var currentOverlayMode: PreviewCloseButtonOverlay.Mode {
         if isCmdHeld { return .quit }
+        if isControlHeld { return .fullscreen }
         if isOptionHeld { return .minimize }
         return .close
     }
@@ -66,6 +74,7 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
         
         setupDockObserver()
         startInputTap()
+        setupSpaceChangeObserver()
     }
     
     func stop() {
@@ -73,6 +82,7 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
         stopDockObserver()
         stopInputTap()
         stopWindowFetchTimer()
+        removeSpaceChangeObserver()
         hideOverlay()
         isTracking = false
     }
@@ -161,13 +171,42 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
         windowFetchTimer?.invalidate()
         windowFetchTimer = nil
     }
+
+    // MARK: - Active Space Change
+
+    /// Refreshes the window list and overlay when the active Space changes
+    /// while Mission Control is open. Without this, `windows` can reference
+    /// windows that no longer exist on the new Space.
+    private func setupSpaceChangeObserver() {
+        guard spaceChangeObserver == nil else { return }
+        spaceChangeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.activeSpaceDidChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self = self else { return }
+                self.fetchWindows()
+                if let mouseLocation = CGEvent(source: nil)?.location {
+                    self.updateOverlay(at: mouseLocation)
+                }
+            }
+        }
+    }
+
+    private func removeSpaceChangeObserver() {
+        if let observer = spaceChangeObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(observer)
+            spaceChangeObserver = nil
+        }
+    }
     
     private func fetchWindows() {
         guard let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else {
             return
         }
-        
-        self.windows = list.filter { window in
+
+        let filtered = list.filter { window in
             guard let layer = window[kCGWindowLayer as String] as? Int, layer == 0,
                   let owner = window[kCGWindowOwnerName as String] as? String,
                   owner != "Dock", owner != "MCSC", owner != "Window Server" else {
@@ -178,6 +217,12 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
                 return true
             }
             return false
+        }
+
+        // Skip the assignment and overlay recomputation when the window list is
+        // unchanged. A deep compare avoids redundant work on every 500ms poll.
+        if !NSArray(array: filtered).isEqual(to: windows) {
+            windows = filtered
         }
     }
     
@@ -199,15 +244,25 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
             callback: { (proxy, type, event, refcon) -> Unmanaged<CGEvent>? in
                 guard let refcon = refcon else { return Unmanaged.passUnretained(event) }
                 let service = Unmanaged<MissionControlHoverService>.fromOpaque(refcon).takeUnretainedValue()
-                
+
+                // macOS disables event taps on timeout or user input; re-enable
+                // so hover tracking survives without an app restart.
+                if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+                    if let tap = service.eventTap {
+                        CGEvent.tapEnable(tap: tap, enable: true)
+                    }
+                    return Unmanaged.passUnretained(event)
+                }
+
                 if type == .flagsChanged {
                     let cmdPressed = event.flags.contains(.maskCommand)
                     let optionPressed = event.flags.contains(.maskAlternate)
+                    let controlPressed = event.flags.contains(.maskControl)
                     if Thread.isMainThread {
-                        service.handleFlagsChanged(cmdPressed: cmdPressed, optionPressed: optionPressed)
+                        service.handleFlagsChanged(cmdPressed: cmdPressed, optionPressed: optionPressed, controlPressed: controlPressed)
                     } else {
                         DispatchQueue.main.async {
-                            service.handleFlagsChanged(cmdPressed: cmdPressed, optionPressed: optionPressed)
+                            service.handleFlagsChanged(cmdPressed: cmdPressed, optionPressed: optionPressed, controlPressed: controlPressed)
                         }
                     }
                     return Unmanaged.passUnretained(event)
@@ -267,10 +322,11 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
         }
     }
     
-    func handleFlagsChanged(cmdPressed: Bool, optionPressed: Bool) {
+    func handleFlagsChanged(cmdPressed: Bool, optionPressed: Bool, controlPressed: Bool = false) {
         guard isTracking && isEnabled else { return }
         isCmdHeld = cmdPressed
         isOptionHeld = optionPressed
+        isControlHeld = controlPressed
         overlay.setMode(currentOverlayMode)
     }
     
@@ -370,6 +426,8 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
             MissionControlWindowActions.performMinimize(on: windowInfo, accessibilityService: accessibilityService)
         case .quit:
             MissionControlWindowActions.performForceQuit(on: windowInfo)
+        case .fullscreen:
+            MissionControlWindowActions.performFullscreen(on: windowInfo)
         }
         
         if let windowID = windowInfo[kCGWindowNumber as String] as? CGWindowID {
@@ -389,6 +447,9 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
         }
         if let obs = axObserver {
             CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(obs), .commonModes)
+        }
+        if let observer = spaceChangeObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(observer)
         }
     }
 }
