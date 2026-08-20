@@ -24,7 +24,7 @@ MCSC renders symbols in two distinct places, both data-driven:
 
 ## 1. Cursor feedback symbols — `CursorFeedbackOverlay.Mode`
 
-There are **12** modes. Each mode is a small data descriptor: SF Symbol name,
+There are **14** modes. Each mode is a small data descriptor: SF Symbol name,
 accessibility label, tint palette, optional entry animation, and optional
 replacement transition.
 
@@ -42,12 +42,14 @@ replacement transition.
 | `.reopenTab` | `plus.rectangle.fill` | Reopen Tab | System green | `.wiggleByLayer`\* | — |
 | `.closeAllTabs` | `rectangle.badge.xmark` | Close All Tabs | System multicolor (red X badge) | `.wiggleByLayer`\* | — |
 | `.newWindow` | `rectangle.badge.plus` | New Window | System green | `.wiggleByLayer`\* | — |
+| `.newTab` | `plus.rectangle.on.rectangle` | New Tab | System green | `.wiggleByLayer`\* | — |
+| `.fullscreen` | `arrow.down.left.and.arrow.up.right.circle.fill` | Toggle Fullscreen | Black + system green (`[.black, .systemGreen]`) — same as `PreviewCloseButtonOverlay.Mode.fullscreen` | hover-style scale-up + fade-in\* | — |
 
 \* `.wiggleByLayer` is macOS 26+ only; macOS 14/15 fall back to `.bounce`.
 \* "hover-style scale-up + fade-in" is not a symbol effect; it is the
   same `NSAnimationContext` scale (1.08×) + alpha (0.97 → 1.0) over 0.15 s
   ease-out used by `CloseButtonView.setHovered`, applied on entry — used by
-  `.close`, `.quit`, and `.eject` (`CursorFeedbackOverlay.swift:197`).
+  `.close`, `.quit`, `.eject`, and `.fullscreen` (`CursorFeedbackOverlay.swift:197`).
 
 **Source:** the `Mode` enum in `CursorFeedbackOverlay.swift`. `CaseIterable`
 lets the unit tests walk the whole set (see [§ 8](#8-verification)).
@@ -93,14 +95,16 @@ Feedback mode = the symbol shown at the cursor when the trigger fires.
 | Swipe left on ejectable Finder volume window\* | `.eject` | `eject.circle.fill` | Close Finder window + eject volume |
 | `Cmd + swipe left` | `.closeAllTabs` | `rectangle.badge.xmark` | Close all tabs |
 | Two-finger swipe right | `.reopenTab` | `plus.rectangle.fill` | Reopen closed tab |
-| `Cmd + swipe right` | `.newWindow` | `rectangle.badge.plus` | New window |
+| `Cmd + swipe right` (window) | `.newTab` | `plus.rectangle.on.rectangle` | New tab (`Cmd+T`) |
+| `Cmd + swipe right` (Dock) | `.newWindow` | `rectangle.badge.plus` | New window |
 | Two-finger swipe up | `.minimize` | `minus.circle.fill` | Minimize window |
 | `Cmd + swipe up` | `.hide` | `eye.slash.circle.fill` | Hide app |
 | Two-finger swipe down | `.maximize` | `rectangle.fill` | Fill screen |
 | `Cmd + swipe down` | `.maximize` | `rectangle.fill` | Make larger (+33 %) |
 | Two-finger double tap | `.reasonable` | `inset.filled.center.rectangle` | Reasonable size (60 %) |
 | `Cmd + double tap` | `.almost` | `inset.filled.rectangle` | Almost maximize (90 %) |
-
+| Pinch out | `.fullscreen` | `arrow.down.left.and.arrow.up.right.circle.fill` | Toggle fullscreen |
+| `Cmd` + pinch out | `.newWindow` | `rectangle.badge.plus` | New window (`Cmd+N`) |
 \* Eject applies only to Finder windows showing an ejectable/removable volume
 (`MountedVolumeService.ejectableVolumePath != nil`, `bundleIdentifier == "com.apple.finder"`)
 and only when `ShortcutConfiguration.isAutoEjectEnabled` is `true` (menu bar toggle, default on).
@@ -113,7 +117,7 @@ When disabled, those triggers fall through to their normal `.close`/`.quit`/`.cl
 
 ```mermaid
 flowchart LR
-  Trig[Triggers] --> Mode[12 Modes]
+  Trig[Triggers] --> Mode[14 Modes]
   Mode --> Cursor[Cursor flash 0.6s]
   Mode -.-> Hover[Hover 3 Modes]
 ```

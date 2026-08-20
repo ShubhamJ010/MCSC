@@ -50,6 +50,7 @@ final class ShortcutViewModel {
     var isAutoEjectEnabled: Bool { get { config.isAutoEjectEnabled } set { config.isAutoEjectEnabled = newValue } }
     var isGesturesEnabled: Bool { get { config.isGesturesEnabled } set { config.isGesturesEnabled = newValue } }
     var isPinchInEnabled: Bool { get { config.isPinchInEnabled } set { config.isPinchInEnabled = newValue } }
+    var isPinchOutEnabled: Bool { get { config.isPinchOutEnabled } set { config.isPinchOutEnabled = newValue } }
     var isSwipeLeftEnabled: Bool { get { config.isSwipeLeftEnabled } set { config.isSwipeLeftEnabled = newValue } }
     var isSwipeRightEnabled: Bool { get { config.isSwipeRightEnabled } set { config.isSwipeRightEnabled = newValue } }
     var isSwipeDownEnabled: Bool { get { config.isSwipeDownEnabled } set { config.isSwipeDownEnabled = newValue } }
@@ -147,6 +148,11 @@ final class ShortcutViewModel {
         pinchInRecognizer.isCmdHeld = cmdHeldProvider
         pinchInRecognizer.isEnabled = { [weak self] in self?.config.isPinchInEnabled ?? false }
         gestureEngine.register(pinchInRecognizer)
+
+        let pinchOutRecognizer = PinchOutRecognizer()
+        pinchOutRecognizer.isCmdHeld = cmdHeldProvider
+        pinchOutRecognizer.isEnabled = { [weak self] in self?.config.isPinchOutEnabled ?? false }
+        gestureEngine.register(pinchOutRecognizer)
 
         let swipeLeftRecognizer = TwoFingerSwipeLeftRecognizer()
         swipeLeftRecognizer.isCmdHeld = cmdHeldProvider

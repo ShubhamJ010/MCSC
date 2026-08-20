@@ -40,7 +40,7 @@ one run-loop turn later.
 
 ```mermaid
 flowchart LR
-    MT[Multitouch frames] --> GE[GestureEngine - 5 recognizers]
+    MT[Multitouch frames] --> GE[GestureEngine - 6 recognizers]
     GE -->|first wins| GR[GestureActionRouter]
     GR --> FB[CursorFeedback + Haptic]
     FB -. next turn .-> AX[AX Action]
@@ -74,8 +74,9 @@ switches to the "command" variant listed in the right column.
 | Gesture | Action | `Cmd` + gesture |
 | --- | --- | --- |
 | Pinch in | Close window / quit app | Force quit app |
+| Pinch out | Toggle fullscreen | New window (`Cmd + N`) |
 | Two-finger swipe left | Close active tab | Close all tabs (`Cmd + Shift + W`) |
-| Two-finger swipe right | Reopen closed tab | New window (`Cmd + N`) |
+| Two-finger swipe right | Reopen closed tab | New tab (`Cmd + T`) / New window on Dock |
 | Two-finger swipe up | Minimize window | Hide application |
 | Two-finger swipe down | Fill screen | Make larger (+33%) |
 | Two-finger double tap | Reasonable size (60%) | Almost maximize (90%) |
@@ -103,7 +104,11 @@ screen and resize) only act on a window target and do nothing over the Dock.
 
 | Gesture | Window | Dock | Empty |
 |---------|:------:|:----:|:-----:|
-| Pinch / Swipe left/right/up | ✅ | ✅ | ❌ |
+| Pinch in / Swipe left/up | ✅ | ✅ | ❌ |
+| Pinch out | ✅ | ❌ | ❌ |
+| Cmd + Pinch out | ✅ | ✅ | ❌ |
+| Swipe right (reopen) | ✅ | ✅ | ❌ |
+| Cmd + Swipe right | ✅ (new tab) | ✅ (new window) | ❌ |
 | Swipe down / Double tap | ✅ | ❌ | ❌ |
 
 > Details: `GestureActionRouter.swift:24-171` — `swipeDown`/`doubleTap` return `.none` for Dock.
@@ -133,11 +138,12 @@ When the cursor is over a **Finder window showing an ejectable/removable volume*
 | Recognizer | File |
 |------------|------|
 | `PinchInRecognizer` | `PinchInRecognizer.swift` |
+| `PinchOutRecognizer` | `PinchOutRecognizer.swift` |
 | `SwipeRecognizer` (up+down) | `SwipeRecognizer.swift` |
 | `TwoFingerSwipeLeft/Right` | `TwoFingerSwipe*.swift` |
 | `TwoFingerDoubleTap` | `TwoFingerDoubleTapRecognizer.swift` |
 
-Registration order: `DoubleTap → PinchIn → SwipeLeft → SwipeRight → Swipe` (`ShortcutViewModel.swift:134`).
+Registration order: `DoubleTap → PinchIn → PinchOut → SwipeLeft → SwipeRight → Swipe` (`ShortcutViewModel.swift:134`).
 
 ---
 
@@ -155,7 +161,7 @@ Accessibility actions and the same feedback-symbol system described in
 
 - Gesture recognition and dispatch:
   `../MCSC/Models/GestureRecognizer.swift` (`GestureEngine`, `GestureResult`)
-- Individual recognizers: `../MCSC/Models/PinchInRecognizer.swift`,
+- Individual recognizers: `../MCSC/Models/PinchInRecognizer.swift`, `../MCSC/Models/PinchOutRecognizer.swift`,
   `../MCSC/Models/SwipeRecognizer.swift`,
   `../MCSC/Models/TwoFingerSwipeLeftRecognizer.swift`,
   `../MCSC/Models/TwoFingerSwipeRightRecognizer.swift`,
@@ -166,4 +172,6 @@ Accessibility actions and the same feedback-symbol system described in
   `../MCSC/ViewModels/ShortcutViewModel.swift` + `../MCSC/ViewModels/Routing/GestureActionRouter.swift` (eject branch + `volumeService`)
 - Action implementations: `../MCSC/Models/ShortcutActions.swift` + `../MCSC/Models/Actions/VolumeActions.swift` (`EjectVolumeAction`)
 - Mounted volume detection/ejection: `../MCSC/Services/Volume/MountedVolumeService.swift`
-- Haptics: `../MCSC/Services/HapticService.swift`
+- Haptics: `../MCSC/Services/HapticService.swift` (`pinchOut` distinct from `pinchIn`: `alignment → levelChange` expand feel vs `levelChange → levelChange`)
+- Fullscreen: `../MCSC/Models/Actions/WindowActions.swift` (`ToggleFullscreenAction` via `kAXZoomButtonAttribute` + `CoreDockSendNotification("com.apple.expose.awake")`) and `../MCSC/Models/Actions/MissionControlWindowActions.swift` (`performFullscreen` — same Dock SPI, for Mission Control window dict path)
+- Tab/Window creation: `../MCSC/Models/Actions/TabActions.swift` (`NewTabAction` `Cmd+T`, `NewWindowAction` `Cmd+N`)

@@ -10,6 +10,7 @@ struct ShortcutConfiguration {
     var isCmdSpaceEnabled = true
     var isGesturesEnabled = true
     var isPinchInEnabled = true
+    var isPinchOutEnabled = true
     var isSwipeLeftEnabled = true
     var isSwipeRightEnabled = true
     var isSwipeDownEnabled = true

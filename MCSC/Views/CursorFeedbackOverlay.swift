@@ -194,11 +194,11 @@ final class CursorFeedbackOverlay {
             }
         }
 
-        // Hover-style scale + alpha animation for close, quit, and eject, matching
+        // Hover-style scale + alpha animation for close, quit, eject and fullscreen, matching
         // `CloseButtonView.setHovered` exactly (1.08× over 0.15s ease-out).
         // Reset first so repeated triggers start from a clean layer, then start
         // from 0.97 alpha and animate up to full scale + opacity.
-        if mode == .close || mode == .quit || mode == .eject, let imageView = imageView {
+        if mode == .close || mode == .quit || mode == .eject || mode == .fullscreen, let imageView = imageView {
             imageView.layer?.transform = CATransform3DIdentity
             imageView.alphaValue = 0.97
             NSAnimationContext.runAnimationGroup { context in

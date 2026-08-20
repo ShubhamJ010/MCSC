@@ -145,7 +145,12 @@ final class GestureActionRouter {
 
         case .cmdSwipeRight:
             switch target {
-            case .window, .dock:
+            case .window:
+                return .execute(feedbackMode: .newTab, haptic: .swipeRight) { [weak self] in
+                    self?.actions.newTabAction.perform(at: point, service: service)
+                }
+            case .dock:
+                // Dock has no window to add a tab to — fall back to new window
                 return .execute(feedbackMode: .newWindow, haptic: .swipeRight) { [weak self] in
                     self?.actions.newWindowAction.perform(at: point, service: service)
                 }
@@ -219,6 +224,26 @@ final class GestureActionRouter {
                     self?.actions.almostMaximizeAction.perform(at: point, service: service)
                 }
             case .dock, .none:
+                return .none
+            }
+
+        case .pinchOut:
+            switch target {
+            case .window:
+                return .execute(feedbackMode: .fullscreen, haptic: .pinchOut) { [weak self] in
+                    self?.actions.toggleFullscreenAction.perform(at: point, service: service)
+                }
+            case .dock, .none:
+                return .none
+            }
+
+        case .cmdPinchOut:
+            switch target {
+            case .window, .dock:
+                return .execute(feedbackMode: .newWindow, haptic: .pinchOut) { [weak self] in
+                    self?.actions.newWindowAction.perform(at: point, service: service)
+                }
+            case .none:
                 return .none
             }
         }

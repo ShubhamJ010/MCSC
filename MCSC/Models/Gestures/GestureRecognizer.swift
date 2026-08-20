@@ -4,6 +4,8 @@ import Foundation
 enum GestureResult {
     case pinchIn(atNormalized: (Float, Float))
     case cmdPinchIn(atNormalized: (Float, Float))
+    case pinchOut(atNormalized: (Float, Float))
+    case cmdPinchOut(atNormalized: (Float, Float))
     case swipeLeft(atNormalized: (Float, Float))
     case cmdSwipeLeft(atNormalized: (Float, Float))
     case swipeRight(atNormalized: (Float, Float))

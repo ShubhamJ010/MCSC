@@ -9,6 +9,7 @@ enum HapticType: Equatable {
     case twoFingerDoubleTap
     case cmdTwoFingerDoubleTap
     case pinchIn
+    case pinchOut
 }
 
 /// Plays short, tactile haptic pulses through the built-in trackpad engine.
@@ -56,6 +57,13 @@ enum HapticService {
             }
         case .pinchIn:
             performer.perform(.levelChange, performanceTime: .now)
+            DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.08) {
+                performer.perform(.levelChange, performanceTime: .now)
+            }
+        case .pinchOut:
+            // Distinct from pinchIn (levelChange → levelChange): expand feel uses
+            // alignment (light tick) then levelChange (deeper thud).
+            performer.perform(.alignment, performanceTime: .now)
             DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.08) {
                 performer.perform(.levelChange, performanceTime: .now)
             }

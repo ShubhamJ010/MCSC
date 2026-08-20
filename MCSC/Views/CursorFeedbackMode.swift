@@ -22,6 +22,8 @@ extension CursorFeedbackOverlay {
         case reopenTab
         case closeAllTabs
         case newWindow
+        case newTab
+        case fullscreen
 
         /// SF Symbol name rendered by `NSImage(systemSymbolName:)`.
         var symbolName: String {
@@ -38,6 +40,8 @@ extension CursorFeedbackOverlay {
             case .reopenTab: return "plus.rectangle.fill"
             case .closeAllTabs: return "rectangle.badge.xmark"
             case .newWindow: return "rectangle.badge.plus"
+            case .newTab: return "plus.rectangle.on.rectangle"
+            case .fullscreen: return "arrow.down.left.and.arrow.up.right.circle.fill"
             }
         }
 
@@ -56,6 +60,8 @@ extension CursorFeedbackOverlay {
             case .reopenTab: return "Reopen Tab"
             case .closeAllTabs: return "Close All Tabs"
             case .newWindow: return "New Window"
+            case .newTab: return "New Tab"
+            case .fullscreen: return "Toggle Fullscreen"
             }
         }
 
@@ -75,6 +81,8 @@ extension CursorFeedbackOverlay {
             case .maximize:
                 // Single Accent layer (the user's system accent colour).
                 return [.controlAccentColor]
+            case .fullscreen:
+                return [.black, .systemGreen]
             case .closeTab:
                 // System multicolor (red X, matching Close).
                 return nil
@@ -84,7 +92,7 @@ extension CursorFeedbackOverlay {
             case .closeAllTabs:
                 // System multicolor (red X badge, matching Close).
                 return nil
-            case .newWindow:
+            case .newWindow, .newTab:
                 // Positive/additive green badge, matching the reopen plus.
                 return [.systemGreen]
             }
@@ -104,8 +112,8 @@ extension CursorFeedbackOverlay {
         var entryAnimation: EntryAnimation? {
             switch self {
             case .hide: return .bounce
-            case .closeTab, .reopenTab, .closeAllTabs, .newWindow: return .wiggleByLayer
-            case .close, .minimize, .quit, .eject, .almost, .reasonable, .maximize: return nil
+            case .closeTab, .reopenTab, .closeAllTabs, .newWindow, .newTab: return .wiggleByLayer
+            case .close, .minimize, .quit, .eject, .almost, .reasonable, .maximize, .fullscreen: return nil
             }
         }
 
@@ -125,7 +133,7 @@ extension CursorFeedbackOverlay {
         var replaceTransition: ReplaceTransition? {
             switch self {
             case .almost, .reasonable, .maximize: return .downUpReveal
-            case .close, .minimize, .quit, .hide, .eject, .closeTab, .reopenTab, .closeAllTabs, .newWindow: return nil
+            case .close, .minimize, .quit, .hide, .eject, .closeTab, .reopenTab, .closeAllTabs, .newWindow, .newTab, .fullscreen: return nil
             }
         }
 

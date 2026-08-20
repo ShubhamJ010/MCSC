@@ -57,10 +57,27 @@ struct CloseAllTabsAction: ShortcutAction {
 /// Posts Cmd+N to the application under the point to open a new window.
 struct NewWindowAction: ShortcutAction {
     func perform(at point: CGPoint, service: AccessibilityServiceProtocol) {
+        // Wake Exposé so the keystroke reaches the app while Mission Control is
+        // still intercepting input — same pattern as ToggleFullscreenAction.
+        _ = CoreDockSendNotification("com.apple.expose.awake" as CFString, 0)
         guard let element = service.getElement(at: point) else { return }
 
         var pid: pid_t = 0
         guard AXUIElementGetPid(element, &pid) == .success else { return }
         KeyboardEventPoster.postShortcut(virtualKey: 0x2D, flags: .maskCommand, to: pid)
+    }
+}
+
+/// Posts Cmd+T to the application under the point to open a new tab.
+struct NewTabAction: ShortcutAction {
+    func perform(at point: CGPoint, service: AccessibilityServiceProtocol) {
+        // Wake Exposé so the keystroke reaches the app while Mission Control is
+        // still intercepting input — same pattern as ToggleFullscreenAction.
+        _ = CoreDockSendNotification("com.apple.expose.awake" as CFString, 0)
+        guard let element = service.getElement(at: point) else { return }
+
+        var pid: pid_t = 0
+        guard AXUIElementGetPid(element, &pid) == .success else { return }
+        KeyboardEventPoster.postShortcut(virtualKey: 0x11, flags: .maskCommand, to: pid)
     }
 }
