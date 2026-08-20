@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.1-beta (21 Aug 2026)
+
+- **Cursor-Flash Symbol Animation Refinements**: Polished every cursor feedback flash:
+  - **Close / Force Quit**: added a `.bounce.up.byLayer` entry effect on top of the hover-style scale-up.
+  - **Minimize / Hide**: base symbol now morphs from the outline `minus.circle.fill` / `eye.slash.circle.fill` into their filled counterparts via `.replace.downUp.byLayer`.
+  - **Eject**: `eject.fill` base morphs into `eject.circle.fill` via `.replace.magic` (fallback: `.downUp.wholeSymbol`).
+  - **Tab swipes**: `.wiggle.byLayer` now plays unconditionally (dropped the pre-macOS 26 `.bounce` fallback) and unused `.bounce` / `.appear` cases were removed.
+  - **Clipping fix**: reduced the flash scale-up from 1.08× → 1.03× so glyphs no longer clip at the panel bounds.
+
 ## 0.5.0-beta (21 Aug 2026)
 
 - **Dock Gestures & Shortcuts Outside Mission Control**: All dock-targeted keyboard shortcuts (`Cmd+W`, `Cmd+Q`, `Cmd+M`, `Cmd+H`) and multitouch gestures (pinch-in, pinch-out, horizontal/vertical swipes, two-finger double-tap) now work directly over Dock icons in normal desktop mode without needing Mission Control open. Fully configurable via `isDockActionsOutsideMCEnabled` and status bar menu toggle (`"Dock Gestures & Shortcuts (outside MC)"`).

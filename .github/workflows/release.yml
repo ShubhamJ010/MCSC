@@ -1,30 +1,106 @@
-name: Build and Release
+name: Xcode - Build, Package and Release
 
 on:
-  release:
-    types: [created]
-  workflow_dispatch:
+  push:
+    tags:
+      - "v*" # Triggers the workflow only when you push a version tag like v1.0.0
 
 jobs:
-  build:
+  release:
+    name: Build and Create Release
     runs-on: macos-latest
+
     permissions:
       contents: write
+
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build App
-        run: xcodebuild -scheme MCSC -configuration Release -derivedDataPath build build
+      # Pin Xcode to match the local development toolchain
+      - name: Set Xcode Version
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.0'
 
-      - name: Zip App
+      - name: Set Default Scheme
         run: |
-          cp -R build/Build/Products/Release/MCSC.app .
-          zip -r MCSC.zip MCSC.app
+          scheme_list=$(xcodebuild -list -json | tr -d "\n")
+          default=$(echo $scheme_list | ruby -e "require 'json'; puts JSON.parse(STDIN.gets)['project']['targets'][0]")
+          echo "SCHEME=$default" >> $GITHUB_ENV
 
-      - name: Upload Release Artifact
+          if [ "`ls -A | grep -i \\.xcworkspace\$`" ]; then
+            echo "FILETYPE_PARAM=workspace" >> $GITHUB_ENV
+            echo "FILE_TO_BUILD=$(ls -A | grep -i \.xcworkspace\$ | head -n 1)" >> $GITHUB_ENV
+          else
+            echo "FILETYPE_PARAM=project" >> $GITHUB_ENV
+            echo "FILE_TO_BUILD=$(ls -A | grep -i \.xcodeproj\$ | head -n 1)" >> $GITHUB_ENV
+          fi
+
+      # Builds the app in Release configuration to a custom build directory using ad-hoc local signing
+      - name: Build App Binary
+        run: |
+          xcodebuild clean build \
+            -scheme "${{ env.SCHEME }}" \
+            -${{ env.FILETYPE_PARAM }} "${{ env.FILE_TO_BUILD }}" \
+            -configuration Release \
+            -sdk macosx \
+            -destination "platform=macOS,arch=arm64" \
+            -derivedDataPath ./build/DerivedData \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      # Locates the compiled .app file, moves it to a staging folder, and compresses it
+      - name: Package App into ZIP
+        run: |
+          APP_PATH=$(find ./build/DerivedData/Build/Products/Release -name "*.app" -type d -maxdepth 2 | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            APP_PATH=$(find ./build/DerivedData/Build/Products/Debug -name "*.app" -type d -maxdepth 2 | head -n 1)
+          fi
+
+          if [ -z "$APP_PATH" ]; then
+            echo "ERROR: No .app bundle found in build products" >&2
+            exit 1
+          fi
+
+          echo "Found app bundle at: $APP_PATH"
+          APP_NAME=$(basename "$APP_PATH")
+
+          mkdir dist
+          cp -R "$APP_PATH" dist/
+
+          cd dist
+          zip -r "../${{ env.SCHEME }}.zip" "$APP_NAME"
+          cd ..
+
+      # Extracts the changelog section matching the pushed tag (e.g. v0.5.0-beta -> "## 0.5.0-beta")
+      # and falls back to the full changelog if no matching section exists
+      - name: Extract Changelog Section
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v ver="$VERSION" '
+            $0 ~ "^## " ver { flag=1; next }
+            /^## / && flag { exit }
+            flag' CHANGELOG.md > RELEASE_NOTES.md
+
+          if [ ! -s RELEASE_NOTES.md ]; then
+            echo "No changelog section found for $VERSION — falling back to full changelog"
+            cp CHANGELOG.md RELEASE_NOTES.md
+          fi
+
+          echo "--- Release notes preview ---"
+          cat RELEASE_NOTES.md
+
+      # Generates a GitHub Release with the changelog section as notes,
+      # attaching both the zipped app and the full changelog
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: MCSC.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            ${{ env.SCHEME }}.zip
+            CHANGELOG.md
+          body_path: RELEASE_NOTES.md
+          generate_release_notes: true
+          draft: false
+          prerelease: false
