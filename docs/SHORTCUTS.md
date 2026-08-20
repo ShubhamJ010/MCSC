@@ -104,3 +104,23 @@ does not dismiss prematurely, plays a haptic, and runs the selected action.
   `../MCSC/Services/MissionControlService.swift`
 - Feedback symbols shown at the cursor: `../MCSC/Views/CursorFeedbackOverlay.swift`
 - Hover button rendering: `../MCSC/Views/PreviewCloseButtonOverlay.swift`
+
+#### Visual — Shortcut & Hover
+
+```mermaid
+flowchart LR
+  KEY[Key] --> TAP[CGEventTap .headInsert]
+  TAP --> VM[ShortcutViewModel]
+  VM --> R[ShortcutActionRouter]
+  R --> FB[CursorFeedback]
+  FB -. next turn .-> AX[AX Action]
+```
+
+```mermaid
+flowchart LR
+  HOVER[Hover preview] --> MOD{Modifier?}
+  MOD -->|none| C[Close]
+  MOD -->|Opt| M[Minimize]
+  MOD -->|Cmd| Q[Force Quit - wins]
+```
+

@@ -74,3 +74,23 @@ own injected events.
 - Scoped delivery of gestures: `../MCSC/Services/MultitouchService.swift`
 - Scoped delivery of shortcuts: `../MCSC/Services/EventTapService.swift`
 - Hover tracking gated on activity: `../MCSC/Services/MissionControlHoverService.swift`
+
+#### Visual — Detection Flow
+
+```mermaid
+flowchart TB
+  N{Notification?} -->|rare| YES
+  N -->|no| C{Cache <200ms?}
+  C -->|yes| CACHED
+  C -->|no| SCAN[CGWindowListCopyWindowInfo]
+  SCAN --> CHECK{layer 20 && <=18?}
+  CHECK -->|yes| MC[MC active]
+  CHECK -->|no| NO[inactive]
+```
+
+| Surface | Layers | Result |
+|---------|--------|--------|
+| Mission Control | 20 + ≤18 | ✅ active |
+| Launchpad | 27-29 | ❌ |
+| Finder stack | only overlay | ❌ |
+

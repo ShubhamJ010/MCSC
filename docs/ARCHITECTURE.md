@@ -17,6 +17,15 @@ One of the most foundational architectural choices in MCSC was committing to a p
 
 **Memory Footprint:** For a background utility that lives in the menu bar and processes trackpad/keyboard events, SwiftUI's runtime introduces unnecessary allocations. By using `main.swift`, `NSApplication`, and lightweight Cocoa panels, MCSC maintains a baseline memory footprint under 13 MB.
 
+> **Extended comparison:**
+
+| Dimension | SwiftUI | **AppKit (MCSC)** |
+|-----------|---------|-------------------|
+| Panels | `WindowGroup` | Lightweight `NSPanel` (non-activating) |
+| Event tap | Via workarounds | Direct `CGEvent.tapCreate` |
+
+See `MCSC/App/main.swift` and `PERFORMANCE.md` for measurement details.
+
 ---
 
 ## 🏗 Modular MVVM Architecture
@@ -62,6 +71,60 @@ MCSC strictly follows the **Model-View-ViewModel (MVVM)** pattern with protocol-
 - **`MissionControlHoverServiceProtocol` / `MissionControlHoverService`:** Tracks mouse movement in Mission Control and positions hover action buttons on active window previews.
 - **`AppLogger`:** Zero-allocation logging using Apple's unified `os.Logger` framework.
 
+#### Visual — System Map (Mermaid)
+
+```mermaid
+flowchart TB
+    subgraph System[macOS System Events]
+      CG[Quartz CGEventTap]
+      MT[Multitouch Private Framework]
+      AX[AX Notifications + CGWindowList]
+    end
+    CG --> ETS[EventTapService]
+    MT --> MTS[MultitouchService + MultitouchBridge]
+    AX --> ACS[AccessibilityService]
+    AX --> MCS[MissionControlService]
+    ETS & MTS & ACS & MCS --> VM[ShortcutViewModel]
+    VM --> SR[ShortcutActionRouter]
+    VM --> GR[GestureActionRouter]
+    VM --> GE[GestureEngine - 5 recognizers]
+    VM --> HS[HoverService]
+    VM --> CF[CursorFeedbackOverlay]
+    SR & GR --> REG[ActionRegistry]
+    REG --> WA[Window/App/Tab/Tiling Actions]
+    HS --> PCO[PreviewCloseButtonOverlay]
+    CF --> SF[SymbolImageFactory]
+```
+
+#### Detail Tables (supplement to the lists above)
+
+| ViewModel Component | Testability |
+|---|---|
+| `ShortcutActionRouter` | Pure: `flags + TargetResolution + config` → `ResolvedShortcutAction` |
+| `GestureActionRouter` | Pure: `GestureResult + target` → `feedbackMode + action` |
+| `ActionRegistry` | One shared `struct` instance each — zero per-event alloc |
+
+```mermaid
+sequenceDiagram
+    participant E as EventTap / Multitouch
+    participant VM as ShortcutViewModel
+    participant R as Router
+    participant FB as CursorFeedback
+    participant AX as AX Action
+    E->>VM: raw event / frame
+    VM->>R: route(event, target, config)
+    R-->>VM: ResolvedAction(feedbackMode, closure)
+    VM->>FB: show(at: point, mode)
+    Note over VM,AX: one run-loop turn later
+    VM->>AX: action() — blocking
+```
+
+| Service | Cleanup |
+|---------|---------|
+| `EventTapService` | `stop()` invalidates `CFMachPort` |
+| `MissionControlService` | `stop()` removes `DistributedNotificationCenter` observers, clears 200 ms cache |
+| `MultitouchService` | `stop()` + sleep/wake handling |
+
 ### 4. Views (`MCSC/Views`)
 - **`CursorFeedbackOverlay`:** Floating non-activating Cocoa panel that renders animated SF Symbols under the cursor.
 - **`CursorFeedbackMode`:** Data-driven enumeration of visual feedback descriptors, accessibility labels, and tint palettes.
@@ -77,3 +140,24 @@ MCSC strictly follows the **Model-View-ViewModel (MVVM)** pattern with protocol-
 3. **No Retain Cycles:** All closures capture `[weak self]` or weak references to dependencies.
 4. **Explicit Teardown:** Every service implements `start()` and `stop()` to invalidate run loop sources, remove notification observers, and tear down Mach ports.
 5. **No Polling:** System event-driven architecture using event taps, observers, and multitouch frame callbacks without high-frequency polling timers.
+
+#### Visual — Lifecycle & Memory Rules
+
+| Rule | File |
+|------|------|
+| `Unmanaged.passUnretained` unless ownership | Services |
+| `CFGetTypeID == AXUIElementGetTypeID()` before cast | `AccessibilityService.swift` |
+| `[weak self]` in closures | `ShortcutViewModel.swift:78-216` |
+| `lazy var` services | `ShortcutViewModel.swift:20-32` |
+| `DispatchQueue.main.async { action() }` after feedback | `ShortcutViewModel.swift:212` |
+
+```mermaid
+flowchart LR
+    START[start] --> TAP[CFMachPort + RunLoopSource]
+    START --> OBS[DistributedNotification observers]
+    START --> MT[Multitouch listener]
+    TAP & OBS & MT --> STOP[stop]
+    STOP --> X1[invalidate port]
+    STOP --> X2[removeObserver]
+    STOP --> X3[reset engine]
+```

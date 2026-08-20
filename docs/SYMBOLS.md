@@ -33,7 +33,7 @@ replacement transition.
 | `.close` | `xmark.circle.fill` | Close Window | System multicolor (red X) | — | — |
 | `.minimize` | `minus.circle.fill` | Minimize Window | Black + system yellow | — | — |
 | `.quit` | `xmark.circle.fill` | Force Quit | Black → purple gradient | hover-style scale-up + fade-in\* | — |
-| `.hide` | `smallcircle.filled.circle.fill` | Hide Application | Black + system blue + clear | `.bounce` | — |
+| `.hide` | `eye.slash.circle.fill` | Hide Application | Black + system blue + clear | `.bounce` | — |
 | `.almost` | `inset.filled.rectangle` | Almost Maximize Window | Accent (`controlAccentColor`) | — | `.downUpReveal` |
 | `.reasonable` | `inset.filled.center.rectangle` | Reasonable Size | Accent (`controlAccentColor`) | — | `.downUpReveal` |
 | `.maximize` | `rectangle.fill` | Maximize Window | Accent (`controlAccentColor`) | — | `.downUpReveal` |
@@ -80,7 +80,7 @@ Feedback mode = the symbol shown at the cursor when the trigger fires.
 | `Cmd + W` | `.close` | `xmark.circle.fill` | Close tab (window) / close tab in app (Dock) |
 | `Cmd + Q` | `.quit` | `xmark.circle.fill` | Force quit app |
 | `Cmd + M` | `.minimize` | `minus.circle.fill` | Minimize window |
-| `Cmd + H` | `.hide` | `smallcircle.filled.circle.fill` | Hide app |
+| `Cmd + H` | `.hide` | `eye.slash.circle.fill` | Hide app |
 | Pinch-in | `.close` | `xmark.circle.fill` | Close window / quit app |
 | `Cmd + Pinch-in` | `.quit` | `xmark.circle.fill` | Force quit app |
 | Two-finger swipe left | `.closeTab` | `xmark.rectangle.fill` | Close tab |
@@ -88,7 +88,7 @@ Feedback mode = the symbol shown at the cursor when the trigger fires.
 | Two-finger swipe right | `.reopenTab` | `plus.rectangle.fill` | Reopen closed tab |
 | `Cmd + swipe right` | `.newWindow` | `rectangle.badge.plus` | New window |
 | Two-finger swipe up | `.minimize` | `minus.circle.fill` | Minimize window |
-| `Cmd + swipe up` | `.hide` | `smallcircle.filled.circle.fill` | Hide app |
+| `Cmd + swipe up` | `.hide` | `eye.slash.circle.fill` | Hide app |
 | Two-finger swipe down | `.maximize` | `rectangle.fill` | Fill screen |
 | `Cmd + swipe down` | `.maximize` | `rectangle.fill` | Make larger (+33 %) |
 | Two-finger double tap | `.reasonable` | `inset.filled.center.rectangle` | Reasonable size (60 %) |
@@ -96,3 +96,13 @@ Feedback mode = the symbol shown at the cursor when the trigger fires.
 
 **Source:** `ShortcutViewModel` (key-down and gesture paths in
 `../MCSC/ViewModels/ShortcutViewModel.swift`).
+
+#### Visual — Overlays
+
+```mermaid
+flowchart LR
+  Trig[Triggers] --> Mode[11 Modes]
+  Mode --> Cursor[Cursor flash 0.6s]
+  Mode -.-> Hover[Hover 3 Modes]
+```
+

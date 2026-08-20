@@ -36,6 +36,33 @@ When a gesture fires, MCSC shows the cursor feedback symbol and plays a haptic
 at gesture onset, in parallel with the slower Accessibility action, which runs
 one run-loop turn later.
 
+#### Visual — Pipeline & Guard Rails
+
+```mermaid
+flowchart LR
+    MT[Multitouch frames] --> GE[GestureEngine - 5 recognizers]
+    GE -->|first wins| GR[GestureActionRouter]
+    GR --> FB[CursorFeedback + Haptic]
+    FB -. next turn .-> AX[AX Action]
+```
+
+| Guard | Location |
+|-------|----------|
+| `awaitingLift` — one per finger lift | `GestureRecognizer.swift:37` |
+| `poisoned` — 3+ fingers discards cycle | `GestureRecognizer.swift:58` |
+| `isCoolingDown` — 0.5 s after MC activation | `ShortcutViewModel.swift:60` |
+| `isMissionControlActive` gate | `ShortcutViewModel.swift:169` |
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Poisoned: 3+ fingers
+    Idle --> Fired: recognizer wins
+    Fired --> AwaitLift
+    AwaitLift --> Idle: all fingers lifted
+    Poisoned --> Idle: all fingers lifted
+```
+
 ---
 
 ## Gesture reference
@@ -71,6 +98,24 @@ Each gesture resolves what is under the cursor at the moment it fires:
 
 Directional swipes that have no meaningful app-level behavior (such as fill
 screen and resize) only act on a window target and do nothing over the Dock.
+
+#### Visual — Target Matrix
+
+| Gesture | Window | Dock | Empty |
+|---------|:------:|:----:|:-----:|
+| Pinch / Swipe left/right/up | ✅ | ✅ | ❌ |
+| Swipe down / Double tap | ✅ | ❌ | ❌ |
+
+> Details: `GestureActionRouter.swift:24-171` — `swipeDown`/`doubleTap` return `.none` for Dock.
+
+| Recognizer | File |
+|------------|------|
+| `PinchInRecognizer` | `PinchInRecognizer.swift` |
+| `SwipeRecognizer` (up+down) | `SwipeRecognizer.swift` |
+| `TwoFingerSwipeLeft/Right` | `TwoFingerSwipe*.swift` |
+| `TwoFingerDoubleTap` | `TwoFingerDoubleTapRecognizer.swift` |
+
+Registration order: `DoubleTap → PinchIn → SwipeLeft → SwipeRight → Swipe` (`ShortcutViewModel.swift:134`).
 
 ---
 

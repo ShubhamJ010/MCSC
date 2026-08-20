@@ -84,3 +84,19 @@ ceiling means the change needs redesign before merge.
 - Cached Mission Control detection: `../MCSC/Services/MissionControlService.swift`
 - Minimal hover polling: `../MCSC/Services/MissionControlHoverService.swift`
 - Lightweight action structs: `../MCSC/Models/ShortcutActions.swift`
+
+#### Visual — Budget
+
+| Metric | Typical | Ceiling |
+|--------|---------|---------|
+| Baseline | 12.4 MB | 13 MB |
+| Peak | ~14 MB | transient |
+| Idle CPU | ~0% | — |
+
+```mermaid
+flowchart LR
+  SW[SwiftUI 4-6MB] -.-> AK[AppKit]
+  POLL[Polling] -.-> EVT[Event-driven]
+  AXC[AX recreate] -.-> CACHE[Cache 200ms]
+```
+
