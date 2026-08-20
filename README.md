@@ -33,21 +33,17 @@ tries to replicate.
 
 ## Features
 
-- **Type-to-Select window fuzzy finding** — start typing any app name while in Mission Control (e.g. `code` or `ghostty`) to immediately highlight matching windows with a native blue outline and a Dock-styled uppercase search pill; press `Enter` to activate. Tab/Arrow keys cycle matches. See [SHORTCUTS.md](./docs/SHORTCUTS.md).
-- **Global keyboard shortcuts** — `Cmd + W`, `Cmd + Q`, `Cmd + M`, `Cmd + H`,
-  a `Cmd + Space` recovery sequence, and a clickable hover button on each window
-  preview. `Cmd+W`/`Cmd+Q` (and pinch-in / swipe-left) on an ejectable Finder volume window auto-close and eject the volume. See [SHORTCUTS.md](./docs/SHORTCUTS.md).
-- **Trackpad gestures** — pinch, directional swipes, and a two-finger double
-  tap, each with a `Command` variant (pinch-in / swipe-left on ejectable Finder volumes auto-eject). See [GESTURES.md](./docs/GESTURES.md).
-- **Mission Control scoping** — window-layer detection that activates the app
-  only inside Mission Control, with a recovery sequence for stuck states.
-  See [MISSION_CONTROL.md](./docs/MISSION_CONTROL.md).
-- **Accessibility API integration** — drives `AXUIElement` directly to inspect
-  and manipulate windows in other apps.
-- **Launch at login** — registers MCSC through `SMAppService`.
-- **Performance focused** — a near-zero-footprint, event-driven background
-  agent. See [PERFORMANCE.md](./docs/PERFORMANCE.md) and
-  [ARCHITECTURE.md](./docs/ARCHITECTURE.md).
+- **🔍 Type-to-Select Fuzzy Finder** — just start typing any app name in Mission Control (`code`, `ghostty`, `finder`) to instantly rank and highlight matching windows with macOS's native blue outline. A Dock-styled uppercase search pill floats above the Dock; `Tab`/`Arrow` cycles matches, `Enter` activates with a dwell-click. See [SHORTCUTS.md](./docs/SHORTCUTS.md).
+- **🖱️ Hover Action Buttons** — a floating, clickable button anchored to the top-left of every window preview. No modifier → Close (`xmark.circle.fill`), `Option` → Minimize (`minus.circle.fill`), `Command` → Force Quit (purple `xmark.circle.fill`). Smooth symbol morph + 1.08× hover scale. See [SHORTCUTS.md](./docs/SHORTCUTS.md).
+- **✋ 7 Trackpad Gestures × 2 Variants (14 actions)** — pinch-in/out, 4-direction swipes, and two-finger double-tap. Each has a `Command` variant. Replicates [Swish](https://highlyopinionated.co/swish/) inside Mission Control. Includes one-per-lift guard, 3-finger poison rejection, and 0.5 s cooldown. See [GESTURES.md](./docs/GESTURES.md).
+- **⌨️ Global Keyboard Shortcuts** — `Cmd + W` (close/tab), `Cmd + Q` (force quit), `Cmd + M` (minimize), `Cmd + H` (hide), plus `Cmd + Space` to recover stuck Mission Control/Spotlight states. Scoped strictly to Mission Control via `CGWindowListCopyWindowInfo` layer detection. See [SHORTCUTS.md](./docs/SHORTCUTS.md).
+- **💿 Auto-Eject Mounted Volumes** — `Cmd+W`/`Cmd+Q` or pinch-in/swipe-left on an ejectable Finder volume window (e.g. DMG installers in `/Volumes`) auto-closes the window and ejects the volume (`NSWorkspace.unmountAndEjectDevice`) with a red `eject.circle.fill` flash. Toggle: *Auto-Eject Mounted Volumes*. See [SHORTCUTS.md](./docs/SHORTCUTS.md).
+- **🪟 Window Tiling & Tab Control** — Fill Screen, Make Larger (+33%), Reasonable Size (60%), Almost Maximize (90%), and Toggle Fullscreen via swipe/double-tap; plus Close Tab, Reopen Tab, Close All Tabs (`Cmd+Shift+W`), New Tab (`Cmd+T`) / New Window (`Cmd+N`) via swipe-left/right. See [GESTURES.md](./docs/GESTURES.md).
+- **🎯 Cursor Feedback + Haptics** — every action flashes a distinct SF Symbol at the cursor (14 modes: close/minimize/quit/hide/eject/resize/tab) with tinted palettes, `.bounce`/`.wiggle`/`.replace` animations, and a paired `NSHapticFeedbackManager` choreography. Swallow → 0.6 s fade. See [SYMBOLS.md](./docs/SYMBOLS.md).
+- **🎯 Dock-Aware Targeting** — point at a window preview → window action; point at a Dock icon → app-level action. Resolves Dock items by `AXURL` bundle-ID first (fixes Catalyst/Electron apps like WhatsApp/Beeper where `AXTitle ≠ localizedName`), with tolerant title fallback. Skips empty wallpaper.
+- **🛡️ Mission Control Scoping** — activates only inside Mission Control using Dock layer analysis (fullscreen overlay at layer 20 + Dock bar ≤ 18). Correctly ignores desktop, Launchpad (layers 27–29), and expanded Finder stacks. 200 ms cache. See [MISSION_CONTROL.md](./docs/MISSION_CONTROL.md).
+- **⚡ Zero-Footprint, Event-Driven** — AppKit (not SwiftUI) saves 4–6 MB; baseline **~12.4 MB / <13 MB ceiling**, ~0% idle CPU. No polling — pure `CGEventTap` + Multitouch + Accessibility events. Cached `AXUIElementCreateSystemWide`, `Unmanaged.passUnretained`, `[weak self]` everywhere. See [PERFORMANCE.md](./docs/PERFORMANCE.md) and [ARCHITECTURE.md](./docs/ARCHITECTURE.md).
+- **⚙️ Fully Configurable** — per-shortcut and per-gesture toggles in the menu bar (and **Settings…** window), plus Launch at Login via `SMAppService`. All preferences live in `ShortcutConfiguration`.
 
 ## Requirements
 
