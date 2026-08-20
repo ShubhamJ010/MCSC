@@ -28,28 +28,38 @@ There are **14** modes. Each mode is a small data descriptor: SF Symbol name,
 accessibility label, tint palette, optional entry animation, and optional
 replacement transition.
 
-| Mode | SF Symbol | Accessibility label | Palette | Entry animation | Replace transition |
-|---|---|---|---|---|---|
-| `.close` | `xmark.circle.fill` | Close Window | System multicolor (red X) | hover-style scale-up + fade-in\* | — |
-| `.minimize` | `minus.circle.fill` | Minimize Window | Black + system yellow | — | — |
-| `.quit` | `xmark.circle.fill` | Force Quit | Black → purple gradient | hover-style scale-up + fade-in\* | — |
-| `.hide` | `eye.slash.circle.fill` | Hide Application | Black + system blue + clear | `.bounce` | — |
-| `.eject` | `eject.circle.fill` | Eject Volume | White + systemRed (`[.white, .systemRed]`) | hover-style scale-up + fade-in\* | — |
-| `.almost` | `inset.filled.rectangle` | Almost Maximize Window | Accent (`controlAccentColor`) | — | `.downUpReveal` |
-| `.reasonable` | `inset.filled.center.rectangle` | Reasonable Size | Accent (`controlAccentColor`) | — | `.downUpReveal` |
-| `.maximize` | `rectangle.fill` | Maximize Window | Accent (`controlAccentColor`) | — | `.downUpReveal` |
-| `.closeTab` | `xmark.rectangle.fill` | Close Tab | System multicolor (red X) | `.wiggleByLayer`\* | — |
-| `.reopenTab` | `plus.rectangle.fill` | Reopen Tab | System green | `.wiggleByLayer`\* | — |
-| `.closeAllTabs` | `rectangle.badge.xmark` | Close All Tabs | System multicolor (red X badge) | `.wiggleByLayer`\* | — |
-| `.newWindow` | `rectangle.badge.plus` | New Window | System green | `.wiggleByLayer`\* | — |
-| `.newTab` | `plus.rectangle.on.rectangle` | New Tab | System green | `.wiggleByLayer`\* | — |
-| `.fullscreen` | `arrow.down.left.and.arrow.up.right.circle.fill` | Toggle Fullscreen | Black + system green (`[.black, .systemGreen]`) — same as `PreviewCloseButtonOverlay.Mode.fullscreen` | hover-style scale-up + fade-in\* | — |
+| Mode | SF Symbol | Base symbol | Accessibility label | Palette | Entry animation | Replace transition |
+|---|---|---|---|---|---|---|
+| `.close` | `xmark.circle.fill` | — | Close Window | System multicolor (red X) | `.bounceUpByLayer` + hover-style scale-up + fade-in\* | — |
+| `.minimize` | `minus.circle.fill` | `minus.circle` (white\*\*) | Minimize Window | Black + system yellow | hover-style scale-up + fade-in\* | `.downUpReveal` |
+| `.quit` | `xmark.circle.fill` | — | Force Quit | Black → purple gradient | `.bounceUpByLayer` + hover-style scale-up + fade-in\* | — |
+| `.hide` | `eye.slash.circle.fill` | `eye.slash.circle` (white\*\*) | Hide Application | Black + system yellow | — | `.downUpReveal` |
+| `.eject` | `eject.circle.fill` | `eject.fill` | Eject Volume | White + systemRed (`[.white, .systemRed]`) | hover-style scale-up + fade-in\* | `.magicDownUpReveal`\*\*\* |
+| `.almost` | `inset.filled.rectangle` | `rectangle` | Almost Maximize Window | Accent (`controlAccentColor`) | — | `.downUpReveal` |
+| `.reasonable` | `inset.filled.center.rectangle` | `rectangle` | Reasonable Size | Accent (`controlAccentColor`) | — | `.downUpReveal` |
+| `.maximize` | `rectangle.fill` | `rectangle` | Maximize Window | Accent (`controlAccentColor`) | — | `.downUpReveal` |
+| `.closeTab` | `xmark.rectangle.fill` | — | Close Tab | System multicolor (red X) | `.wiggleByLayer` | — |
+| `.reopenTab` | `plus.rectangle.fill` | — | Reopen Tab | System green | `.wiggleByLayer` | — |
+| `.closeAllTabs` | `rectangle.badge.xmark` | — | Close All Tabs | System multicolor (red X badge) | `.wiggleByLayer` | — |
+| `.newWindow` | `rectangle.badge.plus` | — | New Window | System green | `.wiggleByLayer` | — |
+| `.newTab` | `plus.rectangle.on.rectangle` | — | New Tab | System green | `.wiggleByLayer` | — |
+| `.fullscreen` | `arrow.down.left.and.arrow.up.right.circle.fill` | — | Toggle Fullscreen | Black + system green (`[.black, .systemGreen]`) — same as `PreviewCloseButtonOverlay.Mode.fullscreen` | hover-style scale-up + fade-in\* | — |
 
-\* `.wiggleByLayer` is macOS 26+ only; macOS 14/15 fall back to `.bounce`.
-\* "hover-style scale-up + fade-in" is not a symbol effect; it is the
-  same `NSAnimationContext` scale (1.08×) + alpha (0.97 → 1.0) over 0.15 s
-  ease-out used by `CloseButtonView.setHovered`, applied on entry — used by
-  `.close`, `.quit`, `.eject`, and `.fullscreen` (`CursorFeedbackOverlay.swift:197`).
+\* "hover-style scale-up + fade-in" is not a symbol effect; it is an
+  `NSAnimationContext` scale (1.03× — kept small so the glyph never clips at
+  the flash panel's bounds) + alpha (0.97 → 1.0) over 0.15 s
+  ease-out, applied on entry — used by
+  `.close`, `.quit`, `.eject`, and `.fullscreen` (`CursorFeedbackOverlay.swift:206`).
+\* The base symbol is painted synchronously before the replace transition
+  fires, so the morph always starts from a stable silhouette.
+\*\* Minimize and Hide paint their base glyph in plain white
+  (`basePaletteColors = [.white]`) so the pre-morph state reads as neutral
+  before filling into the black/yellow palette.
+\*\*\* `.magicDownUpReveal` uses `.replace.magic(fallback: .downUp.wholeSymbol)`
+  on macOS 26+ and falls back to `.replace.downUp.wholeSymbol` on macOS 14/15.
+  `.downUpReveal` is `.replace.downUp.byLayer` (macOS 14+, no fallback).
+  `.wiggleByLayer` (`.wiggle.byLayer`) and `.bounceUpByLayer`
+  (`.bounce.up.byLayer`) are available on macOS 14/15+ with no version gate.
 
 **Source:** the `Mode` enum in `CursorFeedbackOverlay.swift`. `CaseIterable`
 lets the unit tests walk the whole set (see [§ 8](#8-verification)).

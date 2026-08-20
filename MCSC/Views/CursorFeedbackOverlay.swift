@@ -136,7 +136,13 @@ final class CursorFeedbackOverlay {
         // (an empty rectangle for the resize modes), so the morph below always
         // starts from a clean silhouette instead of whatever symbol previously
         // occupied the overlay.
-        let baseImage = mode.baseSymbol.flatMap { makeSymbolImage(symbolName: $0, mode: mode) }
+        let baseImage = mode.baseSymbol.flatMap {
+            SymbolImageFactory.make(
+                symbolName: $0,
+                description: mode.accessibilityDescription,
+                paletteColors: mode.basePaletteColors ?? mode.paletteColors
+            )
+        }
 
         // Set opacity synchronously instead of via an `animator()` fade-in.
         // The close/minimize action invoked right after this blocks the main
@@ -171,31 +177,35 @@ final class CursorFeedbackOverlay {
                     // Pre-macOS-26 equivalent of `fallback: .upUp.byLayer`.
                     imageView?.setSymbolImage(feedbackImage, contentTransition: .replace.upUp.byLayer, options: .nonRepeating)
                 }
+            case .magicDownUpReveal:
+                if #available(macOS 26.0, *) {
+                    imageView?.setSymbolImage(feedbackImage, contentTransition: .replace.magic(fallback: .downUp.wholeSymbol), options: .nonRepeating)
+                } else {
+                    // Pre-macOS-26 equivalent of `fallback: .downUp.wholeSymbol`.
+                    imageView?.setSymbolImage(feedbackImage, contentTransition: .replace.downUp.wholeSymbol, options: .nonRepeating)
+                }
             case .downUpReveal:
                 imageView?.setSymbolImage(feedbackImage, contentTransition: .replace.downUp.byLayer, options: .nonRepeating)
             }
         }
 
-        // Play the mode's entry animation (bounce for hide, wiggle for the tab
-        // modes) now that the panel is composited. Effects were cleared above so
-        // repeated triggers start clean from the base layer. Close and quit use a
-        // hover-style scale + alpha animation applied below instead of a symbol
-        // effect.
+        // Play the mode's entry animation (bounce for close/quit, wiggle for
+        // the tab modes) now that the panel is composited. Effects were
+        // cleared above so repeated triggers start clean from the base layer.
+        // Close and quit additionally run a hover-style scale + alpha animation
+        // applied below, on top of their bounce.
         if #available(macOS 14.0, *), let animation = mode.entryAnimation {
             switch animation {
-            case .bounce:
-                imageView?.addSymbolEffect(.bounce, options: .nonRepeating)
+            case .bounceUpByLayer:
+                imageView?.addSymbolEffect(.bounce.up.byLayer, options: .nonRepeating)
             case .wiggleByLayer:
-                if #available(macOS 26.0, *) {
-                    imageView?.addSymbolEffect(.wiggle.byLayer, options: .nonRepeating)
-                } else {
-                    imageView?.addSymbolEffect(.bounce, options: .nonRepeating)
-                }
+                imageView?.addSymbolEffect(.wiggle.byLayer, options: .nonRepeating)
             }
         }
 
-        // Hover-style scale + alpha animation for close, quit, eject and fullscreen, matching
-        // `CloseButtonView.setHovered` exactly (1.08× over 0.15s ease-out).
+        // Hover-style scale + alpha animation for close, quit, eject and fullscreen.
+        // A gentler 1.03× (vs the hover button's 1.08×): the flash panel is only
+        // symbol-sized, so a larger scale clips the glyph at the panel bounds.
         // Reset first so repeated triggers start from a clean layer, then start
         // from 0.97 alpha and animate up to full scale + opacity.
         if mode == .close || mode == .quit || mode == .eject || mode == .fullscreen, let imageView = imageView {
@@ -206,7 +216,7 @@ final class CursorFeedbackOverlay {
                 context.timingFunction = CAMediaTimingFunction(name: .easeOut)
                 context.allowsImplicitAnimation = true
                 imageView.animator().alphaValue = 1.0
-                imageView.layer?.transform = CATransform3DMakeScale(1.08, 1.08, 1.0)
+                imageView.layer?.transform = CATransform3DMakeScale(1.03, 1.03, 1.0)
             }
         }
 

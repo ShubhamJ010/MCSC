@@ -105,15 +105,15 @@ extension CursorFeedbackOverlay {
         /// which can't be fed from an `any SymbolEffect` box. The overlay's
         /// single `switch` here is the only place new animations need wiring.
         enum EntryAnimation {
-            case bounce
+            case bounceUpByLayer
             case wiggleByLayer
         }
 
         var entryAnimation: EntryAnimation? {
             switch self {
-            case .hide: return .bounce
+            case .close, .quit: return .bounceUpByLayer
             case .closeTab, .reopenTab, .closeAllTabs, .newWindow, .newTab: return .wiggleByLayer
-            case .close, .minimize, .quit, .eject, .almost, .reasonable, .maximize, .fullscreen: return nil
+            case .minimize, .hide, .eject, .almost, .reasonable, .maximize, .fullscreen: return nil
             }
         }
 
@@ -126,24 +126,46 @@ extension CursorFeedbackOverlay {
             /// `.replace.magic(fallback: .upUp.byLayer)` on macOS 26+; falls
             /// back to `.replace.upUp.byLayer` on macOS 14/15.
             case magicReveal
+            /// `.replace.magic(fallback: .downUp.wholeSymbol)` on macOS 26+;
+            /// falls back to `.replace.downUp.wholeSymbol` on macOS 14/15.
+            case magicDownUpReveal
             /// `.replace.downUp.byLayer` (macOS 14+; no OS-version fallback).
             case downUpReveal
         }
 
         var replaceTransition: ReplaceTransition? {
             switch self {
-            case .almost, .reasonable, .maximize: return .downUpReveal
-            case .close, .minimize, .quit, .hide, .eject, .closeTab, .reopenTab, .closeAllTabs, .newWindow, .newTab, .fullscreen: return nil
+            case .almost, .reasonable, .maximize, .minimize, .hide: return .downUpReveal
+            case .eject: return .magicDownUpReveal
+            case .close, .quit, .closeTab, .reopenTab, .closeAllTabs, .newWindow, .newTab, .fullscreen: return nil
+            }
+        }
+
+        /// Optional tint palette used *only* for the base symbol painted
+        /// before the replace transition. `nil` falls back to
+        /// `paletteColors`. Minimize and Hide start from a plain white glyph
+        /// so the pre-morph state reads as neutral before filling in.
+        var basePaletteColors: [NSColor]? {
+            switch self {
+            case .minimize, .hide: return [.white]
+            default: return nil
             }
         }
 
         /// Plain symbol painted *before* the replacement transition fires, so
         /// the swap-in always morphs from a stable base instead of whatever
         /// symbol previously occupied the overlay. The resize modes
-        /// (maximize / reasonable / almost) all start from an empty rectangle.
+        /// (maximize / reasonable / almost) all start from an empty rectangle;
+        /// eject starts from its plain `eject.fill` glyph.
         var baseSymbol: String? {
             switch self {
             case .almost, .reasonable, .maximize: return "rectangle"
+            case .eject: return "eject.fill"
+            // Outlined/plain glyphs that morph into their filled counterparts
+            // (minus.circle.fill / eye.slash.circle.fill) via the replace
+            // transitions above.
+            case .minimize: return "minus.circle"
+            case .hide: return "eye.slash.circle"
             default: return nil
             }
         }
