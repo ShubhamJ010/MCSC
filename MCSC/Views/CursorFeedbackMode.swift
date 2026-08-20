@@ -14,6 +14,7 @@ extension CursorFeedbackOverlay {
         case minimize
         case quit
         case hide
+        case eject
         case almost
         case reasonable
         case maximize
@@ -29,6 +30,7 @@ extension CursorFeedbackOverlay {
             case .minimize: return "minus.circle.fill"
             case .quit: return "xmark.circle.fill"
             case .hide: return "eye.slash.circle.fill"
+            case .eject: return "eject.circle.fill"
             case .almost: return "inset.filled.rectangle"
             case .reasonable: return "inset.filled.center.rectangle"
             case .maximize: return "rectangle.fill"
@@ -46,6 +48,7 @@ extension CursorFeedbackOverlay {
             case .minimize: return "Minimize Window"
             case .quit: return "Force Quit"
             case .hide: return "Hide Application"
+            case .eject: return "Eject Volume"
             case .almost: return "Almost Maximize Window"
             case .reasonable: return "Reasonable Size"
             case .maximize: return "Maximize Window"
@@ -65,6 +68,7 @@ extension CursorFeedbackOverlay {
             case .minimize: return [.black, .systemYellow]
             case .quit: return [.white, NSColor(red: 0.749, green: 0.353, blue: 0.949, alpha: 1.0)]
             case .hide: return [.black, .systemYellow]
+            case .eject: return [.white, .systemRed]
             case .almost, .reasonable:
                 // Single Accent layer (the user's system accent colour), same as Maximize.
                 return [.controlAccentColor]
@@ -101,7 +105,7 @@ extension CursorFeedbackOverlay {
             switch self {
             case .hide: return .bounce
             case .closeTab, .reopenTab, .closeAllTabs, .newWindow: return .wiggleByLayer
-            case .close, .minimize, .quit, .almost, .reasonable, .maximize: return nil
+            case .close, .minimize, .quit, .eject, .almost, .reasonable, .maximize: return nil
             }
         }
 
@@ -121,7 +125,7 @@ extension CursorFeedbackOverlay {
         var replaceTransition: ReplaceTransition? {
             switch self {
             case .almost, .reasonable, .maximize: return .downUpReveal
-            case .close, .minimize, .quit, .hide, .closeTab, .reopenTab, .closeAllTabs, .newWindow: return nil
+            case .close, .minimize, .quit, .hide, .eject, .closeTab, .reopenTab, .closeAllTabs, .newWindow: return nil
             }
         }
 

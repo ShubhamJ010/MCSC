@@ -51,25 +51,26 @@ MCSC strictly follows the **Model-View-ViewModel (MVVM)** pattern with protocol-
 ```
 
 ### 1. Models (`MCSC/Models`)
-- **Single-Responsibility Structs:** `CloseWindowAction`, `MinimizeWindowAction`, `HideApplicationAction`, `ForceQuitAction`, `CloseAppAction`, `MinimizeAppAction`, `ForceQuitAppAction`, `CloseTabAction`, `ReopenTabAction`, `CloseAllTabsAction`, `NewWindowAction`, `FillScreenAction`, `MakeLargerAction`, `ReasonableSizeAction`, `AlmostMaximizeAction`.
+- **Single-Responsibility Structs:** `CloseWindowAction`, `MinimizeWindowAction`, `HideApplicationAction`, `ForceQuitAction`, `CloseAppAction`, `MinimizeAppAction`, `ForceQuitAppAction`, `CloseTabAction`, `ReopenTabAction`, `CloseAllTabsAction`, `NewWindowAction`, `FillScreenAction`, `MakeLargerAction`, `ReasonableSizeAction`, `AlmostMaximizeAction`, `EjectVolumeAction` (closes an ejectable Finder window via `kAXCloseButtonAttribute` then ejects via `MountedVolumeService`).
 - **Mission Control Window Actions:** `MissionControlWindowActions` encapsulates window button pressing (`kAXCloseButtonAttribute`, `kAXMinimizeButtonAttribute`) and fallback activation.
 - **Pure Helpers:** `KeyboardEventPoster` (C-level Quartz event injection), `ScreenGeometry` (coordinate conversions between Quartz AX space and Cocoa screen space).
 - **Recognizers:** Gesture engines (`PinchInRecognizer`, `SwipeRecognizer`, `TwoFingerSwipeLeftRecognizer`, `TwoFingerSwipeRightRecognizer`, `TwoFingerDoubleTapRecognizer`) evaluating multitouch frames against geometric thresholds.
 
 ### 2. ViewModels (`MCSC/ViewModels`)
-- **`ShortcutViewModel`:** Lifecycle orchestrator that instantiates and connects services, manages user configuration, and coordinates overlay feedback before action execution.
-- **`ShortcutActionRouter`:** Pure router mapping keyboard events (`Cmd+W`, `Cmd+Q`, `Cmd+M`, `Cmd+H`) to concrete actions.
-- **`GestureActionRouter`:** Pure router mapping recognized multitouch gestures to actions based on target resolution (dock vs. window).
-- **`ActionRegistry`:** Container holding shared instances of all actions to eliminate runtime heap allocations.
-- **`ShortcutConfiguration`:** Pure data struct holding toggle states for all shortcuts and gestures.
+- **`ShortcutViewModel`:** Lifecycle orchestrator that instantiates and connects services, manages user configuration, and coordinates overlay feedback before action execution. Lazily owns `MountedVolumeService` and passes it to both routers.
+- **`ShortcutActionRouter`:** Pure router mapping keyboard events (`Cmd+W`, `Cmd+Q`, `Cmd+M`, `Cmd+H`) to concrete actions; `Cmd+W`/`Cmd+Q` on an ejectable Finder volume window route to `EjectVolumeAction` (`.eject` feedback) when `isAutoEjectEnabled` is true.
+- **`GestureActionRouter`:** Pure router mapping recognized multitouch gestures to actions based on target resolution (dock vs. window); pinch-in (`pinchIn`/`cmdPinchIn`) and swipe-left (`.closeTab` path) on an ejectable Finder volume window route to `EjectVolumeAction` (`.eject`).
+- **`ActionRegistry`:** Container holding shared instances of all actions to eliminate runtime heap allocations (includes `ejectVolumeAction`).
+- **`ShortcutConfiguration`:** Pure data struct holding toggle states for all shortcuts and gestures, including `isAutoEjectEnabled` (default `true`, toggled via menu bar).
 
 ### 3. Services (`MCSC/Services`)
-- **`AccessibilityServiceProtocol` / `AccessibilityService`:** Low-level wrapper for `AXUIElement` APIs with cached system-wide elements and safe CoreFoundation type checking.
+- **`AccessibilityServiceProtocol` / `AccessibilityService`:** Low-level wrapper for `AXUIElement` APIs with cached system-wide elements and safe CoreFoundation type checking. Exposes `getDocumentPath(for:)` (`kAXDocumentAttribute`) and `getWindowTitle(for:)` (`kAXTitleAttribute`) for volume-eject targeting.
 - **`EventTapServiceProtocol` / `EventTapService`:** C-level Quartz event tap (`CGEvent.tapCreate`) for intercepting keyboard shortcuts.
 - **`MissionControlServiceProtocol` / `MissionControlService`:** Dual-mode detection (Dock notifications + cached window list scans) for Mission Control activation state.
 - **`MultitouchService` & `MultitouchBridge`:** Private MultitouchSupport.framework dynamic loader and frame listener with wake/sleep lifecycle management.
 - **`MissionControlHoverServiceProtocol` / `MissionControlHoverService`:** Tracks mouse movement in Mission Control and positions hover action buttons on active window previews.
-- **`AppLogger`:** Zero-allocation logging using Apple's unified `os.Logger` framework.
+- **`MountedVolumeServiceProtocol` / `MountedVolumeService` (`Services/Volume`):** Lightweight on-demand volume detector — enumerates `FileManager.mountedVolumeURLs` with `volumeIsEjectable`/`volumeIsRemovable` and matches by document path (`/Volumes/...` prefix) or window title; ejects via `NSWorkspace.unmountAndEjectDevice(at:)` on a background queue. Zero heap allocations at idle, no persistent caches.
+- **`AppLogger`:** Zero-allocation logging using Apple's unified `os.Logger` framework (`volume` category for eject success/failure).
 
 #### Visual — System Map (Mermaid)
 
@@ -79,19 +80,21 @@ flowchart TB
       CG[Quartz CGEventTap]
       MT[Multitouch Private Framework]
       AX[AX Notifications + CGWindowList]
+      VOL[Mounted Volumes - FileManager + NSWorkspace]
     end
     CG --> ETS[EventTapService]
     MT --> MTS[MultitouchService + MultitouchBridge]
     AX --> ACS[AccessibilityService]
     AX --> MCS[MissionControlService]
-    ETS & MTS & ACS & MCS --> VM[ShortcutViewModel]
+    VOL --> MVS[MountedVolumeService]
+    ETS & MTS & ACS & MCS & MVS --> VM[ShortcutViewModel]
     VM --> SR[ShortcutActionRouter]
     VM --> GR[GestureActionRouter]
     VM --> GE[GestureEngine - 5 recognizers]
     VM --> HS[HoverService]
     VM --> CF[CursorFeedbackOverlay]
     SR & GR --> REG[ActionRegistry]
-    REG --> WA[Window/App/Tab/Tiling Actions]
+    REG --> WA[Window/App/Tab/Tiling/Volume Actions]
     HS --> PCO[PreviewCloseButtonOverlay]
     CF --> SF[SymbolImageFactory]
 ```

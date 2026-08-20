@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1 (20 Aug 2026)
+
+- **Mounted Volume Auto-Eject Enhancement**: When pressing `Cmd+W` or `Cmd+Q` (or using pinch-in/swipe-left gestures) on a Finder window showing an ejectable volume (e.g. DMG installers) in Mission Control, MCSC automatically closes the window and unmounts/ejects the volume.
+- **Eject Feedback Overlay**: Flashes `eject.circle.fill` with Red 100% primary tint (`[.white, .systemRed]` palette) and the same hover-style scale + alpha animation (1.08× scale over 0.15s ease-out) at the cursor position.
+- **Menu Bar Toggle**: Added "Auto-Eject Mounted Volumes" toggle to status bar menu.
+
 ## 0.4.0-beta (18 Aug 2026)
 
 - **Cmd+W Multi-Window Targeting Fix**: `CloseTabAction`/`CloseTabAppAction` now close the hovered window's active tab reliably in Mission Control. `findActiveTabCloseButton` recursively descends the AX tree (bounded depth, skipping `AXWebArea`) to locate the `AXTabGroup`/`AXRadioButton` close button — fixing browsers whose tab strip is nested under an `AXGroup` (e.g. Chrome) rather than a direct window child, which previously forced the unreliable ⌘W fallback. When no accessible tab button exists, the ⌘W fallback now focuses the hovered window first via `kAXFocusedAttribute` (best-effort). Browsers with non-standard tab UIs (Zen, Dia) or limited AX exposure (Safari) still fall back to the ⌘W path.

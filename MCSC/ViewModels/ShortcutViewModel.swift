@@ -29,6 +29,7 @@ final class ShortcutViewModel {
     }()
 
     private lazy var cursorFeedback = CursorFeedbackOverlay()
+    private lazy var volumeService: MountedVolumeServiceProtocol = MountedVolumeService()
 
     private let actionRegistry = ActionRegistry()
     private lazy var shortcutRouter = ShortcutActionRouter(actions: actionRegistry)
@@ -43,6 +44,7 @@ final class ShortcutViewModel {
     var isCmdHEnabled: Bool { get { config.isCmdHEnabled } set { config.isCmdHEnabled = newValue } }
     var isCmdFEnabled: Bool { get { config.isCmdFEnabled } set { config.isCmdFEnabled = newValue } }
     var isCmdSpaceEnabled: Bool { get { config.isCmdSpaceEnabled } set { config.isCmdSpaceEnabled = newValue } }
+    var isAutoEjectEnabled: Bool { get { config.isAutoEjectEnabled } set { config.isAutoEjectEnabled = newValue } }
     var isGesturesEnabled: Bool { get { config.isGesturesEnabled } set { config.isGesturesEnabled = newValue } }
     var isPinchInEnabled: Bool { get { config.isPinchInEnabled } set { config.isPinchInEnabled = newValue } }
     var isSwipeLeftEnabled: Bool { get { config.isSwipeLeftEnabled } set { config.isSwipeLeftEnabled = newValue } }
@@ -118,6 +120,7 @@ final class ShortcutViewModel {
                 isMissionControlActive: self.missionControlService.isMissionControlActive,
                 target: target,
                 service: self.accessibilityService,
+                volumeService: self.volumeService,
                 activateApp: { [weak self] loc in self?.activateAppIfNeeded(at: loc) }
             )
 
@@ -184,6 +187,8 @@ final class ShortcutViewModel {
                 at: axPoint,
                 target: target,
                 service: self.accessibilityService,
+                volumeService: self.volumeService,
+                isAutoEjectEnabled: self.config.isAutoEjectEnabled,
                 activateApp: { [weak self] loc in self?.activateAppIfNeeded(at: loc) }
             )
 

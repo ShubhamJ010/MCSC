@@ -13,6 +13,8 @@ class MockAccessibilityService: AccessibilityServiceProtocol {
     var focusWindowReturnValue: Bool = true
     var mockFocusedWindow: AXUIElement?
     var mockTabCloseButton: AXUIElement?
+    var mockDocumentPath: String?
+    var mockWindowTitle: String?
 
     func getElement(at point: CGPoint) -> AXUIElement? {
         getElementCalledWith = point
@@ -63,5 +65,13 @@ class MockAccessibilityService: AccessibilityServiceProtocol {
     func focusWindow(_ window: AXUIElement) -> Bool {
         focusWindowCalledWith = window
         return focusWindowReturnValue
+    }
+
+    func getDocumentPath(for window: AXUIElement) -> String? {
+        return mockDocumentPath
+    }
+
+    func getWindowTitle(for window: AXUIElement) -> String? {
+        return mockWindowTitle
     }
 }

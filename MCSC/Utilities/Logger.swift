@@ -11,4 +11,5 @@ enum AppLogger {
     static let multitouch = Logger(subsystem: subsystem, category: "multitouch")
     static let accessibility = Logger(subsystem: subsystem, category: "accessibility")
     static let eventTap = Logger(subsystem: subsystem, category: "eventTap")
+    static let volume = Logger(subsystem: subsystem, category: "volume")
 }

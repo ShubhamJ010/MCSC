@@ -108,6 +108,28 @@ screen and resize) only act on a window target and do nothing over the Dock.
 
 > Details: `GestureActionRouter.swift:24-171` — `swipeDown`/`doubleTap` return `.none` for Dock.
 
+### Mounted volume auto-eject (pinch-in / swipe-left on ejectable Finder volumes)
+
+The same volume auto-eject described in [SHORTCUTS.md](./SHORTCUTS.md) also applies to gestures.
+When the cursor is over a **Finder window showing an ejectable/removable volume** and
+`Auto-Eject Mounted Volumes` is enabled, these gestures eject instead of their normal action:
+
+| Gesture | Normal action | Eject action on Finder volume window |
+|---|---|---|
+| Pinch in | Close window / quit app (`.close`) | Close Finder window + eject volume (`.eject` / `eject.circle.fill`) |
+| `Cmd` + pinch in | Force quit app (`.quit`) | Close Finder window + eject volume (`.eject`) |
+| Two-finger swipe left | Close active tab (`.closeTab`) | Close Finder window + eject volume (`.eject`) |
+
+- **Detection/routing:** `GestureActionRouter.routeGesture(... volumeService:isAutoEjectEnabled:)` checks
+  `isAutoEjectEnabled && volumeService.ejectableVolumePath(forDocumentPath:windowTitle:) != nil`
+  for the `.window` target before falling through to the standard close/quit/closeTab path.
+  Finder-only (`bundleIdentifier == "com.apple.finder"`); Dock targets never eject.
+- **Feedback/haptics:** `.eject` uses `eject.circle.fill` with White + systemRed palette and the
+  hover-style scale (1.08× / 0.15 s ease-out) animation — same as `CursorFeedbackOverlay`'s close/quit
+  flash. Haptic preserves the original gesture's (`pinchIn` or `swipeLeft`).
+- **Ejection:** `EjectVolumeAction` → `MountedVolumeService.ejectVolume(at:)` (`NSWorkspace.unmountAndEjectDevice`).
+  See [SHORTCUTS.md](./SHORTCUTS.md) for the full detection and toggle details.
+
 | Recognizer | File |
 |------------|------|
 | `PinchInRecognizer` | `PinchInRecognizer.swift` |
@@ -141,6 +163,7 @@ Accessibility actions and the same feedback-symbol system described in
 - Raw multitouch input: `../MCSC/Services/MultitouchService.swift`,
   `../MCSC/Services/MultitouchBridge.swift`
 - Gesture-to-action mapping and target resolution:
-  `../MCSC/ViewModels/ShortcutViewModel.swift`
-- Action implementations: `../MCSC/Models/ShortcutActions.swift`
+  `../MCSC/ViewModels/ShortcutViewModel.swift` + `../MCSC/ViewModels/Routing/GestureActionRouter.swift` (eject branch + `volumeService`)
+- Action implementations: `../MCSC/Models/ShortcutActions.swift` + `../MCSC/Models/Actions/VolumeActions.swift` (`EjectVolumeAction`)
+- Mounted volume detection/ejection: `../MCSC/Services/Volume/MountedVolumeService.swift`
 - Haptics: `../MCSC/Services/HapticService.swift`

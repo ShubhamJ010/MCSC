@@ -24,16 +24,17 @@ MCSC renders symbols in two distinct places, both data-driven:
 
 ## 1. Cursor feedback symbols — `CursorFeedbackOverlay.Mode`
 
-There are **11** modes. Each mode is a small data descriptor: SF Symbol name,
+There are **12** modes. Each mode is a small data descriptor: SF Symbol name,
 accessibility label, tint palette, optional entry animation, and optional
 replacement transition.
 
 | Mode | SF Symbol | Accessibility label | Palette | Entry animation | Replace transition |
 |---|---|---|---|---|---|
-| `.close` | `xmark.circle.fill` | Close Window | System multicolor (red X) | — | — |
+| `.close` | `xmark.circle.fill` | Close Window | System multicolor (red X) | hover-style scale-up + fade-in\* | — |
 | `.minimize` | `minus.circle.fill` | Minimize Window | Black + system yellow | — | — |
 | `.quit` | `xmark.circle.fill` | Force Quit | Black → purple gradient | hover-style scale-up + fade-in\* | — |
 | `.hide` | `eye.slash.circle.fill` | Hide Application | Black + system blue + clear | `.bounce` | — |
+| `.eject` | `eject.circle.fill` | Eject Volume | White + systemRed (`[.white, .systemRed]`) | hover-style scale-up + fade-in\* | — |
 | `.almost` | `inset.filled.rectangle` | Almost Maximize Window | Accent (`controlAccentColor`) | — | `.downUpReveal` |
 | `.reasonable` | `inset.filled.center.rectangle` | Reasonable Size | Accent (`controlAccentColor`) | — | `.downUpReveal` |
 | `.maximize` | `rectangle.fill` | Maximize Window | Accent (`controlAccentColor`) | — | `.downUpReveal` |
@@ -43,9 +44,10 @@ replacement transition.
 | `.newWindow` | `rectangle.badge.plus` | New Window | System green | `.wiggleByLayer`\* | — |
 
 \* `.wiggleByLayer` is macOS 26+ only; macOS 14/15 fall back to `.bounce`.
-\* `.quit`'s "hover-style scale-up + fade-in" is not a symbol effect; it is the
+\* "hover-style scale-up + fade-in" is not a symbol effect; it is the
   same `NSAnimationContext` scale (1.08×) + alpha (0.97 → 1.0) over 0.15 s
-  ease-out used by `CloseButtonView.setHovered`, applied on entry.
+  ease-out used by `CloseButtonView.setHovered`, applied on entry — used by
+  `.close`, `.quit`, and `.eject` (`CursorFeedbackOverlay.swift:197`).
 
 **Source:** the `Mode` enum in `CursorFeedbackOverlay.swift`. `CaseIterable`
 lets the unit tests walk the whole set (see [§ 8](#8-verification)).
@@ -78,12 +80,17 @@ Feedback mode = the symbol shown at the cursor when the trigger fires.
 | Trigger | Feedback mode | SF Symbol | Action performed |
 |---|---|---|---|
 | `Cmd + W` | `.close` | `xmark.circle.fill` | Close tab (window) / close tab in app (Dock) |
+| `Cmd + W` on ejectable Finder volume window\* | `.eject` | `eject.circle.fill` | Close Finder window + eject volume |
 | `Cmd + Q` | `.quit` | `xmark.circle.fill` | Force quit app |
+| `Cmd + Q` on ejectable Finder volume window\* | `.eject` | `eject.circle.fill` | Close Finder window + eject volume |
 | `Cmd + M` | `.minimize` | `minus.circle.fill` | Minimize window |
 | `Cmd + H` | `.hide` | `eye.slash.circle.fill` | Hide app |
 | Pinch-in | `.close` | `xmark.circle.fill` | Close window / quit app |
+| Pinch-in on ejectable Finder volume window\* | `.eject` | `eject.circle.fill` | Close Finder window + eject volume |
 | `Cmd + Pinch-in` | `.quit` | `xmark.circle.fill` | Force quit app |
+| `Cmd + Pinch-in` on ejectable Finder volume window\* | `.eject` | `eject.circle.fill` | Close Finder window + eject volume |
 | Two-finger swipe left | `.closeTab` | `xmark.rectangle.fill` | Close tab |
+| Swipe left on ejectable Finder volume window\* | `.eject` | `eject.circle.fill` | Close Finder window + eject volume |
 | `Cmd + swipe left` | `.closeAllTabs` | `rectangle.badge.xmark` | Close all tabs |
 | Two-finger swipe right | `.reopenTab` | `plus.rectangle.fill` | Reopen closed tab |
 | `Cmd + swipe right` | `.newWindow` | `rectangle.badge.plus` | New window |
@@ -94,14 +101,19 @@ Feedback mode = the symbol shown at the cursor when the trigger fires.
 | Two-finger double tap | `.reasonable` | `inset.filled.center.rectangle` | Reasonable size (60 %) |
 | `Cmd + double tap` | `.almost` | `inset.filled.rectangle` | Almost maximize (90 %) |
 
+\* Eject applies only to Finder windows showing an ejectable/removable volume
+(`MountedVolumeService.ejectableVolumePath != nil`, `bundleIdentifier == "com.apple.finder"`)
+and only when `ShortcutConfiguration.isAutoEjectEnabled` is `true` (menu bar toggle, default on).
+When disabled, those triggers fall through to their normal `.close`/`.quit`/`.closeTab` feedback.
+
 **Source:** `ShortcutViewModel` (key-down and gesture paths in
-`../MCSC/ViewModels/ShortcutViewModel.swift`).
+`../MCSC/ViewModels/ShortcutViewModel.swift`) + `ShortcutActionRouter` / `GestureActionRouter` eject branches + `MountedVolumeService` + `EjectVolumeAction`.
 
 #### Visual — Overlays
 
 ```mermaid
 flowchart LR
-  Trig[Triggers] --> Mode[11 Modes]
+  Trig[Triggers] --> Mode[12 Modes]
   Mode --> Cursor[Cursor flash 0.6s]
   Mode -.-> Hover[Hover 3 Modes]
 ```

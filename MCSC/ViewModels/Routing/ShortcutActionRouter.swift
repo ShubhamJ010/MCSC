@@ -35,6 +35,7 @@ final class ShortcutActionRouter {
         isMissionControlActive: Bool,
         target: TargetResolution,
         service: AccessibilityServiceProtocol,
+        volumeService: MountedVolumeServiceProtocol? = nil,
         activateApp: @escaping (CGPoint) -> Void
     ) -> ResolvedShortcutAction {
         let isCmdPressed = flags.contains(.maskCommand)
@@ -56,6 +57,30 @@ final class ShortcutActionRouter {
             app = resolvedApp
         case .window, .none:
             app = nil
+        }
+
+        // Mounted volume auto-eject enhancement:
+        // If Cmd+W or Cmd+Q is triggered on a Finder window showing an ejectable/mounted volume,
+        // close the window and eject the volume with eject.circle.fill feedback.
+        if config.isAutoEjectEnabled,
+           case .window(let window) = target,
+           let volumeService = volumeService,
+           (keyCode == Self.kKeyW && config.isCmdWEnabled) || (keyCode == Self.kKeyQ && config.isCmdQEnabled),
+           let targetApp = service.getAppFromElement(window),
+           targetApp.bundleIdentifier == "com.apple.finder",
+           let mountPath = volumeService.ejectableVolumePath(
+               forDocumentPath: service.getDocumentPath(for: window),
+               windowTitle: service.getWindowTitle(for: window)
+           ) {
+            return .consumeAndExecute(feedbackMode: .eject) { [weak self] in
+                guard let self = self else { return }
+                self.actions.ejectVolumeAction.perform(
+                    window: window,
+                    mountPath: mountPath,
+                    service: service,
+                    volumeService: volumeService
+                )
+            }
         }
 
         if keyCode == Self.kKeyW && config.isCmdWEnabled {

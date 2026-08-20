@@ -19,6 +19,8 @@ final class GestureActionRouter {
         at point: CGPoint,
         target: TargetResolution,
         service: AccessibilityServiceProtocol,
+        volumeService: MountedVolumeServiceProtocol? = nil,
+        isAutoEjectEnabled: Bool = true,
         activateApp: @escaping (CGPoint) -> Void
     ) -> ResolvedGestureAction {
         switch result {
@@ -28,7 +30,24 @@ final class GestureActionRouter {
                 return .execute(feedbackMode: .close, haptic: .pinchIn) { [weak self] in
                     self?.actions.closeAppAction.perform(app: app, service: service)
                 }
-            case .window:
+            case .window(let window):
+                if isAutoEjectEnabled,
+                   let volumeService = volumeService,
+                   let targetApp = service.getAppFromElement(window),
+                   targetApp.bundleIdentifier == "com.apple.finder",
+                   let mountPath = volumeService.ejectableVolumePath(
+                       forDocumentPath: service.getDocumentPath(for: window),
+                       windowTitle: service.getWindowTitle(for: window)
+                   ) {
+                    return .execute(feedbackMode: .eject, haptic: .pinchIn) { [weak self] in
+                        self?.actions.ejectVolumeAction.perform(
+                            window: window,
+                            mountPath: mountPath,
+                            service: service,
+                            volumeService: volumeService
+                        )
+                    }
+                }
                 return .execute(feedbackMode: .close, haptic: .pinchIn) { [weak self] in
                     self?.actions.closeAction.perform(at: point, service: service)
                 }
@@ -42,7 +61,24 @@ final class GestureActionRouter {
                 return .execute(feedbackMode: .quit, haptic: .pinchIn) { [weak self] in
                     self?.actions.forceQuitAppAction.perform(app: app)
                 }
-            case .window:
+            case .window(let window):
+                if isAutoEjectEnabled,
+                   let volumeService = volumeService,
+                   let targetApp = service.getAppFromElement(window),
+                   targetApp.bundleIdentifier == "com.apple.finder",
+                   let mountPath = volumeService.ejectableVolumePath(
+                       forDocumentPath: service.getDocumentPath(for: window),
+                       windowTitle: service.getWindowTitle(for: window)
+                   ) {
+                    return .execute(feedbackMode: .eject, haptic: .pinchIn) { [weak self] in
+                        self?.actions.ejectVolumeAction.perform(
+                            window: window,
+                            mountPath: mountPath,
+                            service: service,
+                            volumeService: volumeService
+                        )
+                    }
+                }
                 return .execute(feedbackMode: .quit, haptic: .pinchIn) { [weak self] in
                     self?.actions.forceQuitAction.perform(at: point, service: service)
                 }
@@ -57,7 +93,24 @@ final class GestureActionRouter {
                     activateApp(point)
                     self?.actions.closeTabAppAction.perform(app: app, service: service)
                 }
-            case .window:
+            case .window(let window):
+                if isAutoEjectEnabled,
+                   let volumeService = volumeService,
+                   let targetApp = service.getAppFromElement(window),
+                   targetApp.bundleIdentifier == "com.apple.finder",
+                   let mountPath = volumeService.ejectableVolumePath(
+                       forDocumentPath: service.getDocumentPath(for: window),
+                       windowTitle: service.getWindowTitle(for: window)
+                   ) {
+                    return .execute(feedbackMode: .eject, haptic: .swipeLeft) { [weak self] in
+                        self?.actions.ejectVolumeAction.perform(
+                            window: window,
+                            mountPath: mountPath,
+                            service: service,
+                            volumeService: volumeService
+                        )
+                    }
+                }
                 return .execute(feedbackMode: .closeTab, haptic: .swipeLeft) { [weak self] in
                     activateApp(point)
                     self?.actions.closeTabAction.perform(at: point, service: service)

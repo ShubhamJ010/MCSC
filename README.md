@@ -35,9 +35,9 @@ tries to replicate.
 
 - **Global keyboard shortcuts** — `Cmd + W`, `Cmd + Q`, `Cmd + M`, `Cmd + H`,
   a `Cmd + Space` recovery sequence, and a clickable hover button on each window
-  preview. See [SHORTCUTS.md](./docs/SHORTCUTS.md).
+  preview. `Cmd+W`/`Cmd+Q` (and pinch-in / swipe-left) on an ejectable Finder volume window auto-close and eject the volume. See [SHORTCUTS.md](./docs/SHORTCUTS.md).
 - **Trackpad gestures** — pinch, directional swipes, and a two-finger double
-  tap, each with a `Command` variant. See [GESTURES.md](./docs/GESTURES.md).
+  tap, each with a `Command` variant (pinch-in / swipe-left on ejectable Finder volumes auto-eject). See [GESTURES.md](./docs/GESTURES.md).
 - **Mission Control scoping** — window-layer detection that activates the app
   only inside Mission Control, with a recovery sequence for stuck states.
   See [MISSION_CONTROL.md](./docs/MISSION_CONTROL.md).
@@ -90,8 +90,8 @@ actions below.
 
 | Shortcut | Action |
 | --- | --- |
-| `Cmd + W` | Close window / active tab |
-| `Cmd + Q` | Force quit app |
+| `Cmd + W` | Close window / active tab (ejectable Finder volume → close + eject) |
+| `Cmd + Q` | Force quit app (ejectable Finder volume window → close + eject) |
 | `Cmd + M` | Minimize window |
 | `Cmd + H` | Hide app |
 | `Cmd + Space` | Recover a stuck Mission Control / Spotlight state |
@@ -100,8 +100,8 @@ actions below.
 
 | Gesture | Action | `Cmd` + gesture |
 | --- | --- | --- |
-| Pinch in | Close window / quit app | Force quit app |
-| Swipe left | Close active tab | Close all tabs |
+| Pinch in | Close window / quit app (ejectable Finder volume → eject) | Force quit app (ejectable Finder volume → eject) |
+| Swipe left | Close active tab (ejectable Finder volume → eject) | Close all tabs |
 | Swipe right | Reopen closed tab | New window |
 | Swipe up | Minimize window | Hide app |
 | Swipe down | Fill screen | Make larger (+33%) |

@@ -51,6 +51,29 @@ icon) to act on the whole app.
 > `Cmd + Q` and the Dock-target actions perform a **force** termination. They
 > skip the normal quit handshake, so unsaved work in the targeted app is lost.
 
+### Mounted volume auto-eject (`Cmd + W` / `Cmd + Q` on ejectable Finder volumes)
+
+When the cursor targets a **Finder window that shows an ejectable/removable volume**
+(e.g. a mounted DMG installer under `/Volumes`) in Mission Control, `Cmd + W` and
+`Cmd + Q` automatically **close the Finder window and eject the volume** instead of
+their normal close/quit action. This is intended for quickly dismissing installer
+disks.
+
+- **Detection:** via `MountedVolumeService.ejectableVolumePath(forDocumentPath:windowTitle:)` —
+  reads `kAXDocumentAttribute` (file URL or `/Volumes/...` path) and `kAXTitleAttribute`
+  from the window (`AccessibilityService.getDocumentPath` / `getWindowTitle`), then
+  matches against `FileManager.mountedVolumeURLs` filtered by `volumeIsEjectable` /
+  `volumeIsRemovable`. Finder-only (`bundleIdentifier == "com.apple.finder"`).
+- **Action:** `EjectVolumeAction` presses the window's `kAXCloseButton` (best-effort)
+  then calls `MountedVolumeService.ejectVolume(at:)` which runs `NSWorkspace.shared.unmountAndEjectDevice(at:)` off the main queue.
+- **Feedback:** flashes `eject.circle.fill` at the cursor — White + systemRed palette
+  (`[.white, .systemRed]`) with the same hover-style scale (1.08× over 0.15 s ease-out)
+  and alpha animation used for close/quit (`CursorFeedbackOverlay.swift:197`).
+- **Toggle:** menu bar **Auto-Eject Mounted Volumes** (`ShortcutConfiguration.isAutoEjectEnabled`, default `true`)
+  — when disabled, `Cmd+W`/`Cmd+Q` fall through to their normal `.close`/`.quit` paths.
+  The same eject check also applies to pinch-in / swipe-left gestures (see [GESTURES.md](./GESTURES.md)).
+- **Scopes:** window targets only; Dock-target `Cmd+W`/`Cmd+Q` and non-Finder windows are unaffected.
+
 ### Mission Control recovery (`Cmd + Space`)
 
 While Mission Control is open, pressing `Cmd + Space` does not open Spotlight.
@@ -94,9 +117,12 @@ does not dismiss prematurely, plays a haptic, and runs the selected action.
 ## Source references
 
 - Key handling and shortcut-to-action mapping:
-  `../MCSC/ViewModels/ShortcutViewModel.swift`
+  `../MCSC/ViewModels/ShortcutViewModel.swift` + `../MCSC/ViewModels/Routing/ShortcutActionRouter.swift` (eject branch + `volumeService`)
 - Window- and app-level action implementations:
-  `../MCSC/Models/ShortcutActions.swift`
+  `../MCSC/Models/ShortcutActions.swift` + `../MCSC/Models/Actions/VolumeActions.swift` (`EjectVolumeAction`)
+- Mounted volume detection/ejection: `../MCSC/Services/Volume/MountedVolumeService.swift` (`MountedVolumeService`, `NSWorkspace.unmountAndEjectDevice`)
+- Accessibility document/title helpers: `../MCSC/Services/Accessibility/AccessibilityService.swift` (`getDocumentPath`, `getWindowTitle`)
+- Menu bar toggle: `../MCSC/App/AppDelegate.swift` (`Auto-Eject Mounted Volumes` → `ShortcutConfiguration.isAutoEjectEnabled`)
 - Hover overlay, modifier precedence, and click handling:
   `../MCSC/Services/MissionControlHoverService.swift`
 - Low-level key interception: `../MCSC/Services/EventTapService.swift`

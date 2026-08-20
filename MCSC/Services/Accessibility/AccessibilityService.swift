@@ -48,6 +48,12 @@ protocol AccessibilityServiceProtocol {
 
     /// Resolves the `NSRunningApplication` that owns `element` via its PID.
     func getAppFromElement(_ element: AXUIElement) -> NSRunningApplication?
+
+    /// Reads the document file path for `window` if exposed via `kAXDocumentAttribute`.
+    func getDocumentPath(for window: AXUIElement) -> String?
+
+    /// Reads the window title if exposed via `kAXTitleAttribute`.
+    func getWindowTitle(for window: AXUIElement) -> String?
 }
 
 final class AccessibilityService: AccessibilityServiceProtocol {
@@ -299,5 +305,21 @@ final class AccessibilityService: AccessibilityServiceProtocol {
         let sizeResult = AXUIElementSetAttributeValue(element, kAXSizeAttribute as CFString, sizeValue)
 
         return posResult == .success && sizeResult == .success
+    }
+
+    func getDocumentPath(for window: AXUIElement) -> String? {
+        if let doc: String = getAttributeValue(kAXDocumentAttribute, for: window) {
+            if let url = URL(string: doc), url.isFileURL {
+                return url.path
+            }
+            if doc.hasPrefix("/") {
+                return doc
+            }
+        }
+        return nil
+    }
+
+    func getWindowTitle(for window: AXUIElement) -> String? {
+        getAttributeValue(kAXTitleAttribute, for: window)
     }
 }

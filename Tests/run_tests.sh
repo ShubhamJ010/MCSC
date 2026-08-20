@@ -19,6 +19,7 @@ swiftc \
   "${ROOT_DIR}/MCSC/Services/Multitouch/MultitouchService.swift" \
   "${ROOT_DIR}/MCSC/Services/Multitouch/MultitouchBridge.swift" \
   "${ROOT_DIR}/MCSC/Services/Accessibility/AccessibilityService.swift" \
+  "${ROOT_DIR}/MCSC/Services/Volume/MountedVolumeService.swift" \
   "${ROOT_DIR}/MCSC/Services/Haptics/HapticService.swift" \
   "${ROOT_DIR}/MCSC/Services/MissionControl/MissionControlHoverService.swift" \
   "${ROOT_DIR}/MCSC/Views/PreviewCloseButtonOverlay.swift" \
@@ -36,6 +37,7 @@ swiftc \
   "${ROOT_DIR}/MCSC/Models/Gestures/TwoFingerDoubleTapRecognizer.swift" \
   "${ROOT_DIR}/MCSC/Models/Actions/ShortcutAction.swift" \
   "${ROOT_DIR}/MCSC/Models/Actions/WindowActions.swift" \
+  "${ROOT_DIR}/MCSC/Models/Actions/VolumeActions.swift" \
   "${ROOT_DIR}/MCSC/Models/Actions/AppActions.swift" \
   "${ROOT_DIR}/MCSC/Models/Actions/TabActions.swift" \
   "${ROOT_DIR}/MCSC/Models/Actions/TilingActions.swift" \

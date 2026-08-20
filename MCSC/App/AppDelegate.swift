@@ -149,6 +149,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let hoverCloseButtonItem = NSMenuItem(title: "Hover Close Button", action: #selector(toggleHoverCloseButton), keyEquivalent: "")
         hoverCloseButtonItem.state = (viewModel?.isHoverCloseButtonEnabled ?? true) ? .on : .off
         menu.addItem(hoverCloseButtonItem)
+
+        let autoEjectItem = NSMenuItem(title: "Auto-Eject Mounted Volumes", action: #selector(toggleAutoEject), keyEquivalent: "")
+        autoEjectItem.state = (viewModel?.isAutoEjectEnabled ?? true) ? .on : .off
+        menu.addItem(autoEjectItem)
         
         menu.addItem(NSMenuItem.separator())
         
@@ -175,8 +179,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func toggleSwipeUp(_ sender: NSMenuItem) { handleToggle(sender, key: .swipeUp) }
     @objc private func toggleTwoFingerDoubleTap(_ sender: NSMenuItem) { handleToggle(sender, key: .twoFingerDoubleTap) }
     @objc private func toggleHoverCloseButton(_ sender: NSMenuItem) { handleToggle(sender, key: .hoverCloseButton) }
+    @objc private func toggleAutoEject(_ sender: NSMenuItem) { handleToggle(sender, key: .autoEject) }
 
-    private enum ShortcutKey { case cmdW, cmdQ, cmdM, cmdH, cmdSpace, gestures, pinchIn, swipeLeft, swipeRight, swipeDown, swipeUp, twoFingerDoubleTap, hoverCloseButton }
+    private enum ShortcutKey { case cmdW, cmdQ, cmdM, cmdH, cmdSpace, gestures, pinchIn, swipeLeft, swipeRight, swipeDown, swipeUp, twoFingerDoubleTap, hoverCloseButton, autoEject }
 
     private func handleToggle(_ sender: NSMenuItem, key: ShortcutKey) {
         guard let viewModel = viewModel else { return }
@@ -194,6 +199,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .swipeUp: viewModel.isSwipeUpEnabled.toggle(); sender.state = viewModel.isSwipeUpEnabled ? .on : .off
         case .twoFingerDoubleTap: viewModel.isTwoFingerDoubleTapEnabled.toggle(); sender.state = viewModel.isTwoFingerDoubleTapEnabled ? .on : .off
         case .hoverCloseButton: viewModel.isHoverCloseButtonEnabled.toggle(); sender.state = viewModel.isHoverCloseButtonEnabled ? .on : .off
+        case .autoEject: viewModel.isAutoEjectEnabled.toggle(); sender.state = viewModel.isAutoEjectEnabled ? .on : .off
         }
     }
     

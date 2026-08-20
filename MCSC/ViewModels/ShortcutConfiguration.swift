@@ -15,4 +15,5 @@ struct ShortcutConfiguration {
     var isSwipeDownEnabled = true
     var isSwipeUpEnabled = true
     var isTwoFingerDoubleTapEnabled = true
+    var isAutoEjectEnabled = true
 }
