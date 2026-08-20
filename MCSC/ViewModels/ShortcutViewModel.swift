@@ -33,6 +33,22 @@ final class ShortcutViewModel {
 
     private lazy var cursorFeedback = CursorFeedbackOverlay()
     private lazy var volumeService: MountedVolumeServiceProtocol = MountedVolumeService()
+    /// Lazily-created event tap that swallows App Exposé / context-menu
+    /// triggers (smartMagnify, synthesized clicks) while gestures or
+    /// double-taps are aimed at Dock icons outside Mission Control.
+    /// Providers use `[weak self]` so the suppressor never keeps the VM alive.
+    private lazy var dockSuppressor: DockInteractionSuppressorProtocol = {
+        let suppressor = DockInteractionSuppressor()
+        suppressor.isDockHoveredProvider = { [weak self] point in
+            guard let self = self else { return false }
+            return self.accessibilityService.isDockRegion(at: point)
+        }
+        suppressor.isEnabledProvider = { [weak self] in
+            guard let self = self else { return false }
+            return !self.missionControlService.isMissionControlActive && self.config.isDockActionsOutsideMCEnabled
+        }
+        return suppressor
+    }()
 
     private let actionRegistry = ActionRegistry()
     private lazy var shortcutRouter = ShortcutActionRouter(actions: actionRegistry)
@@ -48,6 +64,7 @@ final class ShortcutViewModel {
     var isCmdFEnabled: Bool { get { config.isCmdFEnabled } set { config.isCmdFEnabled = newValue } }
     var isCmdSpaceEnabled: Bool { get { config.isCmdSpaceEnabled } set { config.isCmdSpaceEnabled = newValue } }
     var isAutoEjectEnabled: Bool { get { config.isAutoEjectEnabled } set { config.isAutoEjectEnabled = newValue } }
+    var isDockActionsOutsideMCEnabled: Bool { get { config.isDockActionsOutsideMCEnabled } set { config.isDockActionsOutsideMCEnabled = newValue } }
     var isGesturesEnabled: Bool { get { config.isGesturesEnabled } set { config.isGesturesEnabled = newValue } }
     var isPinchInEnabled: Bool { get { config.isPinchInEnabled } set { config.isPinchInEnabled = newValue } }
     var isPinchOutEnabled: Bool { get { config.isPinchOutEnabled } set { config.isPinchOutEnabled = newValue } }
@@ -116,11 +133,12 @@ final class ShortcutViewModel {
                 }
             }
 
-            let target = self.resolveTarget(at: location)
+            let effectiveLocation = (location == .zero) ? self.currentAXMouseLocation() : location
+            let target = self.resolveTarget(at: effectiveLocation)
             let resolution = self.shortcutRouter.routeShortcut(
                 keyCode: keyCode,
                 flags: flags,
-                location: location,
+                location: effectiveLocation,
                 config: self.config,
                 isMissionControlActive: self.missionControlService.isMissionControlActive,
                 target: target,
@@ -131,7 +149,7 @@ final class ShortcutViewModel {
 
             switch resolution {
             case .consumeAndExecute(let feedbackMode, let action):
-                self.executeFeedbackThenAction(at: location, feedbackMode: feedbackMode, haptic: nil, action: action)
+                self.executeFeedbackThenAction(at: effectiveLocation, feedbackMode: feedbackMode, haptic: nil, action: action)
                 return true
             case .ignore:
                 return false
@@ -178,18 +196,27 @@ final class ShortcutViewModel {
         multitouchService.onFrame = { [weak self] touches, timestamp in
             guard let self = self,
                   self.config.isGesturesEnabled,
-                  !self.isCoolingDown,
-                  self.missionControlService.isMissionControlActive else { return }
+                  !self.isCoolingDown else { return }
+
+            let mcActive = self.missionControlService.isMissionControlActive
+            let dockHovered = !mcActive
+                && self.config.isDockActionsOutsideMCEnabled
+                && self.isDockHovered()
+
+            if dockHovered {
+                self.dockSuppressor.isSuppressing = (touches.count >= 2)
+            } else if !mcActive {
+                self.dockSuppressor.isSuppressing = false
+            }
+
+            guard mcActive || dockHovered else { return }
             self.gestureEngine.processFrame(touches, timestamp: timestamp)
         }
 
         // GestureEngine -> Actions
         gestureEngine.onGestureRecognized = { [weak self] result in
             guard let self = self else { return }
-            let mouseLocation = NSEvent.mouseLocation
-            // Convert Cocoa bottom-left mouse position to AX top-left coordinates
-            let primaryHeight = ScreenGeometry.primaryScreenHeight
-            let axPoint = CGPoint(x: mouseLocation.x, y: primaryHeight - mouseLocation.y)
+            let axPoint = self.currentAXMouseLocation()
 
             let target = self.resolveTarget(at: axPoint)
             let resolution = self.gestureRouter.routeGesture(
@@ -204,6 +231,12 @@ final class ShortcutViewModel {
 
             switch resolution {
             case .execute(let feedbackMode, let haptic, let action):
+                if !self.missionControlService.isMissionControlActive && self.config.isDockActionsOutsideMCEnabled {
+                    self.dockSuppressor.isSuppressing = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+                        self?.dockSuppressor.isSuppressing = false
+                    }
+                }
                 self.executeFeedbackThenAction(at: axPoint, feedbackMode: feedbackMode, haptic: haptic, action: action)
             case .none:
                 break
@@ -232,6 +265,25 @@ final class ShortcutViewModel {
     }
 
     // MARK: - Target Resolution
+
+    /// Current cursor position in top-left-origin AX coordinates (what
+    /// `AXUIElementCopyElementAtPosition` expects). Prefers the Quartz event
+    /// location; falls back to converting Cocoa's bottom-left `NSEvent`
+    /// coordinates when no event source is available.
+    private func currentAXMouseLocation() -> CGPoint {
+        if let loc = CGEvent(source: nil)?.location {
+            return loc
+        }
+        let mouseLocation = NSEvent.mouseLocation
+        let primaryHeight = ScreenGeometry.primaryScreenHeight
+        return CGPoint(x: mouseLocation.x, y: primaryHeight - mouseLocation.y)
+    }
+
+    /// `true` when the cursor currently sits over a Dock icon region.
+    /// Used to gate outside-Mission-Control dock gestures/shortcuts.
+    private func isDockHovered() -> Bool {
+        return accessibilityService.isDockRegion(at: currentAXMouseLocation())
+    }
 
     private func resolveTarget(at point: CGPoint) -> TargetResolution {
         guard let element = accessibilityService.getElement(at: point) else { return .none }
@@ -265,6 +317,7 @@ final class ShortcutViewModel {
         missionControlService.start()
         multitouchService.start()
         hoverService.start()
+        dockSuppressor.start()
     }
 
     func stop() {
@@ -272,6 +325,7 @@ final class ShortcutViewModel {
         missionControlService.stop()
         multitouchService.stop()
         hoverService.stop()
+        dockSuppressor.stop()
         gestureEngine.reset()
         cursorFeedback.hide()
     }

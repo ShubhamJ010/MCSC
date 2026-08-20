@@ -151,6 +151,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hoverCloseButtonItem.state = (viewModel?.isHoverCloseButtonEnabled ?? true) ? .on : .off
         menu.addItem(hoverCloseButtonItem)
 
+        let dockActionsItem = NSMenuItem(title: "Dock Gestures & Shortcuts (outside MC)", action: #selector(toggleDockActionsOutsideMC), keyEquivalent: "")
+        dockActionsItem.state = (viewModel?.isDockActionsOutsideMCEnabled ?? true) ? .on : .off
+        menu.addItem(dockActionsItem)
+
         let keyboardNavItem = NSMenuItem(title: "Keyboard Navigation (Tab / Return)", action: #selector(toggleKeyboardNav), keyEquivalent: "")
         keyboardNavItem.state = (viewModel?.isKeyboardNavigationEnabled ?? true) ? .on : .off
         menu.addItem(keyboardNavItem)
@@ -186,10 +190,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func toggleSwipeUp(_ sender: NSMenuItem) { handleToggle(sender, key: .swipeUp) }
     @objc private func toggleTwoFingerDoubleTap(_ sender: NSMenuItem) { handleToggle(sender, key: .twoFingerDoubleTap) }
     @objc private func toggleHoverCloseButton(_ sender: NSMenuItem) { handleToggle(sender, key: .hoverCloseButton) }
+    @objc private func toggleDockActionsOutsideMC(_ sender: NSMenuItem) { handleToggle(sender, key: .dockActionsOutsideMC) }
     @objc private func toggleAutoEject(_ sender: NSMenuItem) { handleToggle(sender, key: .autoEject) }
     @objc private func toggleKeyboardNav(_ sender: NSMenuItem) { handleToggle(sender, key: .keyboardNav) }
 
-    private enum ShortcutKey { case cmdW, cmdQ, cmdM, cmdH, cmdSpace, gestures, pinchIn, swipeLeft, swipeRight, swipeDown, swipeUp, twoFingerDoubleTap, hoverCloseButton, autoEject, keyboardNav }
+    private enum ShortcutKey { case cmdW, cmdQ, cmdM, cmdH, cmdSpace, gestures, pinchIn, swipeLeft, swipeRight, swipeDown, swipeUp, twoFingerDoubleTap, hoverCloseButton, dockActionsOutsideMC, autoEject, keyboardNav }
 
     private func handleToggle(_ sender: NSMenuItem, key: ShortcutKey) {
         guard let viewModel = viewModel else { return }
@@ -207,6 +212,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .swipeUp: viewModel.isSwipeUpEnabled.toggle(); sender.state = viewModel.isSwipeUpEnabled ? .on : .off
         case .twoFingerDoubleTap: viewModel.isTwoFingerDoubleTapEnabled.toggle(); sender.state = viewModel.isTwoFingerDoubleTapEnabled ? .on : .off
         case .hoverCloseButton: viewModel.isHoverCloseButtonEnabled.toggle(); sender.state = viewModel.isHoverCloseButtonEnabled ? .on : .off
+        case .dockActionsOutsideMC: viewModel.isDockActionsOutsideMCEnabled.toggle(); sender.state = viewModel.isDockActionsOutsideMCEnabled ? .on : .off
         case .autoEject: viewModel.isAutoEjectEnabled.toggle(); sender.state = viewModel.isAutoEjectEnabled ? .on : .off
         case .keyboardNav: viewModel.isKeyboardNavigationEnabled.toggle(); sender.state = viewModel.isKeyboardNavigationEnabled ? .on : .off
         }

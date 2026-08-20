@@ -113,6 +113,23 @@ screen and resize) only act on a window target and do nothing over the Dock.
 
 > Details: `GestureActionRouter.swift:24-171` — `swipeDown`/`doubleTap` return `.none` for Dock.
 
+### Dock gestures outside Mission Control
+
+All dock-targeted gestures (pinch-in/out, `Cmd` variants, horizontal/vertical
+swipes, two-finger double-tap) also fire while hovering a Dock icon in normal
+desktop mode, without Mission Control open. While 2+ fingers touch the trackpad
+over the Dock, a dedicated Quartz event tap (`DockInteractionSuppressor`)
+swallows system gesture events (`smartMagnify`, `magnify`, `swipe`) so macOS
+App Exposé never opens mid-gesture, plus any synthesized clicks during the
+gesture window.
+
+- **Toggle:** menu bar **Dock Gestures & Shortcuts (outside MC)**
+  (`ShortcutConfiguration.isDockActionsOutsideMCEnabled`, default `true`) —
+  shared with the keyboard shortcuts described in [SHORTCUTS.md](./SHORTCUTS.md).
+- **Hover detection:** `AccessibilityService.isDockRegion(at:)` — cached Dock
+  list frame (refreshed on display changes) with a direct Dock-process AX
+  hit-test fallback near the frame edges.
+
 ### Mounted volume auto-eject (pinch-in / swipe-left on ejectable Finder volumes)
 
 The same volume auto-eject described in [SHORTCUTS.md](./SHORTCUTS.md) also applies to gestures.

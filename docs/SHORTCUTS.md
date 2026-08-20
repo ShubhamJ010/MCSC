@@ -75,6 +75,24 @@ icon) to act on the whole app.
 > `Cmd + Q` and the Dock-target actions perform a **force** termination. They
 > skip the normal quit handshake, so unsaved work in the targeted app is lost.
 
+### Dock shortcuts outside Mission Control
+
+All dock-targeted keyboard shortcuts (`Cmd + W`, `Cmd + Q`, `Cmd + M`, `Cmd + H`)
+also work while hovering a Dock icon in **normal desktop mode** (Mission Control
+closed) — no need to open Mission Control first. While 2+ fingers rest on the
+trackpad over the Dock, MCSC also suppresses App Exposé (two-finger double-tap
+smart zoom) and synthesized clicks so gestures aim cleanly at Dock icons.
+
+- **Toggle:** menu bar **Dock Gestures & Shortcuts (outside MC)**
+  (`ShortcutConfiguration.isDockActionsOutsideMCEnabled`, default `true`,
+  persisted to `UserDefaults` under `mcsc.dockActionsOutsideMC.enabled`).
+- **Implementation:** `ShortcutActionRouter` admits `.dock` targets when
+  `isMissionControlActive || isDockActionsOutsideMCEnabled`;
+  `DockInteractionSuppressor` (Quartz event tap at HID level) swallows
+  `smartMagnify` / `magnify` / gesture events and synthesized clicks over the
+  Dock; `AccessibilityService.isDockRegion(at:)` provides cached-frame hit
+  testing with a direct Dock-process AX fallback for `-25200` errors.
+
 ### Mounted volume auto-eject (`Cmd + W` / `Cmd + Q` on ejectable Finder volumes)
 
 When the cursor targets a **Finder window that shows an ejectable/removable volume**

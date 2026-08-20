@@ -74,4 +74,9 @@ class MockAccessibilityService: AccessibilityServiceProtocol {
     func getWindowTitle(for window: AXUIElement) -> String? {
         return mockWindowTitle
     }
+
+    var isDockRegionValue: Bool = false
+    func isDockRegion(at point: CGPoint) -> Bool {
+        return isDockRegionValue
+    }
 }

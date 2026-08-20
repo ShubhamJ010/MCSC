@@ -19,6 +19,7 @@ swiftc \
   "${ROOT_DIR}/MCSC/Services/Multitouch/MultitouchService.swift" \
   "${ROOT_DIR}/MCSC/Services/Multitouch/MultitouchBridge.swift" \
   "${ROOT_DIR}/MCSC/Services/Accessibility/AccessibilityService.swift" \
+  "${ROOT_DIR}/MCSC/Services/Dock/DockInteractionSuppressor.swift" \
   "${ROOT_DIR}/MCSC/Services/Volume/MountedVolumeService.swift" \
   "${ROOT_DIR}/MCSC/Services/Haptics/HapticService.swift" \
   "${ROOT_DIR}/MCSC/Services/MissionControl/MissionControlHoverService.swift" \
@@ -35,7 +36,9 @@ swiftc \
   "${ROOT_DIR}/MCSC/Utilities/KeyboardEventPoster.swift" \
   "${ROOT_DIR}/MCSC/Utilities/SymbolImageFactory.swift" \
   "${ROOT_DIR}/MCSC/Models/Gestures/GestureRecognizer.swift" \
+  "${ROOT_DIR}/MCSC/Models/Gestures/BasePinchRecognizer.swift" \
   "${ROOT_DIR}/MCSC/Models/Gestures/PinchInRecognizer.swift" \
+  "${ROOT_DIR}/MCSC/Models/Gestures/PinchOutRecognizer.swift" \
   "${ROOT_DIR}/MCSC/Models/Gestures/TwoFingerSwipeLeftRecognizer.swift" \
   "${ROOT_DIR}/MCSC/Models/Gestures/TwoFingerSwipeRightRecognizer.swift" \
   "${ROOT_DIR}/MCSC/Models/Gestures/SwipeRecognizer.swift" \
@@ -61,6 +64,7 @@ swiftc \
   "${SCRIPT_DIR}/SearchBarOverlayTests.swift" \
   "${SCRIPT_DIR}/CursorFeedbackOverlayTests.swift" \
   "${SCRIPT_DIR}/RouterTests.swift" \
+  "${SCRIPT_DIR}/DockInteractionSuppressorTests.swift" \
   "${SCRIPT_DIR}/TestRunner.swift"
 
 trap 'rm -f "${SCRIPT_DIR}/bin_test_runner"' EXIT

@@ -54,11 +54,34 @@ protocol AccessibilityServiceProtocol {
 
     /// Reads the window title if exposed via `kAXTitleAttribute`.
     func getWindowTitle(for window: AXUIElement) -> String?
+
+    /// Fast check: is the given Quartz point inside the Dock's AX list frame?
+    /// Uses a cached Dock frame (refreshed on screen changes) to avoid per-frame AX queries.
+    func isDockRegion(at point: CGPoint) -> Bool
 }
 
 final class AccessibilityService: AccessibilityServiceProtocol {
     private let systemWide = AXUIElementCreateSystemWide()
     private static let maxTabSearchDepth = 8
+
+    /// Cached `AXUIElement` for the Dock process, keyed by its pid so a Dock
+    /// relaunch invalidates it. Created lazily; see `getDockAXElement()`.
+    private var cachedDockElement: AXUIElement?
+    private var cachedDockPID: pid_t = 0
+
+    /// Cached bounding frame of the Dock's icon list. Refreshed lazily and on
+    /// screen-configuration changes to avoid per-frame AX queries.
+    private var cachedDockFrame: CGRect?
+    private var screenObserver: NSObjectProtocol?
+
+    /// Extra padding (pt) around the cached Dock frame treated as "hovering
+    /// the Dock". Covers magnification growth and hover-bounce overflow.
+    private static let dockFramePadding: CGFloat = 15
+
+    /// How far outside the padded Dock frame the AX hit-test fallback may run.
+    /// Beyond this radius the point cannot plausibly be over the Dock, so the
+    /// expensive per-frame query is skipped entirely.
+    private static let dockFallbackRadius: CGFloat = 80
 
     /// When `true`, `getAppFromDockItem` logs the Dock item's AX attributes and
     /// which resolution strategy matched. Flip on to verify Catalyst/Electron
@@ -70,14 +93,54 @@ final class AccessibilityService: AccessibilityServiceProtocol {
         if ProcessInfo.processInfo.environment["MCSC_DOCK_DIAG"] == "1" {
             dockDiagnosticsEnabled = true
         }
+        screenObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.cachedDockFrame = nil
+        }
+    }
+
+    deinit {
+        if let screenObserver = screenObserver {
+            NotificationCenter.default.removeObserver(screenObserver)
+        }
     }
     
+    /// Returns a cached `AXUIElement` for the Dock process, creating it on
+    /// first use and re-creating it only if the Dock process was relaunched
+    /// (detected via pid change). Caching avoids per-call element allocation.
+    private func getDockAXElement() -> AXUIElement? {
+        if let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first {
+            if cachedDockElement == nil || cachedDockPID != dockApp.processIdentifier {
+                cachedDockElement = AXUIElementCreateApplication(dockApp.processIdentifier)
+                cachedDockPID = dockApp.processIdentifier
+            }
+            return cachedDockElement
+        }
+        return nil
+    }
+
     func getElement(at point: CGPoint) -> AXUIElement? {
         var element: AXUIElement?
         let result = AXUIElementCopyElementAtPosition(systemWide, Float(point.x), Float(point.y), &element)
         
-        guard result == .success else { return nil }
-        return element
+        if result == .success, let element = element {
+            return element
+        }
+
+        // When system-wide AX hit test returns -25200 (kAXErrorCannotComplete) on Dock,
+        // hit-test directly against the Dock application AXUIElement.
+        if let dockElement = getDockAXElement() {
+            var dockChild: AXUIElement?
+            if AXUIElementCopyElementAtPosition(dockElement, Float(point.x), Float(point.y), &dockChild) == .success,
+               let dockChild = dockChild {
+                return dockChild
+            }
+        }
+        
+        return nil
     }
     
     func getWindow(for element: AXUIElement) -> AXUIElement? {
@@ -321,5 +384,68 @@ final class AccessibilityService: AccessibilityServiceProtocol {
 
     func getWindowTitle(for window: AXUIElement) -> String? {
         getAttributeValue(kAXTitleAttribute, for: window)
+    }
+
+    /// Re-queries the Dock's icon-list frame (`AXList` child) and caches it.
+    /// Falls back to the Dock application element's own frame if no list
+    /// child is found. Called lazily and on screen-configuration changes.
+    private func refreshDockFrame() {
+        guard let dockElement = getDockAXElement() else {
+            cachedDockFrame = nil
+            return
+        }
+        var childrenRef: CFTypeRef?
+        if AXUIElementCopyAttributeValue(dockElement, kAXChildrenAttribute as CFString, &childrenRef) == .success,
+           let children = childrenRef as? [AXUIElement] {
+            for child in children {
+                var roleRef: CFTypeRef?
+                if AXUIElementCopyAttributeValue(child, kAXRoleAttribute as CFString, &roleRef) == .success,
+                   (roleRef as? String) == "AXList",
+                   let frame = getFrame(for: child) {
+                    cachedDockFrame = frame
+                    return
+                }
+            }
+        }
+        if let frame = getFrame(for: dockElement) {
+            cachedDockFrame = frame
+        }
+    }
+
+    /// Fast check: is the given Quartz point inside (or near) the Dock?
+    ///
+    /// Three-tier strategy, cheapest first:
+    /// 1. Cached Dock list frame + padding — pure geometry, no AX calls.
+    /// 2. Direct AX hit-test against the Dock process — covers auto-hidden or
+    ///    magnified Docks whose live frame exceeds the cached one. Only run
+    ///    when the point is plausibly near the cached frame (`dockFallbackRadius`).
+    /// 3. Otherwise `false` without touching the AX API, keeping the per-gesture-
+    ///    frame cost at zero for cursors far from the Dock.
+    func isDockRegion(at point: CGPoint) -> Bool {
+        let paddedFrame = cachedDockFrame?.insetBy(dx: -Self.dockFramePadding, dy: -Self.dockFramePadding)
+        if let paddedFrame = paddedFrame {
+            if paddedFrame.contains(point) {
+                return true
+            }
+            // Point is outside the cached frame; only pay for the AX fallback
+            // if it could still be over a magnified / auto-hidden Dock.
+            guard paddedFrame.insetBy(dx: -Self.dockFallbackRadius, dy: -Self.dockFallbackRadius).contains(point) else {
+                return false
+            }
+        } else {
+            refreshDockFrame()
+            if let frame = cachedDockFrame,
+               frame.insetBy(dx: -Self.dockFramePadding, dy: -Self.dockFramePadding).contains(point) {
+                return true
+            }
+        }
+        if let dockElement = getDockAXElement() {
+            var hit: AXUIElement?
+            if AXUIElementCopyElementAtPosition(dockElement, Float(point.x), Float(point.y), &hit) == .success,
+               let hit = hit {
+                return isDockItem(hit)
+            }
+        }
+        return false
     }
 }

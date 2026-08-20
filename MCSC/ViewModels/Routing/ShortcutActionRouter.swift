@@ -47,7 +47,14 @@ final class ShortcutActionRouter {
             return .ignore
         }
 
-        guard isMissionControlActive else {
+        let isDockOutsideMC: Bool
+        if case .dock = target {
+            isDockOutsideMC = config.isDockActionsOutsideMCEnabled
+        } else {
+            isDockOutsideMC = false
+        }
+
+        guard isMissionControlActive || isDockOutsideMC else {
             return .ignore
         }
 
