@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.0-beta (21 Aug 2026)
+
+- **Pinch-Out Gesture for Fullscreen & Windowing**: New `PinchOutRecognizer` (extracted shared `BasePinchRecognizer`) — `pinch-out` toggles fullscreen (`kAXZoomButtonAttribute` + `CoreDockSendNotification("com.apple.expose.awake")`), `Cmd+pinch-out` creates a new window (`Cmd+N`). Includes distinct haptic (`alignment → levelChange` vs `levelChange → levelChange` for pinch-in) and `.fullscreen` cursor feedback (`arrow.down.left.and.arrow.up.right.circle.fill`, black/green palette). Toggle via `isPinchOutEnabled` / menu bar. See `PinchOutRecognizer.swift`, `WindowActions.swift:ToggleFullscreenAction`, `HapticService.swift:pinchOut`.
+- **Dock Parity for Tiling / Fullscreen**: `SwipeDown` (Fill / Make Larger), `DoubleTap` (Reasonable 60% / Almost 90%), and `Pinch-Out` (Fullscreen) now resolve Dock targets via `AppActions.swift:111` — swiping/resizing on a Dock icon in Mission Control acts on the app's windows. `GestureActionRouter` previously returned `.none` for Dock on those paths.
+- **Fullscreen Hover + Event-Tap Resilience**: `PreviewCloseButtonOverlay.Mode.fullscreen` (4th mode, green `arrow.down…circle.fill`) added to hover button; `MissionControlWindowActions.swift:performFullscreen` provides Mission Control dictionary path (`CoreDockSendNotification`) fallback. `EventTapService` auto-recreates tap on `.tapDisabledByTimeout` / `.tapDisabledByUserInput`.
+- **Tab-Close Reliability Fix**: `AccessibilityService.findActiveTabCloseButton(in:)` now recursively descends bounded depth 8, skipping `AXWebArea`, to find `AXTabGroup` under `AXGroup` wrappers (Chrome). Fixes `Cmd+W` / swipe-left previously falling back to unreliable `Cmd+W`. Fallback now focuses hovered window via `kAXFocusedAttribute` first.
+- **macOS 14+ Symbol-Effect Fallbacks**: Dropped macOS 26-only `.wiggle` / `.magic` requirements — `.wiggle.byLayer` falls back to `.bounce` on <26, `.magic(fallback: .upUp)` falls back to `.upUp.byLayer`. Prevents missing animations on 14/15.
+- **MVVM Reorganization**: Moved to strict MVVM layout — `Models/Actions/`, `Models/Gestures/`, `Services/{Accessibility,EventTap,Haptics,LaunchAtLogin,MissionControl,Multitouch}`, `ViewModels/Routing/`, `Utilities/`. Extracted `ShortcutActionRouter` / `GestureActionRouter` / `ActionRegistry` / `ShortcutConfiguration` and `ScreenGeometry` / `SymbolImageFactory` / `KeyboardEventPoster`.
+- **README Feature Advertising**: Expanded `README.md:34` from 7 to 11 bullets — new standalone entries for Hover Buttons, Cursor Feedback + Haptics (14 modes), Window Tiling & Tab Control, Auto-Eject, Dock-Aware Targeting, and Fully Configurable toggles.
+- **Includes 0.4.1 & 0.4.2**: This beta rolls up **Mounted Volume Auto-Eject (0.4.1)** and **Type-to-Select Fuzzy Finder (0.4.2)** — see entries below — which were committed after `v0.4.0-beta` but not yet released.
+
 ## 0.4.2 (20 Aug 2026)
 
 - **Type-to-Select Window Fuzzy Finder**: Simply start typing any app or window name while in Mission Control to immediately search, rank, and highlight visible windows:
