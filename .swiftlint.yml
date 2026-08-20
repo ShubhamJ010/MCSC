@@ -1,0 +1,95 @@
+# SwiftLint configuration for MCSC
+# Style + code-smell checks. Warnings surface in CI logs; errors fail the build.
+
+# Only lint app sources; Tests have their own conventions
+included:
+  - MCSC
+
+analyzer_rules:
+  - explicit_self
+
+line_length:
+  warning: 160
+  error: 220
+  ignores_function_declarations: true
+  ignores_comments: true
+  ignores_urls: true
+
+identifier_name:
+  min_length: 1
+  max_length:
+    warning: 60
+    error: 80
+  allowed_symbols: ["_"]
+  # Short names are common in geometry / CG math code
+  excluded:
+    - x
+    - y
+    - w
+    - h
+    - id
+    - ax
+    - cg
+    - dx
+    - dy
+
+# --- Code smell thresholds ---
+cyclomatic_complexity:
+  warning: 15
+  error: 25
+
+function_body_length:
+  warning: 80
+  error: 150
+
+type_body_length:
+  warning: 350
+  error: 500
+
+file_length:
+  warning: 500
+  error: 900
+
+function_parameter_count:
+  warning: 7
+  error: 10
+
+nesting:
+  type_level:
+    warning: 3
+  statement_level:
+    warning: 4
+
+large_tuple:
+  warning: 3
+  error: 4
+
+# Known hotspot: gesture -> action dispatch table. Refactoring it into
+# smaller handlers is tracked separately; don't let it block CI.
+excluded:
+  - MCSC/ViewModels/Routing/GestureActionRouter.swift
+
+# Core Foundation interop legitimately needs casts & pointer juggling;
+# keep them visible as warnings instead of hard errors
+force_cast: warning
+force_try: warning
+
+# Event-tap callbacks and AX handlers are inherently nested
+# (kept at raised thresholds above rather than disabled)
+
+opt_in_rules:
+  - empty_count
+  - closure_spacing
+  - contains_over_first_not_nil
+  - first_where
+  - last_where
+  - sorted_first_last
+  - toggle_bool
+  - unused_import
+  - weak_delegate
+
+unused_import:
+  always_keep_imports:
+    - Cocoa
+    - AppKit
+    - ApplicationServices

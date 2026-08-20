@@ -1,0 +1,11 @@
+# SwiftFormat configuration for MCSC
+# Checked with --lint in CI; run `swiftformat .` locally to apply.
+
+--swiftversion 5.10
+
+--enable blankLinesAtStartOfScope,blankLinesBetweenScopes,consecutiveBlankLines,duplicateImports,emptyBraces,indent,trailingSpace,void
+
+--disable wrapMultilineStatementBraces,redundantSelf
+
+--maxwidth 120
+--indent 4

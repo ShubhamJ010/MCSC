@@ -7,6 +7,25 @@ on:
     branches: [ "main" ]
 
 jobs:
+  lint:
+    name: SwiftLint + SwiftFormat (style & code smells)
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Tools
+        run: brew install swiftlint swiftformat
+
+      # Errors fail the job; warnings are logged for review.
+      # Config lives in .swiftlint.yml / .swiftformat at the repo root.
+      - name: SwiftLint
+        run: swiftlint lint --quiet
+
+      - name: SwiftFormat Check
+        run: swiftformat --lint .
+
   build:
     name: Build and analyze MCSC scheme
     runs-on: macos-latest
