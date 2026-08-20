@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="./docs/assets/icon.png" width="96" alt="MCSC app icon">
+
 # MCSC
 
 ### Mission Control Shortcuts — keyboard and trackpad window management for macOS
@@ -12,6 +14,8 @@ A lightweight, event-driven menu bar utility that adds window-management
 shortcuts and gestures to Mission Control.
 
 [Features](#features) · [Installation](#installation) · [Usage](#usage) · [Documentation](#documentation)
+
+<img src="./docs/assets/preview.gif" alt="MCSC in action — type-to-select and window actions inside Mission Control" width="800">
 
 </div>
 
