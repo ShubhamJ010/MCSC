@@ -24,6 +24,9 @@ final class ShortcutViewModel {
             accessibilityService: accessibilityService,
             isMissionControlActiveProvider: { [weak self] in
                 self?.missionControlService.isMissionControlActive ?? false
+            },
+            isKeyboardNavigationEnabledProvider: { [weak self] in
+                self?.config.isKeyboardNavigationEnabled ?? true
             }
         )
     }()
@@ -52,6 +55,7 @@ final class ShortcutViewModel {
     var isSwipeDownEnabled: Bool { get { config.isSwipeDownEnabled } set { config.isSwipeDownEnabled = newValue } }
     var isSwipeUpEnabled: Bool { get { config.isSwipeUpEnabled } set { config.isSwipeUpEnabled = newValue } }
     var isTwoFingerDoubleTapEnabled: Bool { get { config.isTwoFingerDoubleTapEnabled } set { config.isTwoFingerDoubleTapEnabled = newValue } }
+    var isKeyboardNavigationEnabled: Bool { get { config.isKeyboardNavigationEnabled } set { config.isKeyboardNavigationEnabled = newValue } }
 
     var isHoverCloseButtonEnabled: Bool {
         get { hoverService.isEnabled }

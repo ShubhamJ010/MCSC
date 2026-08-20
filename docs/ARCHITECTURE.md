@@ -52,7 +52,12 @@ MCSC strictly follows the **Model-View-ViewModel (MVVM)** pattern with protocol-
 
 ### 1. Models (`MCSC/Models`)
 - **Single-Responsibility Structs:** `CloseWindowAction`, `MinimizeWindowAction`, `HideApplicationAction`, `ForceQuitAction`, `CloseAppAction`, `MinimizeAppAction`, `ForceQuitAppAction`, `CloseTabAction`, `ReopenTabAction`, `CloseAllTabsAction`, `NewWindowAction`, `FillScreenAction`, `MakeLargerAction`, `ReasonableSizeAction`, `AlmostMaximizeAction`, `EjectVolumeAction` (closes an ejectable Finder window via `kAXCloseButtonAttribute` then ejects via `MountedVolumeService`).
-- **Mission Control Window Actions:** `MissionControlWindowActions` encapsulates window button pressing (`kAXCloseButtonAttribute`, `kAXMinimizeButtonAttribute`) and fallback activation.
+- **Fuzzy Finder Models:**
+  - `WindowSelectionEngine`: Pure, stateless fuzzy search ranking prefix matches over substring matches and resolving top-left thumbnail shoulder coordinates.
+  - `WindowSearchSession`: Side-effect-free keyboard session state machine tracking queries, selected index, match cycling, and modifier pass-through.
+- **Mission Control Window Actions:**
+  - `WindowActivationAction`: Injects synthetic `.mouseMoved` to paint Mission Control's native highlight and `.leftMouseDown` → 50 ms dwell → `.leftMouseUp` at `.cghidEventTap` to reliably activate thumbnails.
+  - `MissionControlWindowActions`: Encapsulates window button pressing (`kAXCloseButtonAttribute`, `kAXMinimizeButtonAttribute`, `kAXZoomButtonAttribute`) and `CoreDockSendNotification` wake mechanisms.
 - **Pure Helpers:** `KeyboardEventPoster` (C-level Quartz event injection), `ScreenGeometry` (coordinate conversions between Quartz AX space and Cocoa screen space).
 - **Recognizers:** Gesture engines (`PinchInRecognizer`, `SwipeRecognizer`, `TwoFingerSwipeLeftRecognizer`, `TwoFingerSwipeRightRecognizer`, `TwoFingerDoubleTapRecognizer`) evaluating multitouch frames against geometric thresholds.
 
@@ -66,9 +71,10 @@ MCSC strictly follows the **Model-View-ViewModel (MVVM)** pattern with protocol-
 ### 3. Services (`MCSC/Services`)
 - **`AccessibilityServiceProtocol` / `AccessibilityService`:** Low-level wrapper for `AXUIElement` APIs with cached system-wide elements and safe CoreFoundation type checking. Exposes `getDocumentPath(for:)` (`kAXDocumentAttribute`) and `getWindowTitle(for:)` (`kAXTitleAttribute`) for volume-eject targeting.
 - **`EventTapServiceProtocol` / `EventTapService`:** C-level Quartz event tap (`CGEvent.tapCreate`) for intercepting keyboard shortcuts.
+- **`MCKeyboardTapServiceProtocol` / `MCKeyboardTapService`:** Dedicated `.cghidEventTap` `keyDown` tap active exclusively while Mission Control is open, ensuring alphanumeric key events are captured before WindowServer swallows them.
 - **`MissionControlServiceProtocol` / `MissionControlService`:** Dual-mode detection (Dock notifications + cached window list scans) for Mission Control activation state.
 - **`MultitouchService` & `MultitouchBridge`:** Private MultitouchSupport.framework dynamic loader and frame listener with wake/sleep lifecycle management.
-- **`MissionControlHoverServiceProtocol` / `MissionControlHoverService`:** Tracks mouse movement in Mission Control and positions hover action buttons on active window previews.
+- **`MissionControlHoverServiceProtocol` / `MissionControlHoverService`:** Tracks mouse movement in Mission Control, positions hover action buttons on active window previews, and orchestrates the keyboard fuzzy-finder session.
 - **`MountedVolumeServiceProtocol` / `MountedVolumeService` (`Services/Volume`):** Lightweight on-demand volume detector — enumerates `FileManager.mountedVolumeURLs` with `volumeIsEjectable`/`volumeIsRemovable` and matches by document path (`/Volumes/...` prefix) or window title; ejects via `NSWorkspace.unmountAndEjectDevice(at:)` on a background queue. Zero heap allocations at idle, no persistent caches.
 - **`AppLogger`:** Zero-allocation logging using Apple's unified `os.Logger` framework (`volume` category for eject success/failure).
 
@@ -78,24 +84,30 @@ MCSC strictly follows the **Model-View-ViewModel (MVVM)** pattern with protocol-
 flowchart TB
     subgraph System[macOS System Events]
       CG[Quartz CGEventTap]
+      KBD[MC Dedicated HID Key Tap]
       MT[Multitouch Private Framework]
       AX[AX Notifications + CGWindowList]
       VOL[Mounted Volumes - FileManager + NSWorkspace]
     end
     CG --> ETS[EventTapService]
+    KBD --> KTS[MCKeyboardTapService]
     MT --> MTS[MultitouchService + MultitouchBridge]
     AX --> ACS[AccessibilityService]
     AX --> MCS[MissionControlService]
     VOL --> MVS[MountedVolumeService]
     ETS & MTS & ACS & MCS & MVS --> VM[ShortcutViewModel]
+    KTS --> HS[HoverService]
     VM --> SR[ShortcutActionRouter]
     VM --> GR[GestureActionRouter]
     VM --> GE[GestureEngine - 5 recognizers]
-    VM --> HS[HoverService]
+    VM --> HS
     VM --> CF[CursorFeedbackOverlay]
     SR & GR --> REG[ActionRegistry]
     REG --> WA[Window/App/Tab/Tiling/Volume Actions]
+    HS --> WSE[WindowSelectionEngine & Session]
+    HS --> WAA[WindowActivationAction]
     HS --> PCO[PreviewCloseButtonOverlay]
+    HS --> SBO[SearchBarOverlay]
     CF --> SF[SymbolImageFactory]
 ```
 

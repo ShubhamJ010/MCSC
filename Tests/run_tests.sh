@@ -22,7 +22,12 @@ swiftc \
   "${ROOT_DIR}/MCSC/Services/Volume/MountedVolumeService.swift" \
   "${ROOT_DIR}/MCSC/Services/Haptics/HapticService.swift" \
   "${ROOT_DIR}/MCSC/Services/MissionControl/MissionControlHoverService.swift" \
+  "${ROOT_DIR}/MCSC/Services/MissionControl/MCKeyboardTapService.swift" \
+  "${ROOT_DIR}/MCSC/Models/WindowSelectionEngine.swift" \
+  "${ROOT_DIR}/MCSC/Models/WindowSearchSession.swift" \
+  "${ROOT_DIR}/MCSC/Models/Actions/WindowActivationAction.swift" \
   "${ROOT_DIR}/MCSC/Views/PreviewCloseButtonOverlay.swift" \
+  "${ROOT_DIR}/MCSC/Views/SearchBarOverlay.swift" \
   "${ROOT_DIR}/MCSC/Views/CursorFeedbackOverlay.swift" \
   "${ROOT_DIR}/MCSC/Views/CursorFeedbackMode.swift" \
   "${ROOT_DIR}/MCSC/Utilities/Logger.swift" \
@@ -51,6 +56,9 @@ swiftc \
   "${SCRIPT_DIR}/CmdSwipeActionsTests.swift" \
   "${SCRIPT_DIR}/GestureEngineRoutingTests.swift" \
   "${SCRIPT_DIR}/MissionControlHoverServiceTests.swift" \
+  "${SCRIPT_DIR}/WindowSelectionEngineTests.swift" \
+  "${SCRIPT_DIR}/WindowSearchSessionTests.swift" \
+  "${SCRIPT_DIR}/SearchBarOverlayTests.swift" \
   "${SCRIPT_DIR}/CursorFeedbackOverlayTests.swift" \
   "${SCRIPT_DIR}/RouterTests.swift" \
   "${SCRIPT_DIR}/TestRunner.swift"

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.2 (20 Aug 2026)
+
+- **Type-to-Select Window Fuzzy Finder**: Simply start typing any app or window name while in Mission Control to immediately search, rank, and highlight visible windows:
+  - **Stateless Selection Engine (`WindowSelectionEngine`)**: Ranks matches with prefix hits taking priority over substring hits, sorted alphabetically and by window ID.
+  - **Top-Left Shoulder Targeting**: Targets the thumbnail's top-left shoulder (inset 20 pt right & down) rather than the center, ensuring windows grouped/stacked by application remain reachable without being blocked by the close/minimize button bar.
+  - **Native Highlight Synchronization**: Injects synthetic `.mouseMoved` events so macOS Mission Control paints its native blue highlight on the matched window while keeping `hoveredWindow` in sync for subsequent `Cmd` shortcuts (`Cmd+W`, `Cmd+Q`, `Cmd+M`).
+  - **Activation with 50 ms Dwell Click (`WindowActivationAction`)**: Pressing `Enter` / `Return` injects a timed `mouseMoved` → `leftMouseDown` → 50 ms dwell → `leftMouseUp` sequence at `.cghidEventTap` to reliably activate and raise the window while dismissing Mission Control.
+  - **Dedicated HID Key Tap (`MCKeyboardTapService`)**: Installs a `.cghidEventTap` `keyDown` tap active strictly during Mission Control to capture keystrokes before the WindowServer swallows them.
+  - **Dock-Style Query Pill (`SearchBarOverlay`)**: Renders an uppercase, bold (22 pt heavy) query bar using continuous squircle corners (`layer.cornerCurve = .continuous`) and macOS HUD material, floating cleanly above the Dock.
+  - **Navigation Controls**: `Tab` and `Down Arrow` cycle forward; `Up Arrow` cycles backward; `Backspace` deletes characters; `Escape` (or 2-second idle timeout) resets the query.
+- **Community Acknowledgement**: Special thanks to [OpenMissionControl](https://github.com/nohackjustnoobb/OpenMissionControl) and [PR #3 (changes)](https://github.com/nohackjustnoobb/OpenMissionControl/pull/3/changes) for inspiring and unlocking key techniques in macOS Exposé window handling and low-level SPI usage.
+
 ## 0.4.1 (20 Aug 2026)
 
 - **Mounted Volume Auto-Eject Enhancement**: When pressing `Cmd+W` or `Cmd+Q` (or using pinch-in/swipe-left gestures) on a Finder window showing an ejectable volume (e.g. DMG installers) in Mission Control, MCSC automatically closes the window and unmounts/ejects the volume.

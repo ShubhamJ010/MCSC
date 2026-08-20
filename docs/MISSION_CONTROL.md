@@ -67,13 +67,26 @@ own injected events.
 
 ---
 
+## Keyboard Interaction & HID Event Tapping
+
+Capturing keyboard events while Mission Control is open presents a unique macOS challenge:
+- **Session-level event taps** (`.sessionEventTap`) fail to receive alphanumeric `keyDown` events because the WindowServer grabs keyboard input for Exposé.
+- **Dedicated HID-level event tap:** MCSC installs `MCKeyboardTapService` at `.cghidEventTap` exclusively when Mission Control is active. This captures raw keystrokes before the WindowServer swallows them, enabling real-time fuzzy finding (`WindowSelectionEngine`).
+- **Private Exposé SPIs:** MCSC leverages learnings from the open-source community (specifically [OpenMissionControl PR #3](https://github.com/nohackjustnoobb/OpenMissionControl/pull/3/changes)) for handling low-level Exposé states and `CoreDockSendNotification` wake mechanisms.
+
+---
+
 ## Source references
 
-- Detection heuristic and caching: `../MCSC/Services/MissionControlService.swift`
+- Detection heuristic and caching: `../MCSC/Services/MissionControl/MissionControlService.swift`
+- Dedicated HID Key Tap: `../MCSC/Services/MissionControl/MCKeyboardTapService.swift`
+- Fuzzy Selection Engine: `../MCSC/Models/WindowSelectionEngine.swift` & `WindowSearchSession.swift`
+- Window Activation Actions: `../MCSC/Models/Actions/WindowActivationAction.swift` & `MissionControlWindowActions.swift`
+- Search Overlay View: `../MCSC/Views/SearchBarOverlay.swift`
 - Cooldown hook: `../MCSC/ViewModels/ShortcutViewModel.swift` (`onActivated`)
-- Scoped delivery of gestures: `../MCSC/Services/MultitouchService.swift`
-- Scoped delivery of shortcuts: `../MCSC/Services/EventTapService.swift`
-- Hover tracking gated on activity: `../MCSC/Services/MissionControlHoverService.swift`
+- Scoped delivery of gestures: `../MCSC/Services/Multitouch/MultitouchService.swift`
+- Scoped delivery of shortcuts: `../MCSC/Services/EventTap/EventTapService.swift`
+- Hover tracking & search session orchestration: `../MCSC/Services/MissionControl/MissionControlHoverService.swift`
 
 #### Visual — Detection Flow
 

@@ -33,6 +33,7 @@ tries to replicate.
 
 ## Features
 
+- **Type-to-Select window fuzzy finding** — start typing any app name while in Mission Control (e.g. `code` or `ghostty`) to immediately highlight matching windows with a native blue outline and a Dock-styled uppercase search pill; press `Enter` to activate. Tab/Arrow keys cycle matches. See [SHORTCUTS.md](./docs/SHORTCUTS.md).
 - **Global keyboard shortcuts** — `Cmd + W`, `Cmd + Q`, `Cmd + M`, `Cmd + H`,
   a `Cmd + Space` recovery sequence, and a clickable hover button on each window
   preview. `Cmd+W`/`Cmd+Q` (and pinch-in / swipe-left) on an ejectable Finder volume window auto-close and eject the volume. See [SHORTCUTS.md](./docs/SHORTCUTS.md).
@@ -83,8 +84,18 @@ codesign -dv --verbose=4 MCSC.app
 MCSC runs as a menu bar icon (no Dock presence). Use the menu to toggle
 individual shortcuts and gestures on or off, enable launch at login, and quit.
 
-Once Mission Control is open, point at a window preview and use any of the
+Once Mission Control is open, point at a window preview or start typing to use any of the
 actions below.
+
+**Type-to-Select (Fuzzy Finder)**
+
+| Input | Action |
+| --- | --- |
+| Type letters / numbers (`e.g. ghostty, code`) | Fuzzy-matches window owner names, draws native highlight on best match, displays Dock-style query pill |
+| `Enter` / `Return` | Activates and raises the selected window, dismissing Mission Control |
+| `Tab` / `Down Arrow` | Cycles forward through matching windows |
+| `Up Arrow` | Cycles backward through matching windows |
+| `Escape` / `Backspace` | Clears query / deletes last character |
 
 **Keyboard shortcuts**
 
@@ -116,19 +127,17 @@ buttons, and how recognition works, see [SHORTCUTS.md](./docs/SHORTCUTS.md) and
 
 These guides go deeper than the summaries above:
 
-- [SHORTCUTS.md](./docs/SHORTCUTS.md) — every keyboard shortcut and the hover button.
+- [SHORTCUTS.md](./docs/SHORTCUTS.md) — every keyboard shortcut, type-to-select fuzzy finding, and hover buttons.
 - [GESTURES.md](./docs/GESTURES.md) — every trackpad gesture and how recognition works.
 - [MISSION_CONTROL.md](./docs/MISSION_CONTROL.md) — how MCSC detects and scopes to Mission Control.
 - [SYMBOLS.md](./docs/SYMBOLS.md) — the SF Symbol map behind the feedback overlays.
 - [PERFORMANCE.md](./docs/PERFORMANCE.md) — memory and CPU budget and how it stays light.
-- [ARCHITECTURE.md](./docs/ARCHITECTURE.md) — the MVVM design and low-level choices.
+- [ARCHITECTURE.md](./docs/ARCHITECTURE.md) — the MVVM design, event tap pipelines, and low-level choices.
 
-## Credits
+## Credits & Acknowledgements
 
-MCSC is inspired by [Mission Control Plus](https://www.folivora.ai/missionscontrol) and
-by [Swish](https://highlyopinionated.co/swish/). Its trackpad gestures are an attempt to
-replicate the interaction model that Swish popularized, so MCSC can serve as a partial,
-open alternative to Swish.
+- **Inspirations:** MCSC is inspired by [Mission Control Plus](https://www.folivora.ai/missionscontrol) and by [Swish](https://highlyopinionated.co/swish/). Its trackpad gestures replicate the interaction model that Swish popularized.
+- **OpenMissionControl:** Special thanks to the [OpenMissionControl](https://github.com/nohackjustnoobb/OpenMissionControl) repository and specifically [PR #3 (changes)](https://github.com/nohackjustnoobb/OpenMissionControl/pull/3/changes) by `nohackjustnoobb` and contributors. Studying their implementation and PR changes unlocked low-level Mission Control window management and keyboard interaction capabilities after being stuck on them for a long time, greatly aiding my learning of private Exposé SPIs (`CoreDockSendNotification`) and Quartz event routing in Mission Control.
 
 > [!NOTE]
 > MCSC approximates Swish's gestures but is not a full replacement. Reaching parity with

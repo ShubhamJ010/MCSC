@@ -33,6 +33,30 @@ closed.
 
 ---
 
+## Type-to-Select (Mission Control Window Fuzzy Finder)
+
+While Mission Control is active, you can **simply start typing** any application or window name (e.g. `code`, `ghostty`, `xcode`, `finder`) to instantly filter and select windows via keyboard:
+
+- **Fuzzy matching:** `WindowSelectionEngine` ranks matching window owner names (exact prefix matches ranked highest, followed by substring matches, sorted alphabetically and by window number).
+- **Native highlight synchronization:** Matches post a synthetic `.mouseMoved` event to the top-left thumbnail shoulder point. This triggers macOS Mission Control's native blue highlight and scaling animation and syncs `hoveredWindow` in `MissionControlHoverService`, so existing `Cmd` shortcuts (`Cmd+W`, `Cmd+Q`, `Cmd+M`) seamlessly work against the fuzzy selection.
+- **Top-left shoulder targeting:** Targeting the top-left shoulder of the window bounds (inset 20 pt right and down) rather than the thumbnail center ensures windows stacked under "group windows by application" remain targetable even when their centers are hidden behind the front window, while staying safely clear of the close/minimize button bar.
+- **Dock-styled search pill:** An uppercase, bold floating search pill (`SearchBarOverlay`) styled with continuous squircle corners (`layer.cornerCurve = .continuous`) and macOS HUD material floats right above the Dock, dynamically scaling to the query length.
+- **Activation with dwell click:** Pressing `Enter` or `Return` triggers `WindowActivationAction.performSyntheticClick`, which injects a `mouseMoved` → `leftMouseDown` → **50 ms dwell** → `leftMouseUp` sequence at `.cghidEventTap`. The 50 ms dwell guarantees WindowServer registers the click and activates the window.
+- **Idle auto-clear:** If no key is typed for 2 seconds (or if `Escape` is pressed), the query session resets to `-1` (mouse-only mode).
+
+| Key | Function |
+| --- | --- |
+| `A-Z`, `0-9` | Appends characters to search query and highlights best matching window |
+| `Enter` / `Return` | Activates and focuses the selected window (dismissing Mission Control) |
+| `Tab` ( / `Down Arrow` when searching) | Cycles forward — when query typed (e.g. `code`) cycles only filtered matches; when query empty cycles all visible thumbnails row-major (wrap-around) |
+| `Shift+Tab` ( / `Up Arrow` when searching) | Cycles backward — same scope as Tab |
+| `Backspace` (`Delete`) | Removes the last typed character (resets to mouse mode if query becomes empty) |
+| `Escape` | Clears search query and hides the search pill (press again to dismiss Mission Control) |
+
+> **Toggle:** All Tab / Return keyboard navigation is gated by **MCSC → Keyboard Navigation (Tab / Return)** (default on) and by **MCSC → Settings… → Enable Keyboard Navigation**. When disabled, keystrokes pass through to the system. With the toggle on, the search pill / session stays until you activate (Return) or clear (Escape) — no 2 s idle timeout.
+
+---
+
 ## Global keyboard shortcuts
 
 These shortcuts work anywhere a window or app is targeted inside Mission Control.

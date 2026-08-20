@@ -42,6 +42,37 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
     private var overlayRect: CGRect?
     private var isOverlayHovered = false
 
+    // MARK: - Keyboard fuzzy-finder state
+
+    /// Dedicated HID tap for `keyDown` while Mission Control is open. Created
+    /// lazily in `startKeyboardSession()` and torn down in `stopKeyboardSession()`
+    /// / `stop()` / `deinit` so no global key tap persists outside Exposé.
+    private var keyboardTap: MCKeyboardTapServiceProtocol?
+    /// Dock-styled floating pill that shows the uppercase query above the Dock.
+    /// Created lazily on first typed character to avoid allocating an `NSPanel`
+    /// until the feature is actually used.
+    private var searchOverlay: SearchBarOverlay?
+    /// Pure state machine for query / selectedIndex / Effect. Never touches
+    /// views or posts events; all side effects are driven by the service.
+    private var searchSession = WindowSearchSession()
+    /// Idle timer that clears the query after 2 s of inactivity. Only armed
+    /// when the "Keyboard Navigation" toggle is off; when the toggle is on the
+    /// session persists until activation or Escape so Tab cycling keeps the
+    /// pill visible. See `resetIdleTimer()`.
+    private var queryIdleTimer: Timer?
+    /// Cache of the last fuzzy-match results for the current keystroke. Avoids
+    /// recomputing `WindowSelectionEngine.fuzzyMatch` twice per key (once for
+    /// `syncSelection` in `handleKey` and again for highlight / activation) and
+    /// is invalidated on `clearSearch()` or window-list refresh.
+    private var currentMatches: [WindowSelectionEngine.Match] = []
+
+    private enum Timing {
+        static let windowPoll: TimeInterval = 0.5
+        static let windowPollTolerance: TimeInterval = 0.05
+        static let queryIdle: TimeInterval = 2.0
+        static let queryIdleTolerance: TimeInterval = 0.2
+    }
+
     /// The action the hover button currently represents, derived from held
     /// modifiers: Cmd → force quit, Option → minimize, Control → fullscreen,
     /// neither → close. Cmd takes precedence when several are held.
@@ -60,12 +91,16 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
         }
     }
 
+    private let isKeyboardNavigationEnabledProvider: () -> Bool
+
     init(accessibilityService: AccessibilityServiceProtocol,
          isMissionControlActiveProvider: @escaping () -> Bool,
-         overlay: PreviewCloseButtonOverlay? = nil) {
+         overlay: PreviewCloseButtonOverlay? = nil,
+         isKeyboardNavigationEnabledProvider: @escaping () -> Bool = { true }) {
         self.accessibilityService = accessibilityService
         self.isMissionControlActiveProvider = isMissionControlActiveProvider
         self.overlay = overlay ?? PreviewCloseButtonOverlay()
+        self.isKeyboardNavigationEnabledProvider = isKeyboardNavigationEnabledProvider
     }
     
     func start() {
@@ -83,6 +118,7 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
         stopInputTap()
         stopWindowFetchTimer()
         removeSpaceChangeObserver()
+        stopKeyboardSession()
         hideOverlay()
         isTracking = false
     }
@@ -145,10 +181,12 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
             isMissionControlActive = false
             stopWindowFetchTimer()
             hideOverlay()
+            stopKeyboardSession()
         } else {
             isMissionControlActive = true
             fetchWindows()
             startWindowFetchTimer()
+            startKeyboardSession()
             
             if let mouseLocation = CGEvent(source: nil)?.location {
                 updateOverlay(at: mouseLocation)
@@ -160,10 +198,12 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
     
     private func startWindowFetchTimer() {
         stopWindowFetchTimer()
-        windowFetchTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.fetchWindows()
-            }
+        windowFetchTimer = Timer.scheduledCommon(
+            interval: Timing.windowPoll,
+            repeats: true,
+            tolerance: Timing.windowPollTolerance
+        ) { [weak self] _ in
+            Task { @MainActor in self?.fetchWindows() }
         }
     }
     
@@ -436,6 +476,155 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
         hideOverlay()
     }
 
+    // MARK: - Keyboard Fuzzy-Finder (type-to-select)
+
+    /// Resets the session and installs a fresh `MCKeyboardTapService` for the
+    /// current Mission Control appearance. The HID tap is gated by the single
+    /// "Keyboard Navigation" toggle in `ShortcutConfiguration` and is not
+    /// created at all when the toggle is off, so keystrokes pass through.
+    private func startKeyboardSession() {
+        searchSession.clear()
+        queryIdleTimer?.invalidate()
+        queryIdleTimer = nil
+        searchOverlay?.hide()
+        currentMatches = []
+
+        guard isKeyboardNavigationEnabledProvider() else { return }
+        guard keyboardTap == nil else { return }
+
+        let tap = MCKeyboardTapService()
+        tap.onKeyDown = { [weak self] keyCode, characters, flags in
+            guard let self else { return false }
+            return self.handleKeyDown(keyCode: keyCode, characters: characters, flags: flags)
+        }
+        tap.start()
+        keyboardTap = tap
+    }
+
+    /// Tears down the HID tap and clears the query / pill / idle timer /
+    /// match cache. Called on `AXExposeExit`, `stop()`, and before each new
+    /// session.
+    private func stopKeyboardSession() {
+        keyboardTap?.stop()
+        keyboardTap = nil
+        clearSearch()
+    }
+
+    /// Handles a raw `keyDown` from the HID tap while Mission Control is open.
+    /// All Tab / Return / typing navigation is gated by the single "Keyboard
+    /// Navigation" toggle. Returns `true` to swallow the event (handled) or
+    /// `false` to let it pass through to the system.
+    private func handleKeyDown(keyCode: Int64, characters: String?, flags: CGEventFlags) -> Bool {
+        guard isTracking else { return false }
+        guard isKeyboardNavigationEnabledProvider() else { return false }
+
+        let effect = searchSession.handleKey(
+            keyCode: keyCode,
+            characters: characters,
+            flags: flags,
+            windows: windows
+        )
+
+        switch effect {
+        case .ignore:
+            return false
+        case .updated:
+            updateSearchUI()
+            resetIdleTimer()
+            return true
+        case .clear:
+            clearSearch()
+            return true
+        case .activate:
+            activateSelectedWindow()
+            return true
+        }
+    }
+
+    /// Updates the pill visibility and drives the native Mission Control highlight.
+    /// Shows the pill only while `query` is non-empty; row-major Tab cycling
+    /// with an empty query highlights without a pill. Computes matches once
+    /// per keystroke and caches them in `currentMatches` for `activateSelectedWindow()`.
+    /// When `query` is empty Tab uses `rowMajorSorted` (top-to-bottom, left-to-
+    /// right with 40 pt row tolerance); otherwise uses `fuzzyMatch` ranking
+    /// (prefix beats substring). Posts a synthetic `mouseMoved` at the
+    /// top-left shoulder point so AppKit paints the native blue highlight and
+    /// syncs `hoveredWindow` for Cmd+W/Q/M shortcuts.
+    private func updateSearchUI() {
+        if searchSession.query.isEmpty {
+            searchOverlay?.hide()
+        } else {
+            if searchOverlay == nil { searchOverlay = SearchBarOverlay() }
+            searchOverlay?.show(query: searchSession.query)
+        }
+
+        currentMatches = searchSession.query.isEmpty
+            ? WindowSelectionEngine.rowMajorSorted(in: windows)
+            : searchSession.matches(in: windows)
+
+        if searchSession.selectedIndex >= 0, searchSession.selectedIndex < currentMatches.count {
+            WindowActivationAction.postSyntheticMouseMoved(
+                to: currentMatches[searchSession.selectedIndex].shoulderPoint
+            )
+        }
+    }
+
+    /// Activates the currently selected thumbnail. Reuses `currentMatches` from
+    /// the last `updateSearchUI()` to avoid a second match computation on the
+    /// same keystroke; recomputes only if the cache was cleared (e.g., by
+    /// `clearSearch()` or a stale window poll). Plays haptics, clears the
+    /// session/pill, then injects `mouseMoved` → `leftMouseDown` → 50 ms dwell
+    /// → `leftMouseUp` at `.cghidEventTap` to reliably activate the Exposé
+    /// thumbnail.
+    private func activateSelectedWindow() {
+        let matches: [WindowSelectionEngine.Match]
+        if currentMatches.isEmpty {
+            matches = searchSession.query.isEmpty
+                ? WindowSelectionEngine.rowMajorSorted(in: windows)
+                : searchSession.matches(in: windows)
+            currentMatches = matches
+        } else {
+            matches = currentMatches
+        }
+        let index = searchSession.selectedIndex
+        guard index >= 0, index < matches.count else { return }
+
+        let match = matches[index]
+        HapticService.perform(.pinchIn)
+        clearSearch()
+        WindowActivationAction.performSyntheticClick(at: match.shoulderPoint)
+    }
+
+    /// Resets query / selection / pill / idle timer / match cache. Called on
+    /// Escape, backspace-to-empty, activation, session teardown, and window-
+    /// list invalidation.
+    private func clearSearch() {
+        searchSession.clear()
+        currentMatches = []
+        queryIdleTimer?.invalidate()
+        queryIdleTimer = nil
+        searchOverlay?.hide()
+    }
+
+    /// Arms or suppresses the 2 s idle auto-clear timer. When the "Keyboard
+    /// Navigation" toggle is on (`isKeyboardNavigationEnabledProvider() == true`)
+    /// the session is intentionally persistent until `Return` (activate) or
+    /// `Escape` (clear) so Tab cycling keeps the pill visible without a
+    /// timeout. When the toggle is off, the timer fires on the main run loop
+    /// in `.common` modes with 0.2 s tolerance and clears the session.
+    private func resetIdleTimer() {
+        queryIdleTimer?.invalidate()
+        queryIdleTimer = nil
+        guard !isKeyboardNavigationEnabledProvider() else { return }
+        queryIdleTimer = Timer.scheduledCommon(
+            interval: Timing.queryIdle,
+            repeats: false,
+            tolerance: Timing.queryIdleTolerance
+        ) { [weak self] _ in
+            Task { @MainActor in self?.clearSearch() }
+        }
+    }
+
     deinit {
         if let source = runLoopSource {
             CFRunLoopSourceInvalidate(source)
@@ -444,11 +633,36 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
         if let tap = eventTap {
             CGEvent.tapEnable(tap: tap, enable: false)
         }
+        keyboardTap?.stop()
+        queryIdleTimer?.invalidate()
         if let obs = axObserver {
             CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(obs), .commonModes)
         }
         if let observer = spaceChangeObserver {
             NSWorkspace.shared.notificationCenter.removeObserver(observer)
         }
+    }
+}
+
+/// Centralizes the `RunLoop.main` in `.common` modes + tolerance pattern used
+/// for `windowFetchTimer` (0.5 s poll during Exposé) and `queryIdleTimer`
+/// (2 s idle clear). Using `.common` modes ensures the timer fires while
+/// Mission Control's tracking run loop is active, and tolerance allows the
+/// system to coalesce the timer for power efficiency. Power-efficient and
+/// consistent across future timers in this service.
+private extension Timer {
+    /// Creates and schedules a timer on `RunLoop.main` in `.common` modes with
+    /// the given tolerance. The timer is auto-added to the run loop and
+    /// returned for invalidation by the caller.
+    static func scheduledCommon(
+        interval: TimeInterval,
+        repeats: Bool,
+        tolerance: TimeInterval,
+        block: @escaping (Timer) -> Void
+    ) -> Timer {
+        let timer = Timer(timeInterval: interval, repeats: repeats, block: block)
+        timer.tolerance = tolerance
+        RunLoop.main.add(timer, forMode: .common)
+        return timer
     }
 }

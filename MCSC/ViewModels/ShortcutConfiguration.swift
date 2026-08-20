@@ -16,4 +16,17 @@ struct ShortcutConfiguration {
     var isSwipeUpEnabled = true
     var isTwoFingerDoubleTapEnabled = true
     var isAutoEjectEnabled = true
+    var isKeyboardNavigationEnabled = true {
+        didSet { UserDefaults.standard.set(isKeyboardNavigationEnabled, forKey: Self.Keys.keyboardNavigation) }
+    }
+
+    init() {
+        if UserDefaults.standard.object(forKey: Self.Keys.keyboardNavigation) != nil {
+            isKeyboardNavigationEnabled = UserDefaults.standard.bool(forKey: Self.Keys.keyboardNavigation)
+        }
+    }
+
+    private enum Keys {
+        static let keyboardNavigation = "mcsc.keyboardNavigation.enabled"
+    }
 }
