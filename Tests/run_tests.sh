@@ -65,6 +65,7 @@ swiftc \
   "${SCRIPT_DIR}/WindowSearchSessionTests.swift" \
   "${SCRIPT_DIR}/SearchBarOverlayTests.swift" \
   "${SCRIPT_DIR}/CursorFeedbackOverlayTests.swift" \
+  "${SCRIPT_DIR}/ShortcutConfigurationTests.swift" \
   "${SCRIPT_DIR}/RouterTests.swift" \
   "${SCRIPT_DIR}/DockInteractionSuppressorTests.swift" \
   "${SCRIPT_DIR}/TestRunner.swift"

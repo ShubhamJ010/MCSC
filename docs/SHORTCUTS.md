@@ -132,16 +132,16 @@ Source of truth: `GestureAction` (`MCSC/Models/Gestures/GestureAction.swift:87`,
 > `Cmd + Q` and the Dock-target actions perform a **force** termination. They
 > skip the normal quit handshake, so unsaved work in the targeted app is lost.
 
-### Dock shortcuts outside Mission Control
+### Shortcuts outside Mission Control
 
 All dock-targeted keyboard shortcuts (`Cmd + W`, `Cmd + Q`, `Cmd + M`, `Cmd + H`)
-also work while hovering a Dock icon in **normal desktop mode** (Mission Control
-closed) — no need to open Mission Control first. While 2+ fingers rest on the
-trackpad over the Dock, MCSC also suppresses App Exposé (two-finger double-tap
+can also work while hovering a Dock icon in **normal desktop mode** (Mission
+Control closed) — no need to open Mission Control first. While 2+ fingers rest on
+the trackpad over the Dock, MCSC also suppresses App Exposé (two-finger double-tap
 smart zoom) and synthesized clicks so gestures aim cleanly at Dock icons.
 
-- **Toggle:** menu bar **Dock Gestures & Shortcuts (outside MC)**
-  (`ShortcutConfiguration.isDockActionsOutsideMCEnabled`, default `true`,
+- **Toggle:** Settings → General **Dock Gestures & Shortcuts**
+  (`ShortcutConfiguration.isDockActionsOutsideMCEnabled`, default `false`,
   persisted to `UserDefaults` under `mcsc.dockActionsOutsideMC.enabled`).
 - **Implementation:** `ShortcutActionRouter` admits `.dock` targets when
   `isMissionControlActive || isDockActionsOutsideMCEnabled`;
@@ -149,6 +149,21 @@ smart zoom) and synthesized clicks so gestures aim cleanly at Dock icons.
   `smartMagnify` / `magnify` / gesture events and synthesized clicks over the
   Dock; `AccessibilityService.isDockRegion(at:)` provides cached-frame hit
   testing with a direct Dock-process AX fallback for `-25200` errors.
+
+### Title bar shortcuts outside Mission Control
+
+The same keyboard shortcuts can also work while hovering the **title bar of the
+frontmost window** in normal desktop mode. Background windows' title bars never
+trigger actions — only the frontmost app's focused window qualifies.
+
+- **Toggle:** Settings → General **Title Bar Gestures & Shortcuts**
+  (`ShortcutConfiguration.isTitleBarActionsOutsideMCEnabled`, default `false`,
+  persisted to `UserDefaults` under `mcsc.titleBarActionsOutsideMC.enabled`).
+- **Implementation:** `ShortcutViewModel.isTitleBarHover(window:at:)` checks the
+  cursor is inside the top ~28 pt strip of the resolved window frame and that
+  the window is the frontmost application's focused window
+  (`AccessibilityService.isFrontmostWindow(_:)`); `ShortcutActionRouter` then
+  admits `.window` targets when `isTitleBarActionsOutsideMCEnabled`.
 
 ### Mounted volume auto-eject (`Cmd + W` / `Cmd + Q` on ejectable Finder volumes)
 

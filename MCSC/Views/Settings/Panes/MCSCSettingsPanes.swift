@@ -28,12 +28,26 @@ class MCSCSettingsPane: SettingsPaneViewController {
     static let minimumPaneWidth: CGFloat = 500
 }
 
+// MARK: - Shared helpers
+
+extension SettingsColumnSectionView {
+    /// Adds a checkbox with a description label beneath it — the dominant
+    /// toggle pattern across panes. Returns the checkbox for outlet storage.
+    @discardableResult
+    func addDescribedCheckbox(title: String, description: String, target: AnyObject?, action: Selector?) -> NSButton {
+        let checkbox = addCheckbox(title: title, target: target, action: action)
+        addDescriptionLabel(description)
+        return checkbox
+    }
+}
+
 // MARK: - General
 
 final class GeneralSettingsPane: MCSCSettingsPane {
     private var launchAtLoginCheckbox: NSButton!
     private var autoEjectCheckbox: NSButton!
     private var dockActionsCheckbox: NSButton!
+    private var titleBarActionsCheckbox: NSButton!
     private var hoverCloseCheckbox: NSButton!
     private var keyboardNavCheckbox: NSButton!
     private var spotlightFixCheckbox: NSButton!
@@ -59,59 +73,59 @@ final class GeneralSettingsPane: MCSCSettingsPane {
         autoEjectCheckbox = behavior.addCheckbox(title: "Auto-Eject Mounted Volumes",
                                                  target: self,
                                                  action: #selector(toggleAutoEject(_:)))
-        dockActionsCheckbox = behavior.addCheckbox(title: "Dock Gestures & Shortcuts (outside Mission Control)",
-                                                   target: self,
-                                                   action: #selector(toggleDockActions(_:)))
-        behavior
-            .addDescriptionLabel(
-                "Applies gestures and Cmd-shortcuts while hovering Dock icons outside Mission Control."
-            )
-        hoverCloseCheckbox = behavior.addCheckbox(title: "Hover Close Button",
-                                                  target: self,
-                                                  action: #selector(toggleHoverClose(_:)))
-        behavior
-            .addDescriptionLabel(
-                "Shows a close button when hovering window thumbnails in Mission Control. Click to close; Cmd = quit, Option = minimize."
-            )
+        dockActionsCheckbox = behavior.addDescribedCheckbox(
+            title: "Dock Gestures & Shortcuts",
+            description: "Gestures & Cmd-shortcuts while hovering Dock icons.",
+            target: self,
+            action: #selector(toggleDockActions(_:)))
+        titleBarActionsCheckbox = behavior.addDescribedCheckbox(
+            title: "Title Bar Gestures & Shortcuts",
+            description: "Gestures & Cmd-shortcuts while hovering the frontmost window's title bar.",
+            target: self,
+            action: #selector(toggleTitleBarActions(_:)))
+        hoverCloseCheckbox = behavior.addDescribedCheckbox(
+            title: "Hover Close Button",
+            description: "Shows a close button when hovering window thumbnails in Mission Control. Click to close; Cmd = quit, Option = minimize.",
+            target: self,
+            action: #selector(toggleHoverClose(_:)))
 
         layoutView.addSeparatorSection()
 
         // Mission Control — keyboard navigation & Spotlight fix (moved from Shortcuts pane for better grouping)
         let missionControl = layoutView.addColumnSection(label: "Mission Control", itemColumnMaximumWidth: 340)
-        keyboardNavCheckbox = missionControl.addCheckbox(title: "Keyboard Navigation (Tab / Return)",
-                                                         target: self,
-                                                         action: #selector(toggleKeyboardNav(_:)))
-        missionControl.addDescriptionLabel(
-            "Tab / Shift+Tab cycle the selection between visible thumbnails row-major "
+        keyboardNavCheckbox = missionControl.addDescribedCheckbox(
+            title: "Keyboard Navigation (Tab / Return)",
+            description: "Tab / Shift+Tab cycle the selection between visible thumbnails row-major "
                 + "(wrap-around). Return activates the selected window. Typing filters windows fuzzy "
-                + "(e.g. “code” matches Xcode + Code) and Tab cycles only the filtered matches."
-        )
+                + "(e.g. “code” matches Xcode + Code) and Tab cycles only the filtered matches.",
+            target: self,
+            action: #selector(toggleKeyboardNav(_:)))
         let mcGapView = NSView(frame: .zero)
         mcGapView.translatesAutoresizingMaskIntoConstraints = false
         mcGapView.heightAnchor.constraint(equalToConstant: 8).isActive = true
         missionControl.addCustomView(mcGapView, verticalAlignment: .centerY)
         mcGapView.setContentHuggingPriority(.defaultLow, for: .horizontal)
         mcGapView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        spotlightFixCheckbox = missionControl.addCheckbox(title: "Restore Spotlight (⌘ + Space) in Mission Control",
-                                                          target: self,
-                                                          action: #selector(toggleSpotlightFix(_:)))
-        missionControl
-            .addDescriptionLabel(
-                "Fixes Mission Control blocking Spotlight. Re-sends ⌘+Space when Mission Control is visible so Spotlight still opens."
-            )
+        spotlightFixCheckbox = missionControl.addDescribedCheckbox(
+            title: "Restore Spotlight (⌘ + Space) in Mission Control",
+            description: "Fixes Mission Control blocking Spotlight. Re-sends ⌘+Space when Mission Control is visible so Spotlight still opens.",
+            target: self,
+            action: #selector(toggleSpotlightFix(_:)))
 
         layoutView.addSeparatorSection()
 
         // Feedback — on by default (configurable, previously forced-on).
         let feedback = layoutView.addColumnSection(label: "Feedback", itemColumnMaximumWidth: 340)
-        hapticCheckbox = feedback.addCheckbox(title: "Haptic Feedback",
-                                              target: self,
-                                              action: #selector(toggleHaptics(_:)))
-        feedback.addDescriptionLabel("Plays trackpad haptics on gesture/shortcut actions.")
-        cursorFeedbackCheckbox = feedback.addCheckbox(title: "Cursor Flash Overlay",
-                                                      target: self,
-                                                      action: #selector(toggleCursorFeedback(_:)))
-        feedback.addDescriptionLabel("Flashes an icon at the cursor when an action fires.")
+        hapticCheckbox = feedback.addDescribedCheckbox(
+            title: "Haptic Feedback",
+            description: "Plays trackpad haptics on gesture/shortcut actions.",
+            target: self,
+            action: #selector(toggleHaptics(_:)))
+        cursorFeedbackCheckbox = feedback.addDescribedCheckbox(
+            title: "Cursor Flash Overlay",
+            description: "Flashes an icon at the cursor when an action fires.",
+            target: self,
+            action: #selector(toggleCursorFeedback(_:)))
 
         layoutView.addSeparatorSection()
 
@@ -129,6 +143,7 @@ final class GeneralSettingsPane: MCSCSettingsPane {
         launchAtLoginCheckbox?.state = viewModel.isLaunchAtLoginEnabled ? .on : .off
         autoEjectCheckbox?.state = viewModel.isAutoEjectEnabled ? .on : .off
         dockActionsCheckbox?.state = viewModel.isDockActionsOutsideMCEnabled ? .on : .off
+        titleBarActionsCheckbox?.state = viewModel.isTitleBarActionsOutsideMCEnabled ? .on : .off
         hoverCloseCheckbox?.state = viewModel.isHoverCloseButtonEnabled ? .on : .off
         keyboardNavCheckbox?.state = viewModel.isKeyboardNavigationEnabled ? .on : .off
         spotlightFixCheckbox?.state = viewModel.isCmdSpaceEnabled ? .on : .off
@@ -149,6 +164,11 @@ final class GeneralSettingsPane: MCSCSettingsPane {
     @objc private func toggleDockActions(_ sender: NSButton) {
         viewModel.isDockActionsOutsideMCEnabled.toggle()
         sender.state = viewModel.isDockActionsOutsideMCEnabled ? .on : .off
+    }
+
+    @objc private func toggleTitleBarActions(_ sender: NSButton) {
+        viewModel.isTitleBarActionsOutsideMCEnabled.toggle()
+        sender.state = viewModel.isTitleBarActionsOutsideMCEnabled ? .on : .off
     }
 
     @objc private func toggleHoverClose(_ sender: NSButton) {

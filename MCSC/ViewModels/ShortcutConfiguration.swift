@@ -114,8 +114,15 @@ struct ShortcutConfiguration {
     /// When `true`, dock-targeted shortcuts and gestures also work while
     /// hovering Dock icons in normal desktop mode (Mission Control closed).
     /// Persisted to `UserDefaults` on every mutation.
-    var isDockActionsOutsideMCEnabled = true {
+    var isDockActionsOutsideMCEnabled = false {
         didSet { UserDefaults.standard.set(isDockActionsOutsideMCEnabled, forKey: Self.Keys.dockActionsOutsideMC) }
+    }
+
+    /// When `true`, shortcuts and gestures also work while hovering the title
+    /// bar of the frontmost window in normal desktop mode (Mission Control
+    /// closed). Persisted to `UserDefaults` on every mutation.
+    var isTitleBarActionsOutsideMCEnabled = false {
+        didSet { UserDefaults.standard.set(isTitleBarActionsOutsideMCEnabled, forKey: Self.Keys.titleBarActionsOutsideMC) }
     }
 
     var isKeyboardNavigationEnabled = true {
@@ -151,43 +158,49 @@ struct ShortcutConfiguration {
         loadStoredGestureMappings()
     }
 
+    /// Single source of truth for every persisted toggle: its `UserDefaults`
+    /// key and default value. Drives loading (`init`), `restoreDefaults()`,
+    /// and the defaults-drift unit tests. The stored-property literals above
+    /// must match `defaultValue` (enforced by `ShortcutConfigurationTests`).
+    static let toggleDefaults: [(keyPath: WritableKeyPath<ShortcutConfiguration, Bool>, key: String, defaultValue: Bool)] = [
+        (\.isCmdWEnabled, Keys.cmdWEnabled, true),
+        (\.isCmdQEnabled, Keys.cmdQEnabled, true),
+        (\.isCmdMEnabled, Keys.cmdMEnabled, true),
+        (\.isCmdHEnabled, Keys.cmdHEnabled, true),
+        (\.isCmdFEnabled, Keys.cmdFEnabled, false),
+        (\.isCmdSpaceEnabled, Keys.cmdSpaceEnabled, true),
+        (\.isCmdTEnabled, Keys.cmdTEnabled, false),
+        (\.isCmdNEnabled, Keys.cmdNEnabled, false),
+        (\.isCmdShiftWEnabled, Keys.cmdShiftWEnabled, false),
+        (\.isCmdShiftTEnabled, Keys.cmdShiftTEnabled, false),
+        (\.isCloseWindowEnabled, Keys.closeWindowEnabled, false),
+        (\.isFillScreenEnabled, Keys.fillScreenEnabled, false),
+        (\.isAlmostMaximizeEnabled, Keys.almostMaximizeEnabled, false),
+        (\.isReasonableSizeEnabled, Keys.reasonableSizeEnabled, false),
+        (\.isMakeLargerEnabled, Keys.makeLargerEnabled, false),
+        (\.isMakeSmallerEnabled, Keys.makeSmallerEnabled, false),
+        (\.isMoveNextDesktopEnabled, Keys.moveNextDesktopEnabled, false),
+        (\.isMovePreviousDesktopEnabled, Keys.movePreviousDesktopEnabled, false),
+        (\.isKeyboardNavigationEnabled, Keys.keyboardNavigation, true),
+        (\.isDockActionsOutsideMCEnabled, Keys.dockActionsOutsideMC, false),
+        (\.isTitleBarActionsOutsideMCEnabled, Keys.titleBarActionsOutsideMC, false),
+        (\.isGesturesEnabled, Keys.gesturesEnabled, true),
+        (\.isPinchInEnabled, Keys.pinchInEnabled, true),
+        (\.isPinchOutEnabled, Keys.pinchOutEnabled, true),
+        (\.isSwipeLeftEnabled, Keys.swipeLeftEnabled, true),
+        (\.isSwipeRightEnabled, Keys.swipeRightEnabled, true),
+        (\.isSwipeDownEnabled, Keys.swipeDownEnabled, true),
+        (\.isSwipeUpEnabled, Keys.swipeUpEnabled, true),
+        (\.isTwoFingerDoubleTapEnabled, Keys.twoFingerDoubleTapEnabled, true),
+        (\.isAutoEjectEnabled, Keys.autoEjectEnabled, true),
+        (\.isHapticFeedbackEnabled, Keys.hapticFeedbackEnabled, true),
+        (\.isCursorFeedbackEnabled, Keys.cursorFeedbackEnabled, true),
+    ]
+
     private mutating func loadStoredToggles() {
-        let mappings: [(WritableKeyPath<ShortcutConfiguration, Bool>, String)] = [
-            (\.isCmdWEnabled, Keys.cmdWEnabled),
-            (\.isCmdQEnabled, Keys.cmdQEnabled),
-            (\.isCmdMEnabled, Keys.cmdMEnabled),
-            (\.isCmdHEnabled, Keys.cmdHEnabled),
-            (\.isCmdFEnabled, Keys.cmdFEnabled),
-            (\.isCmdSpaceEnabled, Keys.cmdSpaceEnabled),
-            (\.isCmdTEnabled, Keys.cmdTEnabled),
-            (\.isCmdNEnabled, Keys.cmdNEnabled),
-            (\.isCmdShiftWEnabled, Keys.cmdShiftWEnabled),
-            (\.isCmdShiftTEnabled, Keys.cmdShiftTEnabled),
-            (\.isCloseWindowEnabled, Keys.closeWindowEnabled),
-            (\.isFillScreenEnabled, Keys.fillScreenEnabled),
-            (\.isAlmostMaximizeEnabled, Keys.almostMaximizeEnabled),
-            (\.isReasonableSizeEnabled, Keys.reasonableSizeEnabled),
-            (\.isMakeLargerEnabled, Keys.makeLargerEnabled),
-            (\.isMakeSmallerEnabled, Keys.makeSmallerEnabled),
-            (\.isMoveNextDesktopEnabled, Keys.moveNextDesktopEnabled),
-            (\.isMovePreviousDesktopEnabled, Keys.movePreviousDesktopEnabled),
-            (\.isKeyboardNavigationEnabled, Keys.keyboardNavigation),
-            (\.isDockActionsOutsideMCEnabled, Keys.dockActionsOutsideMC),
-            (\.isGesturesEnabled, Keys.gesturesEnabled),
-            (\.isPinchInEnabled, Keys.pinchInEnabled),
-            (\.isPinchOutEnabled, Keys.pinchOutEnabled),
-            (\.isSwipeLeftEnabled, Keys.swipeLeftEnabled),
-            (\.isSwipeRightEnabled, Keys.swipeRightEnabled),
-            (\.isSwipeDownEnabled, Keys.swipeDownEnabled),
-            (\.isSwipeUpEnabled, Keys.swipeUpEnabled),
-            (\.isTwoFingerDoubleTapEnabled, Keys.twoFingerDoubleTapEnabled),
-            (\.isAutoEjectEnabled, Keys.autoEjectEnabled),
-            (\.isHapticFeedbackEnabled, Keys.hapticFeedbackEnabled),
-            (\.isCursorFeedbackEnabled, Keys.cursorFeedbackEnabled),
-        ]
-        for (keyPath, defaultsKey) in mappings {
-            if let value = Self.loadBool(forKey: defaultsKey) {
-                self[keyPath: keyPath] = value
+        for entry in Self.toggleDefaults {
+            if let value = Self.loadBool(forKey: entry.key) {
+                self[keyPath: entry.keyPath] = value
             }
         }
     }
@@ -232,37 +245,9 @@ struct ShortcutConfiguration {
 
     /// Resets all toggles to defaults (single source of truth for Restore Defaults).
     mutating func restoreDefaults() {
-        isCmdWEnabled = true
-        isCmdQEnabled = true
-        isCmdMEnabled = true
-        isCmdHEnabled = true
-        isCmdFEnabled = false
-        isCmdSpaceEnabled = true
-        isCmdTEnabled = false
-        isCmdNEnabled = false
-        isCmdShiftWEnabled = false
-        isCmdShiftTEnabled = false
-        isCloseWindowEnabled = false
-        isFillScreenEnabled = false
-        isAlmostMaximizeEnabled = false
-        isReasonableSizeEnabled = false
-        isMakeLargerEnabled = false
-        isMakeSmallerEnabled = false
-        isMoveNextDesktopEnabled = false
-        isMovePreviousDesktopEnabled = false
-        isGesturesEnabled = true
-        isPinchInEnabled = true
-        isPinchOutEnabled = true
-        isSwipeLeftEnabled = true
-        isSwipeRightEnabled = true
-        isSwipeDownEnabled = true
-        isSwipeUpEnabled = true
-        isTwoFingerDoubleTapEnabled = true
-        isAutoEjectEnabled = true
-        isDockActionsOutsideMCEnabled = true
-        isKeyboardNavigationEnabled = true
-        isHapticFeedbackEnabled = true
-        isCursorFeedbackEnabled = true
+        for entry in Self.toggleDefaults {
+            self[keyPath: entry.keyPath] = entry.defaultValue
+        }
         resetGestureMappings()
     }
 
@@ -304,6 +289,7 @@ struct ShortcutConfiguration {
         static let movePreviousDesktopEnabled = "mcsc.shortcuts.movePreviousDesktop.enabled"
         static let keyboardNavigation = "mcsc.keyboardNavigation.enabled"
         static let dockActionsOutsideMC = "mcsc.dockActionsOutsideMC.enabled"
+        static let titleBarActionsOutsideMC = "mcsc.titleBarActionsOutsideMC.enabled"
         static let gesturesEnabled = "mcsc.gestures.enabled"
         static let pinchInEnabled = "mcsc.gestures.pinchIn.enabled"
         static let pinchOutEnabled = "mcsc.gestures.pinchOut.enabled"

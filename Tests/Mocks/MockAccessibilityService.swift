@@ -79,4 +79,11 @@ class MockAccessibilityService: AccessibilityServiceProtocol {
     func isDockRegion(at _: CGPoint) -> Bool {
         isDockRegionValue
     }
+
+    var isFrontmostWindowValue: Bool = false
+    var frontmostWindowCheckedWith: AXUIElement?
+    func isFrontmostWindow(_ window: AXUIElement) -> Bool {
+        frontmostWindowCheckedWith = window
+        return isFrontmostWindowValue
+    }
 }

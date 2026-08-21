@@ -14,6 +14,12 @@ final class RouterTests: XCTestCase {
         actionRegistry = ActionRegistry()
         shortcutRouter = ShortcutActionRouter(actions: actionRegistry)
         gestureRouter = GestureActionRouter(actions: actionRegistry)
+        // Tests construct `ShortcutConfiguration()` expecting pristine
+        // defaults; clear persisted toggle state so results never depend on
+        // prior runs (config mutations write through to UserDefaults).
+        for entry in ShortcutConfiguration.toggleDefaults {
+            UserDefaults.standard.removeObject(forKey: entry.key)
+        }
     }
 
     func testShortcutRouterCmdWProducesCloseActionWhenEnabled() {
@@ -538,6 +544,80 @@ final class RouterTests: XCTestCase {
             XCTAssertEqual(mode, .hide)
         } else {
             XCTFail("Expected Cmd+H on dock to execute")
+        }
+    }
+
+    // MARK: - Title bar actions outside Mission Control
+
+    func testShortcutRouterExecutesTitleBarShortcutOutsideMCWhenEnabled() {
+        var config = ShortcutConfiguration()
+        config.isTitleBarActionsOutsideMCEnabled = true
+
+        let result = shortcutRouter.routeShortcut(
+            keyCode: ShortcutActionRouter.kKeyW,
+            flags: .maskCommand,
+            location: CGPoint(x: 100, y: 100),
+            config: config,
+            isMissionControlActive: false,
+            target: .window(mockService.mockElement!),
+            service: mockService,
+            isTitleBarHover: true,
+            activateApp: { _ in }
+        )
+
+        switch result {
+        case let .consumeAndExecute(feedbackMode, _):
+            XCTAssertEqual(feedbackMode, .close)
+        case .ignore:
+            XCTFail("Expected title-bar shortcut to be consumed outside MC when enabled")
+        }
+    }
+
+    func testShortcutRouterIgnoresTitleBarShortcutOutsideMCWhenDisabled() {
+        var config = ShortcutConfiguration()
+        config.isTitleBarActionsOutsideMCEnabled = false
+
+        let result = shortcutRouter.routeShortcut(
+            keyCode: ShortcutActionRouter.kKeyW,
+            flags: .maskCommand,
+            location: CGPoint(x: 100, y: 100),
+            config: config,
+            isMissionControlActive: false,
+            target: .window(mockService.mockElement!),
+            service: mockService,
+            isTitleBarHover: true,
+            activateApp: { _ in }
+        )
+
+        switch result {
+        case .consumeAndExecute:
+            XCTFail("Should ignore title-bar shortcut outside MC when disabled")
+        case .ignore:
+            break
+        }
+    }
+
+    func testShortcutRouterIgnoresWindowTitleShortcutWithoutTitleBarHover() {
+        var config = ShortcutConfiguration()
+        config.isTitleBarActionsOutsideMCEnabled = true
+
+        let result = shortcutRouter.routeShortcut(
+            keyCode: ShortcutActionRouter.kKeyW,
+            flags: .maskCommand,
+            location: CGPoint(x: 100, y: 100),
+            config: config,
+            isMissionControlActive: false,
+            target: .window(mockService.mockElement!),
+            service: mockService,
+            isTitleBarHover: false,
+            activateApp: { _ in }
+        )
+
+        switch result {
+        case .consumeAndExecute:
+            XCTFail("Should ignore window shortcut outside MC without title-bar hover")
+        case .ignore:
+            break
         }
     }
 

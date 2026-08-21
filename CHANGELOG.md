@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- No unreleased changes.
+- **Title Bar Gestures & Shortcuts Outside Mission Control**: New opt-in setting that applies all gestures and Cmd-shortcuts while hovering the title bar of the frontmost window in normal desktop mode. Hover detection is a ~28 pt top-strip geometry check plus an `AccessibilityService.isFrontmostWindow(_:)` focused-window check, so only the frontmost window responds. Toggle via Settings → General (`isTitleBarActionsOutsideMCEnabled`, persisted under `mcsc.titleBarActionsOutsideMC.enabled`). Both this and the Dock outside-MC toggle now default to **off**.
 
 ## 0.5.2-beta (22 Aug 2026)
 

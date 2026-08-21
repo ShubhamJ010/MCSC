@@ -47,10 +47,16 @@ final class ShortcutActionRouter {
         target: TargetResolution,
         service: AccessibilityServiceProtocol,
         volumeService: MountedVolumeServiceProtocol? = nil,
+        isTitleBarHover: Bool = false,
         activateApp: @escaping (CGPoint) -> Void
     ) -> ResolvedShortcutAction {
         guard shouldHandle(flags: flags) else { return .ignore }
-        guard isActive(isMissionControlActive: isMissionControlActive, target: target, config: config) else {
+        guard isActive(
+            isMissionControlActive: isMissionControlActive,
+            target: target,
+            config: config,
+            isTitleBarHover: isTitleBarHover
+        ) else {
             return .ignore
         }
         let app = resolveApp(from: target)
@@ -86,13 +92,19 @@ final class ShortcutActionRouter {
     }
 
     private func isActive(
-        isMissionControlActive: Bool, target: TargetResolution, config: ShortcutConfiguration
+        isMissionControlActive: Bool,
+        target: TargetResolution,
+        config: ShortcutConfiguration,
+        isTitleBarHover: Bool = false
     ) -> Bool {
         if isMissionControlActive {
             return true
         }
         if case .dock = target {
             return config.isDockActionsOutsideMCEnabled
+        }
+        if isTitleBarHover {
+            return config.isTitleBarActionsOutsideMCEnabled
         }
         return false
     }

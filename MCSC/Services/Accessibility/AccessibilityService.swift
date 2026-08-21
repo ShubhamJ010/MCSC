@@ -58,6 +58,9 @@ protocol AccessibilityServiceProtocol {
     /// Fast check: is the given Quartz point inside the Dock's AX list frame?
     /// Uses a cached Dock frame (refreshed on screen changes) to avoid per-frame AX queries.
     func isDockRegion(at point: CGPoint) -> Bool
+
+    /// `true` when `window` is the focused window of the frontmost application.
+    func isFrontmostWindow(_ window: AXUIElement) -> Bool
 }
 
 final class AccessibilityService: AccessibilityServiceProtocol {
@@ -461,5 +464,17 @@ final class AccessibilityService: AccessibilityServiceProtocol {
             }
         }
         return false
+    }
+
+    /// `true` when `window` is the focused window of the frontmost application.
+    /// Two cheap AX reads (app element + focused-window attribute); only called
+    /// when the title-bar feature is enabled and Mission Control is closed.
+    func isFrontmostWindow(_ window: AXUIElement) -> Bool {
+        guard let frontApp = NSWorkspace.shared.frontmostApplication else { return false }
+        let appElement = AXUIElementCreateApplication(frontApp.processIdentifier)
+        guard let focusedWindow: AXUIElement = getAttributeValue(kAXFocusedWindowAttribute, for: appElement) else {
+            return false
+        }
+        return CFEqual(focusedWindow, window)
     }
 }

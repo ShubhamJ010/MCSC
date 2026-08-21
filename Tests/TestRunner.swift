@@ -15,6 +15,7 @@ struct TestRunner {
             CursorFeedbackOverlayTests.defaultTestSuite,
             RouterTests.defaultTestSuite,
             DesktopNavigationActionTests.defaultTestSuite,
+            ShortcutConfigurationTests.defaultTestSuite,
         ]
 
         var totalFailed = 0

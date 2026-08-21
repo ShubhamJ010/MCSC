@@ -141,6 +141,10 @@ final class ShortcutViewModel {
         get { config.isDockActionsOutsideMCEnabled } set { config.isDockActionsOutsideMCEnabled = newValue }
     }
 
+    var isTitleBarActionsOutsideMCEnabled: Bool {
+        get { config.isTitleBarActionsOutsideMCEnabled } set { config.isTitleBarActionsOutsideMCEnabled = newValue }
+    }
+
     var isGesturesEnabled: Bool {
         get { config.isGesturesEnabled } set { config.isGesturesEnabled = newValue }
     }
@@ -268,6 +272,14 @@ final class ShortcutViewModel {
 
             let effectiveLocation = (location == .zero) ? self.currentAXMouseLocation() : location
             let target = self.resolveTarget(at: effectiveLocation)
+            // Pure hover fact only — whether the toggle admits it is the
+            // router's decision (`ShortcutActionRouter.isActive`). The MC
+            // guard just skips needless AX IPC; the router admits everything
+            // while Mission Control is open anyway.
+            var isTitleBarHover = false
+            if case let .window(window) = target, !self.missionControlService.isMissionControlActive {
+                isTitleBarHover = self.isTitleBarHover(window: window, at: effectiveLocation)
+            }
             let resolution = self.shortcutRouter.routeShortcut(
                 keyCode: keyCode,
                 flags: flags,
@@ -277,6 +289,7 @@ final class ShortcutViewModel {
                 target: target,
                 service: self.accessibilityService,
                 volumeService: self.volumeService,
+                isTitleBarHover: isTitleBarHover,
                 activateApp: { [weak self] loc in self?.activateAppIfNeeded(at: loc) }
             )
 
@@ -337,15 +350,20 @@ final class ShortcutViewModel {
                   !self.isCoolingDown else { return }
 
             // Throttle 60-120 Hz multitouch to 30 Hz (~33ms). Hot path
-            // hits WindowServer (`isMissionControlActive` + `isDockHovered`).
+            // hits WindowServer (`isMissionControlActive`) and AX IPC
+            // (dock / title-bar hover checks).
             let now = CACurrentMediaTime()
             guard now - self.lastGestureFrameTime >= self.gestureFrameInterval else { return }
             self.lastGestureFrameTime = now
 
             let mcActive = self.missionControlService.isMissionControlActive
+            let axPoint = self.currentAXMouseLocation()
             let dockHovered = !mcActive
                 && self.config.isDockActionsOutsideMCEnabled
-                && self.isDockHovered()
+                && self.accessibilityService.isDockRegion(at: axPoint)
+            let titleBarHovered = !mcActive && !dockHovered
+                && self.config.isTitleBarActionsOutsideMCEnabled
+                && self.isTitleBarHovered(at: axPoint)
 
             if dockHovered {
                 self.dockSuppressor.isSuppressing = (touches.count >= 2)
@@ -353,7 +371,7 @@ final class ShortcutViewModel {
                 self.dockSuppressor.isSuppressing = false
             }
 
-            guard mcActive || dockHovered else { return }
+            guard mcActive || dockHovered || titleBarHovered else { return }
             self.gestureEngine.processFrame(touches, timestamp: timestamp)
         }
 
@@ -426,10 +444,23 @@ final class ShortcutViewModel {
         return CGPoint(x: mouseLocation.x, y: primaryHeight - mouseLocation.y)
     }
 
-    /// `true` when the cursor currently sits over a Dock icon region.
-    /// Used to gate outside-Mission-Control dock gestures/shortcuts.
-    private func isDockHovered() -> Bool {
-        accessibilityService.isDockRegion(at: currentAXMouseLocation())
+    /// Standard macOS title-bar height (pt) used for the outside-MC hover strip.
+    private static let titleBarHeight: CGFloat = 28
+
+    /// `true` when the cursor sits on the title-bar strip of the frontmost
+    /// window. Only invoked when the feature is enabled and Mission Control is
+    /// closed; rides the existing 30 Hz frame throttle.
+    private func isTitleBarHovered(at point: CGPoint) -> Bool {
+        guard case let .window(window) = resolveTarget(at: point) else { return false }
+        return isTitleBarHover(window: window, at: point)
+    }
+
+    /// Core geometry + frontmost check for an already-resolved window target.
+    private func isTitleBarHover(window: AXUIElement, at point: CGPoint) -> Bool {
+        guard accessibilityService.isFrontmostWindow(window),
+              let frame = accessibilityService.getFrame(for: window),
+              frame.contains(point) else { return false }
+        return point.y - frame.minY <= Self.titleBarHeight
     }
 
     private func resolveTarget(at point: CGPoint) -> TargetResolution {

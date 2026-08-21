@@ -126,12 +126,21 @@ swallows system gesture events (`smartMagnify`, `magnify`, `swipe`) so macOS
 App Exposé never opens mid-gesture, plus any synthesized clicks during the
 gesture window.
 
-- **Toggle:** menu bar **Dock Gestures & Shortcuts (outside MC)**
-  (`ShortcutConfiguration.isDockActionsOutsideMCEnabled`, default `true`) —
+- **Toggle:** Settings → General **Dock Gestures & Shortcuts**
+  (`ShortcutConfiguration.isDockActionsOutsideMCEnabled`, default `false`) —
   shared with the keyboard shortcuts described in [SHORTCUTS.md](./SHORTCUTS.md).
 - **Hover detection:** `AccessibilityService.isDockRegion(at:)` — cached Dock
   list frame (refreshed on display changes) with a direct Dock-process AX
   hit-test fallback near the frame edges.
+
+### Title bar gestures outside Mission Control
+
+The same gestures also fire while hovering the title bar of the frontmost window
+in normal desktop mode when **Title Bar Gestures & Shortcuts** is enabled
+(`isTitleBarActionsOutsideMCEnabled`, default `false`). Hover detection is pure
+geometry on the resolved window's AX frame (top ~28 pt strip) plus a frontmost
+check (`AccessibilityService.isFrontmostWindow(_:)`); background windows never
+trigger actions.
 
 ### Mounted volume auto-eject (pinch-in / swipe-left on ejectable Finder volumes)
 
