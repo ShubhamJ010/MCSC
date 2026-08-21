@@ -44,11 +44,15 @@ final class MissionControlService: MissionControlServiceProtocol {
     /// folder stack shows only the overlay and lacks this, so it is excluded.
     private let dockBarLayerThreshold = 18
 
-    // MARK: - Cached detection (polled at most every 200ms)
+    // MARK: - Cached detection (coalesced; polled at most every 350ms)
 
-    private let detectionCacheInterval: Double = 0.2
+    private let detectionCacheInterval: Double = 0.35
     private var cachedIsActive: Bool?
     private var lastDetectionTime: Double = 0
+    /// Guards `CGWindowListCopyWindowInfo` from re-entrancy when two HID
+    /// sources (event tap + multitouch) miss the cache on the same runloop
+    /// turn. Set while the WindowServer IPC is in flight.
+    private var isDetecting = false
 
     init() {}
 
@@ -113,6 +117,13 @@ final class MissionControlService: MissionControlServiceProtocol {
         if now - lastDetectionTime < detectionCacheInterval, let cached = cachedIsActive {
             return cached
         }
+        // Coalesce concurrent callers (event tap + multitouch) on same turn.
+        if isDetecting, let cached = cachedIsActive {
+            return cached
+        }
+
+        isDetecting = true
+        defer { isDetecting = false }
 
         // Collect the layers of all empty-named Dock windows.
         var emptyNamedDockLayers: [Int] = []

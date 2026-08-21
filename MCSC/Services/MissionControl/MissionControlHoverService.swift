@@ -44,6 +44,10 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
     private var hoveredWindow: [String: Any]?
     private var overlayRect: CGRect?
     private var isOverlayHovered = false
+    /// Throttle high-frequency `mouseMoved` (~60-120 Hz) to 30 Hz so
+    /// `isMissionControlActive` / `fetchWindows` do not IPC per pixel.
+    private var lastMouseMovedTime: Double = 0
+    private let mouseMoveInterval: Double = 1.0 / 30.0
 
     // MARK: - Keyboard fuzzy-finder state
 
@@ -409,6 +413,21 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
             hideOverlay()
             return
         }
+
+        // Fast-path: if already hovering the button, keep it cheap and
+        // bypass MC-active IPC throttling so hover feels instant.
+        if let rect = overlayRect, rect.contains(mouseLocation), hoveredWindow != nil {
+            if !isOverlayHovered {
+                isOverlayHovered = true
+                overlay.setHovered(true)
+            }
+            return
+        }
+
+        // Throttle MC-active check (WindowServer IPC) to 30 Hz.
+        let now = CACurrentMediaTime()
+        guard now - lastMouseMovedTime >= mouseMoveInterval else { return }
+        lastMouseMovedTime = now
 
         guard isMissionControlActive || isMissionControlActiveProvider() else {
             hideOverlay()

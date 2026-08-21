@@ -46,8 +46,8 @@ extension CursorFeedbackOverlay {
             case .newWindow: "macwindow.badge.plus"
             case .newTab: "plus.rectangle.fill.on.rectangle.fill"
             case .fullscreen: "arrow.down.left.and.arrow.up.right.circle.fill"
-            case .spaceRight: "arrow.right.square.fill"
-            case .spaceLeft: "arrow.left.square.fill"
+            case .spaceRight: "arrow.right.circle.fill"
+            case .spaceLeft: "arrow.left.circle.fill"
             }
         }
 
@@ -96,8 +96,8 @@ extension CursorFeedbackOverlay {
             case .fullscreen:
                 [.black, .systemGreen]
             case .spaceRight, .spaceLeft:
-                // Single Accent layer (the user's system accent colour).
-                [.controlAccentColor]
+                // Primary 100% + Accent 100% (two-layer palette for circle.fill).
+                [.white, .controlAccentColor]
             case .closeTab:
                 // System multicolor (red X, matching Close).
                 nil
@@ -158,7 +158,8 @@ extension CursorFeedbackOverlay {
             switch self {
             case .almost, .reasonable, .maximize, .minimize, .hide: .downUpReveal
             case .eject: .magicDownUpReveal
-            case .spaceRight, .spaceLeft, .newTab, .closeAllTabs: .replace
+            case .spaceRight, .spaceLeft: .downUpReveal
+            case .newTab, .closeAllTabs: .replace
             case .close, .quit, .closeTab, .reopenTab, .newWindow, .fullscreen, .makeSmaller: nil
             }
         }
@@ -188,8 +189,8 @@ extension CursorFeedbackOverlay {
             // transitions above.
             case .minimize: "minus.circle"
             case .hide: "eye.slash.circle"
-            case .spaceRight: "arrowshape.right.circle"
-            case .spaceLeft: "arrowshape.left.circle"
+            case .spaceRight: "arrow.right.circle"
+            case .spaceLeft: "arrow.left.circle"
             case .newTab: "plus.rectangle.on.rectangle"
             case .closeAllTabs: "rectangle.badge.xmark"
             default: nil

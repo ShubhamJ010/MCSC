@@ -209,6 +209,11 @@ final class ShortcutViewModel {
 
     /// Prevents gestures from firing right after Mission Control opens via 3-finger swipe.
     private var isCoolingDown = false
+    /// Throttles `MultitouchService` 60-120 Hz frames to at most 30 Hz so
+    /// `isMissionControlActive` / `isDockHovered()` (both WindowServer/AX IPC)
+    /// do not run per-frame. Keeps gesture latency <33ms.
+    private var lastGestureFrameTime: Double = 0
+    private let gestureFrameInterval: Double = 1.0 / 30.0
 
     var isLaunchAtLoginEnabled: Bool {
         launchAtLoginService.isEnabled
@@ -325,11 +330,17 @@ final class ShortcutViewModel {
         swipeRecognizer.isSwipeUpEnabled = { [weak self] in self?.config.isSwipeUpEnabled ?? false }
         gestureEngine.register(swipeRecognizer)
 
-        // MultitouchService -> GestureEngine
+        // MultitouchService -> GestureEngine (throttled to 30 Hz)
         multitouchService.onFrame = { [weak self] touches, timestamp in
             guard let self,
                   self.config.isGesturesEnabled,
                   !self.isCoolingDown else { return }
+
+            // Throttle 60-120 Hz multitouch to 30 Hz (~33ms). Hot path
+            // hits WindowServer (`isMissionControlActive` + `isDockHovered`).
+            let now = CACurrentMediaTime()
+            guard now - self.lastGestureFrameTime >= self.gestureFrameInterval else { return }
+            self.lastGestureFrameTime = now
 
             let mcActive = self.missionControlService.isMissionControlActive
             let dockHovered = !mcActive

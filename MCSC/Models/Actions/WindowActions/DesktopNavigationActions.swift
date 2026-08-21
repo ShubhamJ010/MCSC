@@ -78,8 +78,9 @@ struct MoveWindowToDesktopAction: ShortcutAction {
     private func performMove(window: AXUIElement, frame: CGRect, service: AccessibilityServiceProtocol) {
         _ = service.focusWindow(window)
 
-        // Title-bar grab point: +40 avoids traffic lights, +12 lands in the bar.
-        let grabPoint = CGPoint(x: frame.origin.x + 40, y: frame.origin.y + 12)
+        // Title-bar grab point: just left of the red traffic light, centered
+        // vertically — nudged further left to ensure clear miss.
+        let grabPoint = CGPoint(x: frame.origin.x + 10, y: frame.origin.y + 12)
         let dismissMissionControl = isMissionControlActiveProvider()
 
         DispatchQueue.global(qos: .userInitiated).async { [self] in

@@ -17,8 +17,9 @@ The sequence runs off-main on `DispatchQueue.global(qos: .userInitiated)` and
 takes roughly 1.7 seconds:
 
 1. Focus the target window through Accessibility.
-2. Move the cursor to a title-bar grab point (`origin.x + 40, origin.y + 12`).
-   The +40 offset avoids the traffic-light buttons; +12 lands inside the bar.
+2. Move the cursor to a title-bar grab point (`origin.x + 10, origin.y + 12`).
+   Just left of the red traffic light, centered vertically — nudged left to
+   ensure clear miss without hitting resizer/yellow.
 3. Post a synthetic `.leftMouseDown` and keep it held.
 4. Fire `Ctrl+Right` (or `Ctrl+Left`) through **System Events** (`osascript`)
    while the drag context is held.
