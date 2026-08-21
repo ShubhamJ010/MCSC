@@ -45,11 +45,13 @@ swiftc \
   "${ROOT_DIR}/MCSC/Models/Gestures/TwoFingerDoubleTapRecognizer.swift" \
   "${ROOT_DIR}/MCSC/Models/Actions/ShortcutAction.swift" \
   "${ROOT_DIR}/MCSC/Models/Actions/WindowActions.swift" \
+  "${ROOT_DIR}/MCSC/Models/Actions/DesktopNavigationActions.swift" \
   "${ROOT_DIR}/MCSC/Models/Actions/VolumeActions.swift" \
   "${ROOT_DIR}/MCSC/Models/Actions/AppActions.swift" \
   "${ROOT_DIR}/MCSC/Models/Actions/TabActions.swift" \
   "${ROOT_DIR}/MCSC/Models/Actions/TilingActions.swift" \
   "${ROOT_DIR}/MCSC/Models/Actions/MissionControlWindowActions.swift" \
+  "${ROOT_DIR}/MCSC/Models/Gestures/GestureAction.swift" \
   "${ROOT_DIR}/MCSC/ViewModels/ShortcutConfiguration.swift" \
   "${ROOT_DIR}/MCSC/ViewModels/Routing/ActionRegistry.swift" \
   "${ROOT_DIR}/MCSC/ViewModels/Routing/ShortcutActionRouter.swift" \

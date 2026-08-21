@@ -13,7 +13,8 @@ struct TestRunner {
             WindowSearchSessionTests.defaultTestSuite,
             SearchBarOverlayTests.defaultTestSuite,
             CursorFeedbackOverlayTests.defaultTestSuite,
-            RouterTests.defaultTestSuite
+            RouterTests.defaultTestSuite,
+            DesktopNavigationActionTests.defaultTestSuite
         ]
 
         var totalFailed = 0

@@ -143,7 +143,11 @@ final class RouterTests: XCTestCase {
         mockService.mockApp = finderApp
         mockService.mockDocumentPath = "/Volumes/AppInstaller"
 
-        let config = ShortcutConfiguration()
+        // Explicit: a persisted `mcsc.autoEject.enabled = 0` from the real app
+        // would otherwise disable the eject branch and fail these assertions.
+        var config = ShortcutConfiguration()
+        config.isAutoEjectEnabled = true
+
         let result = shortcutRouter.routeShortcut(
             keyCode: ShortcutActionRouter.kKeyW,
             flags: .maskCommand,
@@ -174,7 +178,11 @@ final class RouterTests: XCTestCase {
         mockService.mockApp = finderApp
         mockService.mockDocumentPath = "/Volumes/AppInstaller"
 
-        let config = ShortcutConfiguration()
+        // Explicit: a persisted `mcsc.autoEject.enabled = 0` from the real app
+        // would otherwise disable the eject branch and fail these assertions.
+        var config = ShortcutConfiguration()
+        config.isAutoEjectEnabled = true
+
         let result = shortcutRouter.routeShortcut(
             keyCode: ShortcutActionRouter.kKeyQ,
             flags: .maskCommand,
@@ -420,6 +428,145 @@ final class RouterTests: XCTestCase {
                 XCTFail("Expected gesture \(gesture) on dock to execute")
             }
         }
+    }
+
+    // MARK: - Desktop navigation (move to next / previous desktop)
+
+    func testGestureDefaultsNeverAssignDesktopNavigationActions() {
+        for kind in GestureKind.allCases {
+            for isCmd in [false, true] {
+                XCTAssertNotEqual(
+                    GestureDefaults.action(for: kind, isCmd: isCmd), .moveNextDesktop,
+                    "\(kind) (cmd=\(isCmd)) must not be assigned by default")
+                XCTAssertNotEqual(
+                    GestureDefaults.action(for: kind, isCmd: isCmd), .movePreviousDesktop,
+                    "\(kind) (cmd=\(isCmd)) must not be assigned by default")
+            }
+        }
+    }
+
+    /// Binds `action` to pinch-in on a scratch config, restoring any persisted
+    /// mapping afterwards so the UserDefaults-backed defaults stay untouched.
+    private func routePinchInBound(to action: GestureAction,
+                                   target: TargetResolution) -> ResolvedGestureAction {
+        let key = "mcsc.gestures.actions"
+        let original = UserDefaults.standard.dictionary(forKey: key)
+        defer {
+            if let original = original {
+                UserDefaults.standard.set(original, forKey: key)
+            } else {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
+
+        var config = ShortcutConfiguration()
+        config.gestureActions[.pinchIn] = action
+        return gestureRouter.routeGesture(
+            .pinchIn(atNormalized: (0.5, 0.5)),
+            at: CGPoint(x: 200, y: 200),
+            target: target,
+            service: mockService,
+            activateApp: { _ in }
+        )
+    }
+
+    func testMoveNextDesktopRoutesOnWindowTargetWithSpaceRightFeedback() {
+        let result = routePinchInBound(to: .moveNextDesktop, target: .window(mockService.mockElement!))
+        guard case .execute(let mode, _, _) = result else {
+            return XCTFail("Expected moveNextDesktop on window to execute")
+        }
+        XCTAssertEqual(mode, .spaceRight)
+    }
+
+    func testMovePreviousDesktopRoutesOnWindowTargetWithSpaceLeftFeedback() {
+        let result = routePinchInBound(to: .movePreviousDesktop, target: .window(mockService.mockElement!))
+        guard case .execute(let mode, _, _) = result else {
+            return XCTFail("Expected movePreviousDesktop on window to execute")
+        }
+        XCTAssertEqual(mode, .spaceLeft)
+    }
+
+    func testDesktopMoveOverDockTargetsFocusedAppWindow() {
+        let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder").first ?? NSRunningApplication.current
+
+        let next = routePinchInBound(to: .moveNextDesktop, target: .dock(dockApp))
+        guard case .execute(let nextMode, _, _) = next else {
+            return XCTFail("Expected moveNextDesktop on dock to execute")
+        }
+        XCTAssertEqual(nextMode, .spaceRight)
+
+        let previous = routePinchInBound(to: .movePreviousDesktop, target: .dock(dockApp))
+        guard case .execute(let previousMode, _, _) = previous else {
+            return XCTFail("Expected movePreviousDesktop on dock to execute")
+        }
+        XCTAssertEqual(previousMode, .spaceLeft)
+    }
+}
+
+final class DesktopNavigationActionTests: XCTestCase {
+    /// Closure-capture-friendly log; `MoveWindowToDesktopAction`'s injected
+    /// side-effect closures append here instead of posting real events.
+    private final class LogBox {
+        var entries: [String] = []
+        func append(_ entry: String) { entries.append(entry) }
+    }
+
+    func testSequenceHoldsMouseDownAcrossSwitchAndReleasesLast() {
+        let log = LogBox()
+        var action = MoveWindowToDesktopAction(direction: .next)
+        action.postMouseEvent = { (type: CGEventType, _: CGPoint) in log.append("mouse \(type.rawValue)") }
+        action.warpCursor = { _ in log.append("warp") }
+        action.postEscapeKey = { log.append("escape") }
+        action.sendSpaceSwitchShortcut = { log.append("switch \($0)") }
+        action.waitFor = { _ in }
+
+        action.runSequence(grabPoint: CGPoint(x: 140, y: 112), dismissMissionControl: false)
+
+        // mouseMoved = 5, leftMouseDown = 1, leftMouseDragged = 6, leftMouseUp = 2.
+        XCTAssertEqual(log.entries.first, "mouse 5")
+        XCTAssertTrue(log.entries.contains("warp"))
+        guard let down = log.entries.firstIndex(of: "mouse 1"),
+              let spaceSwitch = log.entries.firstIndex(of: "switch next"),
+              let up = log.entries.firstIndex(of: "mouse 2") else {
+            return XCTFail("Missing expected events: \(log.entries)")
+        }
+        XCTAssertLessThan(down, spaceSwitch, "Space switch must fire while mouse is held down")
+        XCTAssertLessThan(spaceSwitch, up, "Release must happen after the Space switch animation")
+        XCTAssertEqual(log.entries.last, "mouse 2")
+    }
+
+    func testMissionControlDismissedBeforeDragWhenActive() {
+        let log = LogBox()
+        var action = MoveWindowToDesktopAction(direction: .previous)
+        action.postMouseEvent = { _, _ in }
+        action.warpCursor = { _ in }
+        action.postEscapeKey = { log.append("escape") }
+        action.sendSpaceSwitchShortcut = { log.append("switch \($0)") }
+        action.waitFor = { _ in }
+
+        action.runSequence(grabPoint: .zero, dismissMissionControl: true)
+
+        XCTAssertEqual(log.entries.first, "escape", "Mission Control must close first")
+        XCTAssertEqual(log.entries.dropFirst().first, "switch previous")
+    }
+
+    func testNoEscapeWhenMissionControlInactive() {
+        let log = LogBox()
+        var action = MoveWindowToDesktopAction(direction: .next)
+        action.postMouseEvent = { _, _ in }
+        action.warpCursor = { _ in }
+        action.postEscapeKey = { log.append("escape") }
+        action.sendSpaceSwitchShortcut = { _ in }
+        action.waitFor = { _ in }
+
+        action.runSequence(grabPoint: .zero, dismissMissionControl: false)
+
+        XCTAssertFalse(log.entries.contains("escape"))
+    }
+
+    func testDirectionKeyCodesMatchDockSpaceShortcuts() {
+        XCTAssertEqual(MoveWindowToDesktopAction.Direction.next.arrowKeyCode, 124)
+        XCTAssertEqual(MoveWindowToDesktopAction.Direction.previous.arrowKeyCode, 123)
     }
 }
 

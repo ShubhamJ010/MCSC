@@ -143,6 +143,16 @@ final class GestureActionRouter {
                 guard self != nil else { return }
                 app.hide()
             }
+        case .moveNextDesktop:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                guard let self = self else { return }
+                self.actions.moveNextDesktopAction.perform(app: app, service: service)
+            }
+        case .movePreviousDesktop:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                guard let self = self else { return }
+                self.actions.movePreviousDesktopAction.perform(app: app, service: service)
+            }
         }
     }
 
@@ -213,6 +223,14 @@ final class GestureActionRouter {
             return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
                 self?.actions.hideAction.perform(at: point, service: service)
             }
+        case .moveNextDesktop:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                self?.actions.moveNextDesktopAction.perform(at: point, service: service)
+            }
+        case .movePreviousDesktop:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                self?.actions.movePreviousDesktopAction.perform(at: point, service: service)
+            }
         }
     }
 
@@ -232,6 +250,8 @@ final class GestureActionRouter {
         case .reasonableSize: return .reasonable
         case .minimize: return .minimize
         case .hideApp: return .hide
+        case .moveNextDesktop: return .spaceRight
+        case .movePreviousDesktop: return .spaceLeft
         }
     }
 }

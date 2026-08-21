@@ -24,6 +24,8 @@ extension CursorFeedbackOverlay {
         case newWindow
         case newTab
         case fullscreen
+        case spaceRight
+        case spaceLeft
 
         /// SF Symbol name rendered by `NSImage(systemSymbolName:)`.
         var symbolName: String {
@@ -42,6 +44,8 @@ extension CursorFeedbackOverlay {
             case .newWindow: return "rectangle.badge.plus"
             case .newTab: return "plus.rectangle.on.rectangle"
             case .fullscreen: return "arrow.down.left.and.arrow.up.right.circle.fill"
+            case .spaceRight: return "arrow.right.square.fill"
+            case .spaceLeft: return "arrow.left.square.fill"
             }
         }
 
@@ -62,6 +66,8 @@ extension CursorFeedbackOverlay {
             case .newWindow: return "New Window"
             case .newTab: return "New Tab"
             case .fullscreen: return "Toggle Fullscreen"
+            case .spaceRight: return "Move Window to Next Desktop"
+            case .spaceLeft: return "Move Window to Previous Desktop"
             }
         }
 
@@ -83,6 +89,9 @@ extension CursorFeedbackOverlay {
                 return [.controlAccentColor]
             case .fullscreen:
                 return [.black, .systemGreen]
+            case .spaceRight, .spaceLeft:
+                // Single Accent layer (the user's system accent colour).
+                return [.controlAccentColor]
             case .closeTab:
                 // System multicolor (red X, matching Close).
                 return nil
@@ -113,7 +122,7 @@ extension CursorFeedbackOverlay {
             switch self {
             case .close, .quit: return .bounceUpByLayer
             case .closeTab, .reopenTab, .closeAllTabs, .newWindow, .newTab: return .wiggleByLayer
-            case .minimize, .hide, .eject, .almost, .reasonable, .maximize, .fullscreen: return nil
+            case .minimize, .hide, .eject, .almost, .reasonable, .maximize, .fullscreen, .spaceRight, .spaceLeft: return nil
             }
         }
 
@@ -137,7 +146,7 @@ extension CursorFeedbackOverlay {
             switch self {
             case .almost, .reasonable, .maximize, .minimize, .hide: return .downUpReveal
             case .eject: return .magicDownUpReveal
-            case .close, .quit, .closeTab, .reopenTab, .closeAllTabs, .newWindow, .newTab, .fullscreen: return nil
+            case .close, .quit, .closeTab, .reopenTab, .closeAllTabs, .newWindow, .newTab, .fullscreen, .spaceRight, .spaceLeft: return nil
             }
         }
 

@@ -77,6 +77,8 @@ enum GestureAction: String, CaseIterable {
     case reasonableSize = "reasonableSize"
     case minimize = "minimize"
     case hideApp = "hideApp"
+    case moveNextDesktop = "moveNextDesktop"
+    case movePreviousDesktop = "movePreviousDesktop"
 
     /// Label shown in the popup menu.
     var menuTitle: String {
@@ -95,6 +97,8 @@ enum GestureAction: String, CaseIterable {
         case .reasonableSize: return "Reasonable Size"
         case .minimize: return "Minimize"
         case .hideApp: return "Hide App"
+        case .moveNextDesktop: return "Move to Next Desktop"
+        case .movePreviousDesktop: return "Move to Previous Desktop"
         }
     }
 

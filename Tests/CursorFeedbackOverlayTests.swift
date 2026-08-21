@@ -72,7 +72,7 @@ final class CursorFeedbackOverlayTests: XCTestCase {
     func testCursorFeedbackModesAllRenderSymbols() {
         // Every shortcut/gesture feedback type must resolve to a real SF
         // Symbol, otherwise its feedback silently disappears.
-        XCTAssertEqual(CursorFeedbackOverlay.Mode.allCases.count, 14,
+        XCTAssertEqual(CursorFeedbackOverlay.Mode.allCases.count, 16,
                        "Adding a feedback mode must also extend this coverage")
         for mode in CursorFeedbackOverlay.Mode.allCases {
             let image = renderedSymbol(symbolName: mode.symbolName,
@@ -93,6 +93,18 @@ final class CursorFeedbackOverlayTests: XCTestCase {
         XCTAssertEqual(palette?.count, 2)
         XCTAssertEqual(palette?[0], .white)
         XCTAssertEqual(palette?[1], .systemRed)
+    }
+
+    func testSpaceModesUseArrowSquareSymbolsWithAccentPalette() {
+        XCTAssertEqual(CursorFeedbackOverlay.Mode.spaceRight.symbolName, "arrow.right.square.fill")
+        XCTAssertEqual(CursorFeedbackOverlay.Mode.spaceRight.accessibilityDescription,
+                       "Move Window to Next Desktop")
+        XCTAssertEqual(CursorFeedbackOverlay.Mode.spaceLeft.symbolName, "arrow.left.square.fill")
+        XCTAssertEqual(CursorFeedbackOverlay.Mode.spaceLeft.accessibilityDescription,
+                       "Move Window to Previous Desktop")
+        for mode in [CursorFeedbackOverlay.Mode.spaceRight, .spaceLeft] {
+            XCTAssertEqual(mode.paletteColors, [.controlAccentColor])
+        }
     }
 
     func testHoverButtonModesAllRenderSymbols() {

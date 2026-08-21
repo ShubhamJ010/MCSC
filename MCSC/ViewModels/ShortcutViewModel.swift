@@ -50,7 +50,13 @@ final class ShortcutViewModel {
         return suppressor
     }()
 
-    private let actionRegistry = ActionRegistry()
+    /// Desktop-navigation actions need to know whether Mission Control is open
+    /// so they can dismiss it before dragging a window across Spaces. Provider
+    /// uses `[weak self]` so the registry never keeps the VM alive.
+    private lazy var actionRegistry = ActionRegistry(isMissionControlActiveProvider: { [weak self] in
+        guard let self = self else { return false }
+        return self.missionControlService.isMissionControlActive
+    })
     private lazy var shortcutRouter = ShortcutActionRouter(actions: actionRegistry)
     private lazy var gestureRouter = GestureActionRouter(actions: actionRegistry)
 
