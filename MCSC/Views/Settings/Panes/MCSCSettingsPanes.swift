@@ -32,6 +32,8 @@ final class GeneralSettingsPane: MCSCSettingsPane {
     private var autoEjectCheckbox: NSButton!
     private var dockActionsCheckbox: NSButton!
     private var hoverCloseCheckbox: NSButton!
+    private var keyboardNavCheckbox: NSButton!
+    private var spotlightFixCheckbox: NSButton!
     private var hapticCheckbox: NSButton!
     private var cursorFeedbackCheckbox: NSButton!
 
@@ -65,6 +67,25 @@ final class GeneralSettingsPane: MCSCSettingsPane {
 
         layoutView.addSeparatorSection()
 
+        // Mission Control — keyboard navigation & Spotlight fix (moved from Shortcuts pane for better grouping)
+        let missionControl = layoutView.addColumnSection(label: "Mission Control", itemColumnMaximumWidth: 340)
+        keyboardNavCheckbox = missionControl.addCheckbox(title: "Keyboard Navigation (Tab / Return)",
+                                                         target: self,
+                                                         action: #selector(toggleKeyboardNav(_:)))
+        missionControl.addDescriptionLabel("Tab / Shift+Tab cycle the selection between visible thumbnails row-major (wrap-around). Return activates the selected window. Typing filters windows fuzzy (e.g. “code” matches Xcode + Code) and Tab cycles only the filtered matches.")
+        let mcGapView = NSView(frame: .zero)
+        mcGapView.translatesAutoresizingMaskIntoConstraints = false
+        mcGapView.heightAnchor.constraint(equalToConstant: 8).isActive = true
+        missionControl.addCustomView(mcGapView, verticalAlignment: .centerY)
+        mcGapView.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        mcGapView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        spotlightFixCheckbox = missionControl.addCheckbox(title: "Restore Spotlight (⌘ + Space) in Mission Control",
+                                                          target: self,
+                                                          action: #selector(toggleSpotlightFix(_:)))
+        missionControl.addDescriptionLabel("Fixes Mission Control blocking Spotlight. Re-sends ⌘+Space when Mission Control is visible so Spotlight still opens.")
+
+        layoutView.addSeparatorSection()
+
         // Feedback — on by default (configurable, previously forced-on).
         let feedback = layoutView.addColumnSection(label: "Feedback", itemColumnMaximumWidth: 340)
         hapticCheckbox = feedback.addCheckbox(title: "Haptic Feedback",
@@ -93,6 +114,8 @@ final class GeneralSettingsPane: MCSCSettingsPane {
         autoEjectCheckbox?.state = viewModel.isAutoEjectEnabled ? .on : .off
         dockActionsCheckbox?.state = viewModel.isDockActionsOutsideMCEnabled ? .on : .off
         hoverCloseCheckbox?.state = viewModel.isHoverCloseButtonEnabled ? .on : .off
+        keyboardNavCheckbox?.state = viewModel.isKeyboardNavigationEnabled ? .on : .off
+        spotlightFixCheckbox?.state = viewModel.isCmdSpaceEnabled ? .on : .off
         hapticCheckbox?.state = viewModel.isHapticFeedbackEnabled ? .on : .off
         cursorFeedbackCheckbox?.state = viewModel.isCursorFeedbackEnabled ? .on : .off
     }
@@ -127,10 +150,22 @@ final class GeneralSettingsPane: MCSCSettingsPane {
         sender.state = viewModel.isCursorFeedbackEnabled ? .on : .off
     }
 
+    @objc private func toggleKeyboardNav(_ sender: NSButton) {
+        viewModel.isKeyboardNavigationEnabled.toggle()
+        sender.state = viewModel.isKeyboardNavigationEnabled ? .on : .off
+    }
+
+    @objc private func toggleSpotlightFix(_ sender: NSButton) {
+        viewModel.isCmdSpaceEnabled.toggle()
+        sender.state = viewModel.isCmdSpaceEnabled ? .on : .off
+    }
+
     @objc private func restoreDefaults(_ sender: NSButton) {
         viewModel.isAutoEjectEnabled = true
         viewModel.isDockActionsOutsideMCEnabled = true
         viewModel.isHoverCloseButtonEnabled = true
+        viewModel.isKeyboardNavigationEnabled = true
+        viewModel.isCmdSpaceEnabled = true
         viewModel.isHapticFeedbackEnabled = true
         viewModel.isCursorFeedbackEnabled = true
         refreshAllPanes()
@@ -140,8 +175,6 @@ final class GeneralSettingsPane: MCSCSettingsPane {
 // MARK: - Shortcuts
 
 final class ShortcutSettingsPane: MCSCSettingsPane {
-    private var keyboardNavCheckbox: NSButton!
-    private var cmdSpaceCheckbox: NSButton!
     // Existing core
     private var cmdWCheckbox: NSButton!
     private var cmdQCheckbox: NSButton!
@@ -167,27 +200,6 @@ final class ShortcutSettingsPane: MCSCSettingsPane {
 
         let layoutView = SettingsLayoutView()
         layoutView.install(in: view)
-
-        // Group 1: Mission Control
-        let missionControl = layoutView.addColumnSection(label: "Mission Control", itemColumnMaximumWidth: 340)
-        keyboardNavCheckbox = missionControl.addCheckbox(title: "Enable Keyboard Navigation (Tab / Return)",
-                                                         target: self,
-                                                         action: #selector(toggleKeyboardNav(_:)))
-        missionControl.addDescriptionLabel("Tab / Shift+Tab cycle the selection between visible thumbnails row-major (wrap-around). Return activates the selected window. Typing filters windows fuzzy (e.g. “code” matches Xcode + Code) and Tab cycles only the filtered matches.")
-
-        let mcGapView = NSView(frame: .zero)
-        mcGapView.translatesAutoresizingMaskIntoConstraints = false
-        mcGapView.heightAnchor.constraint(equalToConstant: 8).isActive = true
-        missionControl.addCustomView(mcGapView, verticalAlignment: .centerY)
-        mcGapView.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        mcGapView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-
-        cmdSpaceCheckbox = missionControl.addCheckbox(title: "Cmd + Space Fix",
-                                                      target: self,
-                                                      action: #selector(toggleCmdSpace(_:)))
-        missionControl.addDescriptionLabel("Re-sends Cmd+Space when Mission Control intercepts Spotlight. Only fires while Mission Control is visible.")
-
-        layoutView.addSeparatorSection()
 
         // Group 2: Window — window chrome + size + desktop (Applies to window under cursor / Dock icon)
         let windowSection = layoutView.addColumnSection(label: "Window", itemColumnMaximumWidth: 340)
@@ -274,8 +286,6 @@ final class ShortcutSettingsPane: MCSCSettingsPane {
     }
 
     override func refresh() {
-        keyboardNavCheckbox?.state = viewModel.isKeyboardNavigationEnabled ? .on : .off
-        cmdSpaceCheckbox?.state = viewModel.isCmdSpaceEnabled ? .on : .off
         cmdWCheckbox?.state = viewModel.isCmdWEnabled ? .on : .off
         cmdQCheckbox?.state = viewModel.isCmdQEnabled ? .on : .off
         cmdMCheckbox?.state = viewModel.isCmdMEnabled ? .on : .off
@@ -293,16 +303,6 @@ final class ShortcutSettingsPane: MCSCSettingsPane {
         makeSmallerCheckbox?.state = viewModel.isMakeSmallerEnabled ? .on : .off
         moveNextDesktopCheckbox?.state = viewModel.isMoveNextDesktopEnabled ? .on : .off
         movePreviousDesktopCheckbox?.state = viewModel.isMovePreviousDesktopEnabled ? .on : .off
-    }
-
-    @objc private func toggleKeyboardNav(_ sender: NSButton) {
-        viewModel.isKeyboardNavigationEnabled.toggle()
-        sender.state = viewModel.isKeyboardNavigationEnabled ? .on : .off
-    }
-
-    @objc private func toggleCmdSpace(_ sender: NSButton) {
-        viewModel.isCmdSpaceEnabled.toggle()
-        sender.state = viewModel.isCmdSpaceEnabled ? .on : .off
     }
 
     @objc private func toggleCmdW(_ sender: NSButton) {
@@ -391,8 +391,6 @@ final class ShortcutSettingsPane: MCSCSettingsPane {
     }
 
     @objc private func restoreDefaults(_ sender: NSButton) {
-        viewModel.isKeyboardNavigationEnabled = true
-        viewModel.isCmdSpaceEnabled = true
         viewModel.isCmdWEnabled = true
         viewModel.isCmdQEnabled = true
         viewModel.isCmdMEnabled = true
