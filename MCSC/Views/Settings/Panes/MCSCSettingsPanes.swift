@@ -181,21 +181,21 @@ final class ShortcutSettingsPane: MCSCSettingsPane {
 
         // Group 2: Window Shortcuts (Core)
         let windowShortcuts = layoutView.addColumnSection(label: "Window Shortcuts", itemColumnMaximumWidth: 340)
-        cmdWCheckbox = addShortcutCheckbox(section: windowShortcuts, mode: .close, title: "CMD + W", action: #selector(toggleCmdW(_:)))
-        cmdQCheckbox = addShortcutCheckbox(section: windowShortcuts, mode: .quit, title: "CMD + Q", action: #selector(toggleCmdQ(_:)))
-        cmdMCheckbox = addShortcutCheckbox(section: windowShortcuts, mode: .minimize, title: "CMD + M", action: #selector(toggleCmdM(_:)))
-        cmdHCheckbox = addShortcutCheckbox(section: windowShortcuts, mode: .hide, title: "CMD + H", action: #selector(toggleCmdH(_:)))
+        cmdWCheckbox = addShortcutCheckbox(section: windowShortcuts, mode: .close, title: "⌘ + W", action: #selector(toggleCmdW(_:)))
+        cmdQCheckbox = addShortcutCheckbox(section: windowShortcuts, mode: .quit, title: "⌘ + Q", action: #selector(toggleCmdQ(_:)))
+        cmdMCheckbox = addShortcutCheckbox(section: windowShortcuts, mode: .minimize, title: "⌘ + M", action: #selector(toggleCmdM(_:)))
+        cmdHCheckbox = addShortcutCheckbox(section: windowShortcuts, mode: .hide, title: "⌘ + H", action: #selector(toggleCmdH(_:)))
         windowShortcuts.addDescriptionLabel("Applies to the window under the cursor in Mission Control or while hovering a Dock icon.")
 
         layoutView.addSeparatorSection()
 
         // Group 3: Extra Shortcuts (New, off by default)
         let extraShortcuts = layoutView.addColumnSection(label: "Extra Shortcuts", itemColumnMaximumWidth: 340)
-        cmdFCheckbox = addShortcutCheckbox(section: extraShortcuts, mode: .fullscreen, title: "CMD + F", action: #selector(toggleCmdF(_:)))
-        cmdTCheckbox = addShortcutCheckbox(section: extraShortcuts, mode: .newTab, title: "CMD + T", action: #selector(toggleCmdT(_:)))
-        cmdNCheckbox = addShortcutCheckbox(section: extraShortcuts, mode: .newWindow, title: "CMD + N", action: #selector(toggleCmdN(_:)))
-        cmdShiftWCheckbox = addShortcutCheckbox(section: extraShortcuts, mode: .closeAllTabs, title: "CMD + Shift + W", action: #selector(toggleCmdShiftW(_:)))
-        cmdShiftTCheckbox = addShortcutCheckbox(section: extraShortcuts, mode: .reopenTab, title: "CMD + Shift + T", action: #selector(toggleCmdShiftT(_:)))
+        cmdFCheckbox = addShortcutCheckbox(section: extraShortcuts, mode: .fullscreen, title: "⌘ + F", action: #selector(toggleCmdF(_:)))
+        cmdTCheckbox = addShortcutCheckbox(section: extraShortcuts, mode: .newTab, title: "⌘ + T", action: #selector(toggleCmdT(_:)))
+        cmdNCheckbox = addShortcutCheckbox(section: extraShortcuts, mode: .newWindow, title: "⌘ + N", action: #selector(toggleCmdN(_:)))
+        cmdShiftWCheckbox = addShortcutCheckbox(section: extraShortcuts, mode: .closeAllTabs, title: "⌘ + ⇧ + W", action: #selector(toggleCmdShiftW(_:)))
+        cmdShiftTCheckbox = addShortcutCheckbox(section: extraShortcuts, mode: .reopenTab, title: "⌘ + ⇧ + T", action: #selector(toggleCmdShiftT(_:)))
 
         layoutView.addSeparatorSection()
 
