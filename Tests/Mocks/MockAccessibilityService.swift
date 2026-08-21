@@ -1,5 +1,5 @@
-import Cocoa
 import ApplicationServices
+import Cocoa
 
 class MockAccessibilityService: AccessibilityServiceProtocol {
     var getElementCalledWith: CGPoint?
@@ -21,8 +21,8 @@ class MockAccessibilityService: AccessibilityServiceProtocol {
         return mockElement
     }
 
-    func getWindow(for element: AXUIElement) -> AXUIElement? {
-        return mockWindow
+    func getWindow(for _: AXUIElement) -> AXUIElement? {
+        mockWindow
     }
 
     func performAction(_ action: String, on element: AXUIElement) -> Bool {
@@ -30,15 +30,15 @@ class MockAccessibilityService: AccessibilityServiceProtocol {
         return true
     }
 
-    func getAttributeValue<T>(_ attribute: String, for element: AXUIElement) -> T? {
+    func getAttributeValue<T>(_ attribute: String, for _: AXUIElement) -> T? {
         if attribute == kAXFocusedWindowAttribute, let window = mockFocusedWindow {
             return window as? T
         }
         return nil
     }
 
-    func getFrame(for element: AXUIElement) -> CGRect? {
-        return CGRect(x: 100, y: 100, width: 800, height: 600)
+    func getFrame(for _: AXUIElement) -> CGRect? {
+        CGRect(x: 100, y: 100, width: 800, height: 600)
     }
 
     func setFrame(_ frame: CGRect, for element: AXUIElement) -> Bool {
@@ -46,20 +46,20 @@ class MockAccessibilityService: AccessibilityServiceProtocol {
         return true
     }
 
-    func isDockItem(_ element: AXUIElement) -> Bool {
-        return isDockItemValue
+    func isDockItem(_: AXUIElement) -> Bool {
+        isDockItemValue
     }
 
-    func getAppFromDockItem(_ element: AXUIElement) -> NSRunningApplication? {
-        return mockApp
+    func getAppFromDockItem(_: AXUIElement) -> NSRunningApplication? {
+        mockApp
     }
 
-    func findActiveTabCloseButton(in window: AXUIElement) -> AXUIElement? {
-        return mockTabCloseButton
+    func findActiveTabCloseButton(in _: AXUIElement) -> AXUIElement? {
+        mockTabCloseButton
     }
 
-    func getAppFromElement(_ element: AXUIElement) -> NSRunningApplication? {
-        return mockApp
+    func getAppFromElement(_: AXUIElement) -> NSRunningApplication? {
+        mockApp
     }
 
     func focusWindow(_ window: AXUIElement) -> Bool {
@@ -67,16 +67,16 @@ class MockAccessibilityService: AccessibilityServiceProtocol {
         return focusWindowReturnValue
     }
 
-    func getDocumentPath(for window: AXUIElement) -> String? {
-        return mockDocumentPath
+    func getDocumentPath(for _: AXUIElement) -> String? {
+        mockDocumentPath
     }
 
-    func getWindowTitle(for window: AXUIElement) -> String? {
-        return mockWindowTitle
+    func getWindowTitle(for _: AXUIElement) -> String? {
+        mockWindowTitle
     }
 
     var isDockRegionValue: Bool = false
-    func isDockRegion(at point: CGPoint) -> Bool {
-        return isDockRegionValue
+    func isDockRegion(at _: CGPoint) -> Bool {
+        isDockRegionValue
     }
 }

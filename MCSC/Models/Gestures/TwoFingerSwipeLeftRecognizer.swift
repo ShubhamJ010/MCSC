@@ -6,7 +6,6 @@ import Foundation
 ///   idle → tracking (2 fingers detected, recording start X)
 ///        → cooldown (threshold crossed → action fired) → idle
 final class TwoFingerSwipeLeftRecognizer: GestureRecognizer {
-
     struct Config {
         /// Minimum horizontal displacement (normalized 0–1) to trigger a swipe left.
         var swipeThreshold: Float = 0.08
@@ -55,7 +54,6 @@ final class TwoFingerSwipeLeftRecognizer: GestureRecognizer {
         guard isEnabled?() ?? true else { return nil }
 
         switch state {
-
         case .idle:
             if touches.count == 2 {
                 let midX = (touches[0].normalizedX + touches[1].normalizedX) / 2.0
@@ -71,7 +69,7 @@ final class TwoFingerSwipeLeftRecognizer: GestureRecognizer {
             }
             return nil
 
-        case .tracking(let f1ID, let f2ID, let startMidX, let startMidY, let startedMoving, let startTime):
+        case let .tracking(f1ID, f2ID, startMidX, startMidY, startedMoving, startTime):
             if timestamp - startTime > config.maxGestureDuration {
                 state = .idle
                 return nil
@@ -80,7 +78,7 @@ final class TwoFingerSwipeLeftRecognizer: GestureRecognizer {
             let f1 = touches.first(where: { $0.identifier == f1ID })
             let f2 = touches.first(where: { $0.identifier == f2ID })
 
-            guard let f1 = f1, let f2 = f2 else {
+            guard let f1, let f2 else {
                 state = .idle
                 return nil
             }
@@ -116,7 +114,7 @@ final class TwoFingerSwipeLeftRecognizer: GestureRecognizer {
             )
             return nil
 
-        case .cooldown(let until):
+        case let .cooldown(until):
             if timestamp > until {
                 state = .idle
             }

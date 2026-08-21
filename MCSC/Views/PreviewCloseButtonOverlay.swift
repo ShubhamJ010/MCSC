@@ -21,20 +21,20 @@ final class PreviewCloseButtonOverlay {
         /// SF Symbol name rendered by `NSImage(systemSymbolName:)`.
         var symbolName: String {
             switch self {
-            case .close: return "xmark.circle.fill"
-            case .minimize: return "minus.circle.fill"
-            case .quit: return "xmark.circle.fill"
-            case .fullscreen: return "arrow.down.left.and.arrow.up.right.circle.fill"
+            case .close: "xmark.circle.fill"
+            case .minimize: "minus.circle.fill"
+            case .quit: "xmark.circle.fill"
+            case .fullscreen: "arrow.down.left.and.arrow.up.right.circle.fill"
             }
         }
 
         /// Accessibility description of the action the symbol represents.
         var accessibilityDescription: String {
             switch self {
-            case .close: return "Close Window"
-            case .minimize: return "Minimize Window"
-            case .quit: return "Force Quit"
-            case .fullscreen: return "Toggle Fullscreen"
+            case .close: "Close Window"
+            case .minimize: "Minimize Window"
+            case .quit: "Force Quit"
+            case .fullscreen: "Toggle Fullscreen"
             }
         }
 
@@ -42,19 +42,19 @@ final class PreviewCloseButtonOverlay {
         /// multicolor default.
         var paletteColors: [NSColor]? {
             switch self {
-            case .close: return nil
-            case .minimize: return [.black, .systemYellow]
-            case .quit: return [.white, NSColor(red: 0.749, green: 0.353, blue: 0.949, alpha: 1.0)]
-            case .fullscreen: return [.black, .systemGreen]
+            case .close: nil
+            case .minimize: [.black, .systemYellow]
+            case .quit: [.white, NSColor(red: 0.749, green: 0.353, blue: 0.949, alpha: 1.0)]
+            case .fullscreen: [.black, .systemGreen]
             }
         }
     }
 
     static let buttonDimension: CGFloat = 32.0
-    
+
     private var panel: NSPanel?
     private var buttonView: CloseButtonView?
-    
+
     private(set) var isVisible = false
     private var currentAnchorOrigin: CGPoint = .zero
 
@@ -70,7 +70,7 @@ final class PreviewCloseButtonOverlay {
             backing: .buffered,
             defer: false
         )
-        
+
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = false
@@ -78,9 +78,9 @@ final class PreviewCloseButtonOverlay {
         panel.ignoresMouseEvents = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         panel.isReleasedWhenClosed = false
-        
+
         let button = CloseButtonView(frame: contentRect)
-        
+
         panel.contentView = button
         self.buttonView = button
         self.panel = panel
@@ -88,24 +88,24 @@ final class PreviewCloseButtonOverlay {
 
     /// Positions and displays the close button overlay centered directly over the top-left corner (x, y) of the window.
     func show(at windowBounds: CGRect, mode: Mode = .close) {
-        guard let panel = panel else { return }
-        
+        guard let panel else { return }
+
         let cocoaAnchor = ScreenGeometry.cocoaPoint(for: windowBounds.origin)
         let halfDim = Self.buttonDimension / 2.0
-        
+
         let targetRect = NSRect(
             x: cocoaAnchor.x - halfDim,
             y: cocoaAnchor.y - halfDim,
             width: Self.buttonDimension,
             height: Self.buttonDimension
         )
-        
+
         let isNewOrigin = !windowBounds.origin.equalTo(currentAnchorOrigin)
         currentAnchorOrigin = windowBounds.origin
-        
+
         panel.setFrame(targetRect, display: true)
         buttonView?.setMode(mode, animated: false)
-        
+
         if !isVisible {
             panel.orderFrontRegardless()
             isVisible = true
@@ -142,14 +142,16 @@ final class CloseButtonView: NSView {
     private let imageView = NSImageView()
     private(set) var isHovered = false
     private(set) var currentMode: PreviewCloseButtonOverlay.Mode = .close
-    
+
     /// Cache of rendered action symbols, keyed by mode. Populated lazily so
     /// each symbol is rasterized at most once and reused across hovers.
     private var imageCache: [PreviewCloseButtonOverlay.Mode: NSImage] = [:]
 
     /// Returns the cached — or freshly rendered — symbol image for `mode`.
     private func image(for mode: PreviewCloseButtonOverlay.Mode) -> NSImage? {
-        if let cached = imageCache[mode] { return cached }
+        if let cached = imageCache[mode] {
+            return cached
+        }
         guard let image = makeSymbolImage(for: mode) else { return nil }
         imageCache[mode] = image
         return image
@@ -171,7 +173,7 @@ final class CloseButtonView: NSView {
         setupLayer()
         setupImageView()
     }
-    
+
     required init?(coder: NSCoder) {
         super.init(coder: coder)
         wantsLayer = true
@@ -192,24 +194,24 @@ final class CloseButtonView: NSView {
         imageView.imageScaling = .scaleProportionallyUpOrDown
         imageView.wantsLayer = true
         imageView.image = image(for: .close)
-        
+
         imageView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(imageView)
-        
+
         NSLayoutConstraint.activate([
             imageView.centerXAnchor.constraint(equalTo: centerXAnchor),
             imageView.centerYAnchor.constraint(equalTo: centerYAnchor),
             imageView.widthAnchor.constraint(equalToConstant: 28),
-            imageView.heightAnchor.constraint(equalToConstant: 28)
+            imageView.heightAnchor.constraint(equalToConstant: 28),
         ])
     }
 
     func setMode(_ mode: PreviewCloseButtonOverlay.Mode, animated: Bool) {
         guard mode != currentMode else { return }
         currentMode = mode
-        
+
         guard let image = image(for: mode) else { return }
-        
+
         if animated, #available(macOS 14.0, *) {
             imageView.setSymbolImage(
                 image,
@@ -228,7 +230,7 @@ final class CloseButtonView: NSView {
         }
     }
 
-// MARK: - Hover State (driven by MissionControlHoverService event tap)
+    // MARK: - Hover State (driven by MissionControlHoverService event tap)
 
     /// Scales the button up while the cursor is over it and back to resting
     /// size when it leaves. Called from the service's global mouse-move tap —
@@ -237,7 +239,7 @@ final class CloseButtonView: NSView {
     func setHovered(_ hovered: Bool) {
         guard hovered != isHovered else { return }
         isHovered = hovered
-        
+
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.15
             context.timingFunction = CAMediaTimingFunction(name: .easeOut)

@@ -1,5 +1,5 @@
-import Cocoa
 import ApplicationServices
+import Cocoa
 import os
 
 /// Abstraction over the macOS Accessibility (AX) API so higher layers can be
@@ -103,11 +103,11 @@ final class AccessibilityService: AccessibilityServiceProtocol {
     }
 
     deinit {
-        if let screenObserver = screenObserver {
+        if let screenObserver {
             NotificationCenter.default.removeObserver(screenObserver)
         }
     }
-    
+
     /// Returns a cached `AXUIElement` for the Dock process, creating it on
     /// first use and re-creating it only if the Dock process was relaunched
     /// (detected via pid change). Caching avoids per-call element allocation.
@@ -125,8 +125,8 @@ final class AccessibilityService: AccessibilityServiceProtocol {
     func getElement(at point: CGPoint) -> AXUIElement? {
         var element: AXUIElement?
         let result = AXUIElementCopyElementAtPosition(systemWide, Float(point.x), Float(point.y), &element)
-        
-        if result == .success, let element = element {
+
+        if result == .success, let element {
             return element
         }
 
@@ -135,37 +135,37 @@ final class AccessibilityService: AccessibilityServiceProtocol {
         if let dockElement = getDockAXElement() {
             var dockChild: AXUIElement?
             if AXUIElementCopyElementAtPosition(dockElement, Float(point.x), Float(point.y), &dockChild) == .success,
-               let dockChild = dockChild {
+               let dockChild {
                 return dockChild
             }
         }
-        
+
         return nil
     }
-    
+
     func getWindow(for element: AXUIElement) -> AXUIElement? {
         var window: CFTypeRef?
         let result = AXUIElementCopyAttributeValue(element, kAXWindowAttribute as CFString, &window)
-        
-        if result == .success, let window = window, CFGetTypeID(window) == AXUIElementGetTypeID() {
+
+        if result == .success, let window, CFGetTypeID(window) == AXUIElementGetTypeID() {
             return (window as! AXUIElement)
         }
-        
+
         // If the element itself is a window
         var role: CFTypeRef?
         if AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &role) == .success,
            (role as? String) == kAXWindowRole {
             return element
         }
-        
+
         return nil
     }
-    
+
     func performAction(_ action: String, on element: AXUIElement) -> Bool {
         let result = AXUIElementPerformAction(element, action as CFString)
         return result == .success
     }
-    
+
     func getAttributeValue<T>(_ attribute: String, for element: AXUIElement) -> T? {
         var value: CFTypeRef?
         let result = AXUIElementCopyAttributeValue(element, attribute as CFString, &value)
@@ -178,7 +178,7 @@ final class AccessibilityService: AccessibilityServiceProtocol {
         // child (badge / AXImage) rather than the AXDockItem itself, especially
         // for non-native apps (Mac Catalyst, Electron). Resolve against the
         // nearest Dock item ancestor instead of demanding the hit be one.
-        return dockItemAncestor(for: element) != nil
+        dockItemAncestor(for: element) != nil
     }
 
     /// Returns the nearest `AXDockItem` at or above `element`, climbing the
@@ -195,7 +195,7 @@ final class AccessibilityService: AccessibilityServiceProtocol {
             }
             var parent: CFTypeRef?
             guard AXUIElementCopyAttributeValue(el, kAXParentAttribute as CFString, &parent) == .success,
-                  let parent = parent, CFGetTypeID(parent) == AXUIElementGetTypeID() else {
+                  let parent, CFGetTypeID(parent) == AXUIElementGetTypeID() else {
                 return nil
             }
             current = (parent as! AXUIElement)
@@ -223,7 +223,10 @@ final class AccessibilityService: AccessibilityServiceProtocol {
            let bundle = Bundle(url: url as URL),
            let app = runningApps.first(where: { $0.bundleIdentifier == bundle.bundleIdentifier }) {
             if dockDiagnosticsEnabled {
-                AppLogger.dock.debug("resolved via AXURL → bundleID '\(bundle.bundleIdentifier ?? "?", privacy: .public)' → '\(app.localizedName ?? "?", privacy: .public)'")
+                AppLogger.dock
+                    .debug(
+                        "resolved via AXURL → bundleID '\(bundle.bundleIdentifier ?? "?", privacy: .public)' → '\(app.localizedName ?? "?", privacy: .public)'"
+                    )
             }
             return app
         }
@@ -236,7 +239,10 @@ final class AccessibilityService: AccessibilityServiceProtocol {
                 let role: String? = getAttributeValue(kAXRoleAttribute, for: dockItem)
                 let subrole: String? = getAttributeValue(kAXSubroleAttribute, for: dockItem)
                 let url: NSURL? = getAttributeValue(kAXURLAttribute, for: dockItem)
-                AppLogger.dock.debug("AXURL match failed; AXTitle missing — role='\(role ?? "?", privacy: .public)' subrole='\(subrole ?? "?", privacy: .public)' AXURL=\(url?.absoluteString ?? "nil", privacy: .public)")
+                AppLogger.dock
+                    .debug(
+                        "AXURL match failed; AXTitle missing — role='\(role ?? "?", privacy: .public)' subrole='\(subrole ?? "?", privacy: .public)' AXURL=\(url?.absoluteString ?? "nil", privacy: .public)"
+                    )
             }
             return nil
         }
@@ -244,10 +250,13 @@ final class AccessibilityService: AccessibilityServiceProtocol {
         let opts: String.CompareOptions = [.caseInsensitive, .diacriticInsensitive]
         if let app = runningApps.first(where: {
             normalizedTitle.compare(($0.localizedName ?? "").trimmingCharacters(in: .whitespaces),
-                                     options: opts) == .orderedSame
+                                    options: opts) == .orderedSame
         }) {
             if dockDiagnosticsEnabled {
-                AppLogger.dock.debug("resolved via tolerant AXTitle '\(normalizedTitle, privacy: .public)' → '\(app.localizedName ?? "?", privacy: .public)'")
+                AppLogger.dock
+                    .debug(
+                        "resolved via tolerant AXTitle '\(normalizedTitle, privacy: .public)' → '\(app.localizedName ?? "?", privacy: .public)'"
+                    )
             }
             return app
         }
@@ -255,7 +264,10 @@ final class AccessibilityService: AccessibilityServiceProtocol {
             let role: String? = getAttributeValue(kAXRoleAttribute, for: dockItem)
             let subrole: String? = getAttributeValue(kAXSubroleAttribute, for: dockItem)
             let url: NSURL? = getAttributeValue(kAXURLAttribute, for: dockItem)
+            // swiftformat:disable all
+            // swiftlint:disable:next line_length
             AppLogger.dock.debug("NO match — AXTitle='\(title, privacy: .public)' role='\(role ?? "?", privacy: .public)' subrole='\(subrole ?? "?", privacy: .public)' AXURL=\(url?.absoluteString ?? "nil", privacy: .public)")
+            // swiftformat:enable all
         }
         return nil
     }
@@ -293,7 +305,9 @@ final class AccessibilityService: AccessibilityServiceProtocol {
         // Pass 2: descend, but never traverse the (enormous) web content area.
         for child in children {
             guard let role: String = getAttributeValue(kAXRoleAttribute, for: child) else { continue }
-            if role == "AXWebArea" { continue }
+            if role == "AXWebArea" {
+                continue
+            }
             if let btn = findTabCloseButton(in: child, depth: depth + 1) {
                 return btn
             }
@@ -307,7 +321,7 @@ final class AccessibilityService: AccessibilityServiceProtocol {
         guard let tabs: [AXUIElement] = getAttributeValue(kAXChildrenAttribute, for: tabGroup) else { return nil }
         for tab in tabs {
             guard let tabRole: String = getAttributeValue(kAXRoleAttribute, for: tab),
-                   tabRole == "AXRadioButton" else { continue }
+                  tabRole == "AXRadioButton" else { continue }
             let isSelected: Bool? = getAttributeValue(kAXValueAttribute, for: tab)
             if isSelected == true {
                 if let tabChildren: [AXUIElement] = getAttributeValue(kAXChildrenAttribute, for: tab) {
@@ -343,9 +357,9 @@ final class AccessibilityService: AccessibilityServiceProtocol {
         var posVal: CFTypeRef?
         var sizeVal: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &posVal) == .success,
-              let posVal = posVal, CFGetTypeID(posVal) == AXValueGetTypeID(),
+              let posVal, CFGetTypeID(posVal) == AXValueGetTypeID(),
               AXUIElementCopyAttributeValue(element, kAXSizeAttribute as CFString, &sizeVal) == .success,
-              let sizeVal = sizeVal, CFGetTypeID(sizeVal) == AXValueGetTypeID() else {
+              let sizeVal, CFGetTypeID(sizeVal) == AXValueGetTypeID() else {
             return nil
         }
         var point = CGPoint.zero
@@ -423,7 +437,7 @@ final class AccessibilityService: AccessibilityServiceProtocol {
     ///    frame cost at zero for cursors far from the Dock.
     func isDockRegion(at point: CGPoint) -> Bool {
         let paddedFrame = cachedDockFrame?.insetBy(dx: -Self.dockFramePadding, dy: -Self.dockFramePadding)
-        if let paddedFrame = paddedFrame {
+        if let paddedFrame {
             if paddedFrame.contains(point) {
                 return true
             }
@@ -442,7 +456,7 @@ final class AccessibilityService: AccessibilityServiceProtocol {
         if let dockElement = getDockAXElement() {
             var hit: AXUIElement?
             if AXUIElementCopyElementAtPosition(dockElement, Float(point.x), Float(point.y), &hit) == .success,
-               let hit = hit {
+               let hit {
                 return isDockItem(hit)
             }
         }

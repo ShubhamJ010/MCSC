@@ -17,43 +17,45 @@ enum GestureKind: String, CaseIterable {
     /// Short human name shown in the settings pane.
     var displayName: String {
         switch self {
-        case .pinchIn: return "Pinch In"
-        case .pinchOut: return "Pinch Out"
-        case .swipeLeft: return "Swipe Left"
-        case .swipeRight: return "Swipe Right"
-        case .swipeDown: return "Swipe Down"
-        case .swipeUp: return "Swipe Up"
-        case .twoFingerDoubleTap: return "2-Finger Double Tap"
+        case .pinchIn: "Pinch In"
+        case .pinchOut: "Pinch Out"
+        case .swipeLeft: "Swipe Left"
+        case .swipeRight: "Swipe Right"
+        case .swipeDown: "Swipe Down"
+        case .swipeUp: "Swipe Up"
+        case .twoFingerDoubleTap: "2-Finger Double Tap"
         }
     }
 
     /// SF Symbol used next to the name in the gesture rows.
     var symbolName: String {
         switch self {
-        case .pinchIn: return "arrow.inward"
-        case .pinchOut: return "arrow.outward"
-        case .swipeLeft: return "arrow.left"
-        case .swipeRight: return "arrow.right"
-        case .swipeDown: return "arrow.down"
-        case .swipeUp: return "arrow.up"
-        case .twoFingerDoubleTap: return "hand.tap"
+        case .pinchIn: "arrow.inward"
+        case .pinchOut: "arrow.outward"
+        case .swipeLeft: "arrow.left"
+        case .swipeRight: "arrow.right"
+        case .swipeDown: "arrow.down"
+        case .swipeUp: "arrow.up"
+        case .twoFingerDoubleTap: "hand.tap"
         }
     }
 
     /// Whether this kind triggers `activateApp` when fired on a window/dock target.
     /// Mirrors legacy behaviour: only swipe-left auto-activates the target app.
-    var activatesApp: Bool { self == .swipeLeft }
+    var activatesApp: Bool {
+        self == .swipeLeft
+    }
 
     /// Haptic type for this kind; two-finger tap varies by modifier.
     func haptic(isCmd: Bool) -> HapticType {
         switch self {
-        case .pinchIn: return .pinchIn
-        case .pinchOut: return .pinchOut
-        case .swipeLeft: return .swipeLeft
-        case .swipeRight: return .swipeRight
-        case .swipeDown: return .swipeDown
-        case .swipeUp: return .swipeUp
-        case .twoFingerDoubleTap: return isCmd ? .cmdTwoFingerDoubleTap : .twoFingerDoubleTap
+        case .pinchIn: .pinchIn
+        case .pinchOut: .pinchOut
+        case .swipeLeft: .swipeLeft
+        case .swipeRight: .swipeRight
+        case .swipeDown: .swipeDown
+        case .swipeUp: .swipeUp
+        case .twoFingerDoubleTap: isCmd ? .cmdTwoFingerDoubleTap : .twoFingerDoubleTap
         }
     }
 
@@ -63,19 +65,19 @@ enum GestureKind: String, CaseIterable {
     var naturalActions: [GestureAction] {
         switch self {
         case .pinchIn:
-            return [.closeWindow, .quitApp, .closeTab, .closeAllTabs, .makeSmaller]
+            [.closeWindow, .quitApp, .closeTab, .closeAllTabs, .makeSmaller]
         case .pinchOut:
-            return [.toggleFullscreen, .fillScreen, .almostMaximize, .makeLarger, .newWindow]
+            [.toggleFullscreen, .fillScreen, .almostMaximize, .makeLarger, .newWindow]
         case .swipeLeft:
-            return [.closeTab, .closeAllTabs, .closeWindow, .quitApp, .movePreviousDesktop]
+            [.closeTab, .closeAllTabs, .closeWindow, .quitApp, .movePreviousDesktop]
         case .swipeRight:
-            return [.reopenTab, .newTab, .newWindow, .moveNextDesktop]
+            [.reopenTab, .newTab, .newWindow, .moveNextDesktop]
         case .swipeUp:
-            return [.minimize, .hideApp]
+            [.minimize, .hideApp]
         case .swipeDown:
-            return [.fillScreen, .almostMaximize, .makeLarger, .makeSmaller, .reasonableSize]
+            [.fillScreen, .almostMaximize, .makeLarger, .makeSmaller, .reasonableSize]
         case .twoFingerDoubleTap:
-            return [.reasonableSize, .almostMaximize, .toggleFullscreen, .makeSmaller, .makeLarger]
+            [.reasonableSize, .almostMaximize, .toggleFullscreen, .makeSmaller, .makeLarger]
         }
     }
 }
@@ -85,49 +87,51 @@ enum GestureKind: String, CaseIterable {
 /// The window/app action a gesture can be bound to.
 /// Raw values are persisted to UserDefaults, so never rename or delete — only append.
 enum GestureAction: String, CaseIterable {
-    case closeWindow = "closeWindow"
-    case quitApp = "quitApp"
-    case closeTab = "closeTab"
-    case closeAllTabs = "closeAllTabs"
-    case reopenTab = "reopenTab"
-    case newTab = "newTab"
-    case newWindow = "newWindow"
-    case toggleFullscreen = "toggleFullscreen"
-    case fillScreen = "fillScreen"
-    case almostMaximize = "almostMaximize"
-    case makeLarger = "makeLarger"
-    case makeSmaller = "makeSmaller"
-    case reasonableSize = "reasonableSize"
-    case minimize = "minimize"
-    case hideApp = "hideApp"
-    case moveNextDesktop = "moveNextDesktop"
-    case movePreviousDesktop = "movePreviousDesktop"
+    case closeWindow
+    case quitApp
+    case closeTab
+    case closeAllTabs
+    case reopenTab
+    case newTab
+    case newWindow
+    case toggleFullscreen
+    case fillScreen
+    case almostMaximize
+    case makeLarger
+    case makeSmaller
+    case reasonableSize
+    case minimize
+    case hideApp
+    case moveNextDesktop
+    case movePreviousDesktop
 
     /// Label shown in the popup menu.
     var menuTitle: String {
         switch self {
-        case .closeWindow: return "Close Window"
-        case .quitApp: return "Quit App"
-        case .closeTab: return "Close Tab"
-        case .closeAllTabs: return "Close All Tabs"
-        case .reopenTab: return "Reopen Tab"
-        case .newTab: return "New Tab"
-        case .newWindow: return "New Window"
-        case .toggleFullscreen: return "Toggle Fullscreen"
-        case .fillScreen: return "Fill Screen"
-        case .almostMaximize: return "Almost Maximize"
-        case .makeLarger: return "Make Larger (+33%)"
-        case .makeSmaller: return "Make Smaller (−33%)"
-        case .reasonableSize: return "Reasonable Size"
-        case .minimize: return "Minimize"
-        case .hideApp: return "Hide App"
-        case .moveNextDesktop: return "Move to Next Desktop"
-        case .movePreviousDesktop: return "Move to Previous Desktop"
+        case .closeWindow: "Close Window"
+        case .quitApp: "Quit App"
+        case .closeTab: "Close Tab"
+        case .closeAllTabs: "Close All Tabs"
+        case .reopenTab: "Reopen Tab"
+        case .newTab: "New Tab"
+        case .newWindow: "New Window"
+        case .toggleFullscreen: "Toggle Fullscreen"
+        case .fillScreen: "Fill Screen"
+        case .almostMaximize: "Almost Maximize"
+        case .makeLarger: "Make Larger (+33%)"
+        case .makeSmaller: "Make Smaller (−33%)"
+        case .reasonableSize: "Reasonable Size"
+        case .minimize: "Minimize"
+        case .hideApp: "Hide App"
+        case .moveNextDesktop: "Move to Next Desktop"
+        case .movePreviousDesktop: "Move to Previous Desktop"
         }
     }
 
     /// Short subtitle hint used only in docs/tests if needed.
-    var shortDescription: String { menuTitle }
+    var shortDescription: String {
+        menuTitle
+    }
 }
 
 // MARK: - Defaults
@@ -136,20 +140,20 @@ enum GestureAction: String, CaseIterable {
 enum GestureDefaults {
     static func action(for kind: GestureKind, isCmd: Bool) -> GestureAction {
         switch (kind, isCmd) {
-        case (.pinchIn, false): return .closeWindow
-        case (.pinchIn, true): return .quitApp
-        case (.pinchOut, false): return .toggleFullscreen
-        case (.pinchOut, true): return .newWindow
-        case (.swipeLeft, false): return .closeTab
-        case (.swipeLeft, true): return .closeAllTabs
-        case (.swipeRight, false): return .reopenTab
-        case (.swipeRight, true): return .newTab
-        case (.swipeDown, false): return .fillScreen
-        case (.swipeDown, true): return .makeLarger
-        case (.swipeUp, false): return .minimize
-        case (.swipeUp, true): return .hideApp
-        case (.twoFingerDoubleTap, false): return .reasonableSize
-        case (.twoFingerDoubleTap, true): return .almostMaximize
+        case (.pinchIn, false): .closeWindow
+        case (.pinchIn, true): .quitApp
+        case (.pinchOut, false): .toggleFullscreen
+        case (.pinchOut, true): .newWindow
+        case (.swipeLeft, false): .closeTab
+        case (.swipeLeft, true): .closeAllTabs
+        case (.swipeRight, false): .reopenTab
+        case (.swipeRight, true): .newTab
+        case (.swipeDown, false): .fillScreen
+        case (.swipeDown, true): .makeLarger
+        case (.swipeUp, false): .minimize
+        case (.swipeUp, true): .hideApp
+        case (.twoFingerDoubleTap, false): .reasonableSize
+        case (.twoFingerDoubleTap, true): .almostMaximize
         }
     }
 
@@ -168,20 +172,20 @@ extension GestureResult {
     /// Decomposes a result into its kind + whether ⌘ was held.
     var kindAndModifier: (kind: GestureKind, isCmd: Bool) {
         switch self {
-        case .pinchIn: return (.pinchIn, false)
-        case .cmdPinchIn: return (.pinchIn, true)
-        case .pinchOut: return (.pinchOut, false)
-        case .cmdPinchOut: return (.pinchOut, true)
-        case .swipeLeft: return (.swipeLeft, false)
-        case .cmdSwipeLeft: return (.swipeLeft, true)
-        case .swipeRight: return (.swipeRight, false)
-        case .cmdSwipeRight: return (.swipeRight, true)
-        case .swipeDown: return (.swipeDown, false)
-        case .cmdSwipeDown: return (.swipeDown, true)
-        case .swipeUp: return (.swipeUp, false)
-        case .cmdSwipeUp: return (.swipeUp, true)
-        case .twoFingerDoubleTap: return (.twoFingerDoubleTap, false)
-        case .cmdTwoFingerDoubleTap: return (.twoFingerDoubleTap, true)
+        case .pinchIn: (.pinchIn, false)
+        case .cmdPinchIn: (.pinchIn, true)
+        case .pinchOut: (.pinchOut, false)
+        case .cmdPinchOut: (.pinchOut, true)
+        case .swipeLeft: (.swipeLeft, false)
+        case .cmdSwipeLeft: (.swipeLeft, true)
+        case .swipeRight: (.swipeRight, false)
+        case .cmdSwipeRight: (.swipeRight, true)
+        case .swipeDown: (.swipeDown, false)
+        case .cmdSwipeDown: (.swipeDown, true)
+        case .swipeUp: (.swipeUp, false)
+        case .cmdSwipeUp: (.swipeUp, true)
+        case .twoFingerDoubleTap: (.twoFingerDoubleTap, false)
+        case .cmdTwoFingerDoubleTap: (.twoFingerDoubleTap, true)
         }
     }
 }

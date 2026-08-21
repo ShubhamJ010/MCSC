@@ -7,10 +7,9 @@ import Foundation
 /// the common `Config`, `State`, timing, and geometry so the two subclasses
 /// stay trivial and the 40% threshold / 1.5s / 0.8s constants live in one place.
 class BasePinchRecognizer: GestureRecognizer {
-
     enum Direction {
-        case inward   // distance decreases
-        case outward  // distance increases
+        case inward // distance decreases
+        case outward // distance increases
     }
 
     struct Config {
@@ -64,22 +63,21 @@ class BasePinchRecognizer: GestureRecognizer {
             }
             return nil
 
-        case .tracking(let f1ID, let f2ID, let initialDist, let startTime, _, _):
+        case let .tracking(f1ID, f2ID, initialDist, startTime, _, _):
             if timestamp - startTime > config.maxGestureDuration {
                 state = .idle
                 return nil
             }
             let f1 = touches.first(where: { $0.identifier == f1ID })
             let f2 = touches.first(where: { $0.identifier == f2ID })
-            if let f1 = f1, let f2 = f2 {
+            if let f1, let f2 {
                 let currentDist = TouchGeometry.distance(f1, f2)
                 let center = TouchGeometry.midpoint(f1, f2)
-                let ratio: Float
-                switch direction {
+                let ratio: Float = switch direction {
                 case .inward:
-                    ratio = initialDist > 0.05 ? (initialDist - currentDist) / initialDist : 0
+                    initialDist > 0.05 ? (initialDist - currentDist) / initialDist : 0
                 case .outward:
-                    ratio = initialDist > 0.05 ? (currentDist - initialDist) / initialDist : 0
+                    initialDist > 0.05 ? (currentDist - initialDist) / initialDist : 0
                 }
                 if ratio >= config.pinchRatioThreshold {
                     state = .cooldown(until: timestamp + config.cooldownDuration)
@@ -99,7 +97,7 @@ class BasePinchRecognizer: GestureRecognizer {
             state = .idle
             return nil
 
-        case .cooldown(let until):
+        case let .cooldown(until):
             if timestamp > until {
                 state = .idle
             }
@@ -114,9 +112,9 @@ class BasePinchRecognizer: GestureRecognizer {
     private func result(atNormalized center: (Float, Float), cmdHeld: Bool) -> GestureResult {
         switch direction {
         case .inward:
-            return cmdHeld ? .cmdPinchIn(atNormalized: center) : .pinchIn(atNormalized: center)
+            cmdHeld ? .cmdPinchIn(atNormalized: center) : .pinchIn(atNormalized: center)
         case .outward:
-            return cmdHeld ? .cmdPinchOut(atNormalized: center) : .pinchOut(atNormalized: center)
+            cmdHeld ? .cmdPinchOut(atNormalized: center) : .pinchOut(atNormalized: center)
         }
     }
 }

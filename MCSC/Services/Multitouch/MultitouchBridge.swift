@@ -7,11 +7,11 @@ struct Finger {
     var frame: Int32
     var timestamp: Double
     var identifier: Int32
-    var state: Int32          // 1=not-touching, 2=starting, 3=hovering, 4=touching, 5=staying, 7=lifting
+    var state: Int32 // 1=not-touching, 2=starting, 3=hovering, 4=touching, 5=staying, 7=lifting
     var fingerData1: Int32
     var fingerData2: Int32
-    var normalizedX: Float    // 0.0 – 1.0
-    var normalizedY: Float    // 0.0 – 1.0
+    var normalizedX: Float // 0.0 – 1.0
+    var normalizedY: Float // 0.0 – 1.0
     var velocityX: Float
     var velocityY: Float
     var reserved1: Int32
@@ -33,33 +33,33 @@ typealias MTDeviceRef = UnsafeMutableRawPointer
 /// Callback signature: (device, fingers, fingerCount, timestamp, frame) -> Int32
 /// fingers is UnsafeMutableRawPointer? to make it compatible with C conventions.
 typealias MTContactFrameCallback = @convention(c) (
-    MTDeviceRef?,                           // device
-    UnsafeMutableRawPointer?,               // finger array
-    Int32,                                  // finger count
-    Double,                                 // timestamp
-    Int32                                   // frame
+    MTDeviceRef?, // device
+    UnsafeMutableRawPointer?, // finger array
+    Int32, // finger count
+    Double, // timestamp
+    Int32 // frame
 ) -> Int32
 
 final class MultitouchBridge {
     static let shared = MultitouchBridge()
-    
+
     private var frameworkHandle: UnsafeMutableRawPointer?
-    
+
     // Dynamically resolved function pointers
     private(set) var deviceCreateList: (@convention(c) () -> Unmanaged<CFArray>?)?
     private(set) var deviceStart: (@convention(c) (MTDeviceRef, Int32) -> Void)?
     private(set) var deviceStop: (@convention(c) (MTDeviceRef) -> Void)?
     private(set) var registerContactFrameCallback: (@convention(c) (MTDeviceRef, MTContactFrameCallback) -> Void)?
     private(set) var unregisterContactFrameCallback: (@convention(c) (MTDeviceRef, MTContactFrameCallback) -> Void)?
-    
+
     var isLoaded: Bool {
-        return frameworkHandle != nil
+        frameworkHandle != nil
     }
-    
+
     private init() {
         loadFramework()
     }
-    
+
     private func loadFramework() {
         let path = "/System/Library/PrivateFrameworks/MultitouchSupport.framework/Versions/A/MultitouchSupport"
         guard let handle = dlopen(path, RTLD_NOW) else {
@@ -67,9 +67,9 @@ final class MultitouchBridge {
             AppLogger.multitouch.error("Failed to load MultitouchSupport.framework: \(errorMsg, privacy: .public)")
             return
         }
-        
+
         self.frameworkHandle = handle
-        
+
         if let sym = dlsym(handle, "MTDeviceCreateList") {
             deviceCreateList = unsafeBitCast(sym, to: (@convention(c) () -> Unmanaged<CFArray>?).self)
         }
@@ -80,15 +80,21 @@ final class MultitouchBridge {
             deviceStop = unsafeBitCast(sym, to: (@convention(c) (MTDeviceRef) -> Void).self)
         }
         if let sym = dlsym(handle, "MTRegisterContactFrameCallback") {
-            registerContactFrameCallback = unsafeBitCast(sym, to: (@convention(c) (MTDeviceRef, MTContactFrameCallback) -> Void).self)
+            registerContactFrameCallback = unsafeBitCast(
+                sym,
+                to: (@convention(c) (MTDeviceRef, MTContactFrameCallback) -> Void).self
+            )
         }
         if let sym = dlsym(handle, "MTUnregisterContactFrameCallback") {
-            unregisterContactFrameCallback = unsafeBitCast(sym, to: (@convention(c) (MTDeviceRef, MTContactFrameCallback) -> Void).self)
+            unregisterContactFrameCallback = unsafeBitCast(
+                sym,
+                to: (@convention(c) (MTDeviceRef, MTContactFrameCallback) -> Void).self
+            )
         }
-        
+
         AppLogger.multitouch.info("Successfully loaded and resolved framework symbols")
     }
-    
+
     deinit {
         if let handle = frameworkHandle {
             dlclose(handle)

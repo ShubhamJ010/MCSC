@@ -6,7 +6,6 @@ import Cocoa
 /// `sizePaneToFitContent(minimumWidth:)`), which `SettingsTabViewController`
 /// uses to resize the window per tab. Ported from usagimaru/MacAppSettingsUI.
 class SettingsPaneViewController: NSViewController {
-
     weak var tabViewController: SettingsTabViewController?
 
     /// Tab label. Alias of `title`.
@@ -54,7 +53,9 @@ class SettingsPaneViewController: NSViewController {
     }
 
     @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
+    required init?(coder _: NSCoder) {
+        fatalError()
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -94,11 +95,13 @@ class SettingsPaneViewController: NSViewController {
 
         // Wrapping widths only settle during layout, so measure until the size stops moving.
         var previousFittingSize = NSSize.zero
-        for _ in 0..<Self.paneSizeMeasurementPassLimit {
+        for _ in 0 ..< Self.paneSizeMeasurementPassLimit {
             let fittingSize = view.fittingSize
             view.setFrameSize(fittingSize)
             view.layoutSubtreeIfNeeded()
-            if fittingSize == previousFittingSize { break }
+            if fittingSize == previousFittingSize {
+                break
+            }
             previousFittingSize = fittingSize
         }
 

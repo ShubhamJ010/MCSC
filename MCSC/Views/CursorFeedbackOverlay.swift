@@ -51,7 +51,9 @@ final class CursorFeedbackOverlay {
 
     /// Returns the cached — or freshly rendered — symbol image for `mode`.
     private func image(for mode: Mode) -> NSImage? {
-        if let cached = imageCache[mode] { return cached }
+        if let cached = imageCache[mode] {
+            return cached
+        }
         guard let image = makeSymbolImage(for: mode) else { return nil }
         imageCache[mode] = image
         return image
@@ -116,7 +118,7 @@ final class CursorFeedbackOverlay {
     /// display window reset the auto-dismiss timer so the symbol persists a
     /// full beat from the most recent action.
     func show(at point: CGPoint, mode: Mode) {
-        guard let panel = panel else { return }
+        guard let panel else { return }
 
         // Cancel any pending dismissal so repeated triggers reset the timer.
         dismissWork?.cancel()
@@ -172,20 +174,40 @@ final class CursorFeedbackOverlay {
             switch replace {
             case .magicReveal:
                 if #available(macOS 26.0, *) {
-                    imageView?.setSymbolImage(feedbackImage, contentTransition: .replace.magic(fallback: .upUp.byLayer), options: .nonRepeating)
+                    imageView?.setSymbolImage(
+                        feedbackImage,
+                        contentTransition: .replace.magic(fallback: .upUp.byLayer),
+                        options: .nonRepeating
+                    )
                 } else {
                     // Pre-macOS-26 equivalent of `fallback: .upUp.byLayer`.
-                    imageView?.setSymbolImage(feedbackImage, contentTransition: .replace.upUp.byLayer, options: .nonRepeating)
+                    imageView?.setSymbolImage(
+                        feedbackImage,
+                        contentTransition: .replace.upUp.byLayer,
+                        options: .nonRepeating
+                    )
                 }
             case .magicDownUpReveal:
                 if #available(macOS 26.0, *) {
-                    imageView?.setSymbolImage(feedbackImage, contentTransition: .replace.magic(fallback: .downUp.wholeSymbol), options: .nonRepeating)
+                    imageView?.setSymbolImage(
+                        feedbackImage,
+                        contentTransition: .replace.magic(fallback: .downUp.wholeSymbol),
+                        options: .nonRepeating
+                    )
                 } else {
                     // Pre-macOS-26 equivalent of `fallback: .downUp.wholeSymbol`.
-                    imageView?.setSymbolImage(feedbackImage, contentTransition: .replace.downUp.wholeSymbol, options: .nonRepeating)
+                    imageView?.setSymbolImage(
+                        feedbackImage,
+                        contentTransition: .replace.downUp.wholeSymbol,
+                        options: .nonRepeating
+                    )
                 }
             case .downUpReveal:
-                imageView?.setSymbolImage(feedbackImage, contentTransition: .replace.downUp.byLayer, options: .nonRepeating)
+                imageView?.setSymbolImage(
+                    feedbackImage,
+                    contentTransition: .replace.downUp.byLayer,
+                    options: .nonRepeating
+                )
             case .replace:
                 imageView?.setSymbolImage(feedbackImage, contentTransition: .replace, options: .nonRepeating)
             }
@@ -210,7 +232,7 @@ final class CursorFeedbackOverlay {
         // symbol-sized, so a larger scale clips the glyph at the panel bounds.
         // Reset first so repeated triggers start from a clean layer, then start
         // from 0.97 alpha and animate up to full scale + opacity.
-        if mode == .close || mode == .quit || mode == .eject || mode == .fullscreen, let imageView = imageView {
+        if mode == .close || mode == .quit || mode == .eject || mode == .fullscreen, let imageView {
             imageView.layer?.transform = CATransform3DIdentity
             imageView.alphaValue = 0.97
             NSAnimationContext.runAnimationGroup { context in
@@ -235,7 +257,7 @@ final class CursorFeedbackOverlay {
 
     private func scheduleDismiss() {
         let work = DispatchWorkItem { [weak self] in
-            guard let self = self, let panel = self.panel, let imageView = self.imageView else { return }
+            guard let self, let panel = self.panel, let imageView = self.imageView else { return }
             self.retract(panel: panel, imageView: imageView)
         }
         dismissWork = work

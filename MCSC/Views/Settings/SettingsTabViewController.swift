@@ -13,7 +13,6 @@ extension NSTabViewItem {
 /// toolbar and frame animate together), and updates the window title to the
 /// active pane. Reimplemented from usagimaru/MacAppSettingsUI.
 final class SettingsTabViewController: NSTabViewController {
-
     weak var settingsWindowController: SettingsWindowController?
 
     private var settingsWindow: SettingsWindow? {
@@ -23,7 +22,7 @@ final class SettingsTabViewController: NSTabViewController {
     /// The safe version of `selectedTabViewItemIndex` (-1 when empty).
     var selectedTabIndex: Int? {
         get {
-            if !tabViewItems.isEmpty && 0..<tabViewItems.count ~= selectedTabViewItemIndex {
+            if !tabViewItems.isEmpty, 0 ..< tabViewItems.count ~= selectedTabViewItemIndex {
                 return selectedTabViewItemIndex
             }
             return nil
@@ -76,7 +75,7 @@ final class SettingsTabViewController: NSTabViewController {
         }
 
         // If a tab item exists but none is selected, select #0 (just in case).
-        if !tabViewItems.isEmpty && selectedTabViewItem == nil {
+        if !tabViewItems.isEmpty, selectedTabViewItem == nil {
             selectedTabViewItemIndex = 0
         }
 
@@ -90,7 +89,8 @@ final class SettingsTabViewController: NSTabViewController {
            contentWidth > 0 {
             minimumContentWidth = contentWidth
             for item in tabViewItems
-            where item.settingsPaneViewController?.preferredPaneSize != nil || item.viewController?.isViewLoaded == true {
+                where item.settingsPaneViewController?.preferredPaneSize != nil || item.viewController?
+                .isViewLoaded == true {
                 cacheTabViewSize(for: item)
             }
         }
@@ -100,7 +100,7 @@ final class SettingsTabViewController: NSTabViewController {
 
     /// All panes in order.
     var panes: [SettingsPaneViewController] {
-        tabViewItems.compactMap { $0.settingsPaneViewController }
+        tabViewItems.compactMap(\.settingsPaneViewController)
     }
 
     func set(panes: [SettingsPaneViewController]) {
@@ -109,9 +109,9 @@ final class SettingsTabViewController: NSTabViewController {
     }
 
     func add(panes: [SettingsPaneViewController]) {
-        panes.forEach {
-            $0.tabViewController = self
-            let item = makeTabViewItem(from: $0)
+        for pane in panes {
+            pane.tabViewController = self
+            let item = makeTabViewItem(from: pane)
             addTabViewItem(item)
         }
     }
@@ -141,7 +141,7 @@ final class SettingsTabViewController: NSTabViewController {
 
     override func transition(from fromViewController: NSViewController,
                              to toViewController: NSViewController,
-                             options: NSViewController.TransitionOptions = [],
+                             options _: NSViewController.TransitionOptions = [],
                              completionHandler completion: (() -> Void)? = nil) {
         guard let superview = fromViewController.view.superview, let selectedTabViewItem else {
             completion?()
@@ -215,12 +215,12 @@ final class SettingsTabViewController: NSTabViewController {
 
         if let pane = tabViewItem.settingsPaneViewController,
            let preferredSize = pane.preferredPaneSize,
-           preferredSize.width > 0 && preferredSize.height > 0 {
+           preferredSize.width > 0, preferredSize.height > 0 {
             size = preferredSize
         } else if tabViewItem.viewController?.isViewLoaded == true,
                   let view = tabViewItem.view {
             let fittingSize = view.fittingSize
-            if fittingSize.width > 0 && fittingSize.height > 0 {
+            if fittingSize.width > 0, fittingSize.height > 0 {
                 size = fittingSize
             }
         }
@@ -254,7 +254,8 @@ final class SettingsTabViewController: NSTabViewController {
         }
     }
 
-    private func fitWindowSize(to tabViewItem: NSTabViewItem, animateIfPossible: Bool, completion: (() -> Void)? = nil) {
+    private func fitWindowSize(to tabViewItem: NSTabViewItem, animateIfPossible: Bool,
+                               completion: (() -> Void)? = nil) {
         guard let size = tabViewSizes[tabViewItem], let settingsWindow else {
             completion?()
             return

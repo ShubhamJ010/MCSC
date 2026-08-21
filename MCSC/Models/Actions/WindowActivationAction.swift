@@ -1,5 +1,5 @@
-import Foundation
 import CoreGraphics
+import Foundation
 
 /// Posts synthetic mouse events used to highlight and activate a Mission
 /// Control window thumbnail. Pure event injection — no service or view

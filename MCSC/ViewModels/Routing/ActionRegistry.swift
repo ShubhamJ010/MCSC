@@ -38,9 +38,11 @@ final class ActionRegistry {
     init(isMissionControlActiveProvider: @escaping () -> Bool = { false }) {
         self.moveNextDesktopAction = MoveWindowToDesktopAction(
             direction: .next,
-            isMissionControlActiveProvider: isMissionControlActiveProvider)
+            isMissionControlActiveProvider: isMissionControlActiveProvider
+        )
         self.movePreviousDesktopAction = MoveWindowToDesktopAction(
             direction: .previous,
-            isMissionControlActiveProvider: isMissionControlActiveProvider)
+            isMissionControlActiveProvider: isMissionControlActiveProvider
+        )
     }
 }

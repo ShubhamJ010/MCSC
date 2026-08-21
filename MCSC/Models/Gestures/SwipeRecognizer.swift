@@ -6,7 +6,6 @@ import Foundation
 ///   idle → tracking (2 fingers detected, recording start Y)
 ///        → cooldown (threshold crossed → action fired) → idle
 final class SwipeRecognizer: GestureRecognizer {
-
     struct Config {
         /// Minimum vertical displacement (normalized 0–1) to trigger a swipe.
         var swipeThreshold: Float = 0.08
@@ -61,7 +60,6 @@ final class SwipeRecognizer: GestureRecognizer {
         guard isEnabled?() ?? true else { return nil }
 
         switch state {
-
         case .idle:
             if touches.count == 2 {
                 let midY = (touches[0].normalizedY + touches[1].normalizedY) / 2.0
@@ -77,7 +75,7 @@ final class SwipeRecognizer: GestureRecognizer {
             }
             return nil
 
-        case .tracking(let f1ID, let f2ID, let startMidY, let startMidX, let startedMoving, let startTime):
+        case let .tracking(f1ID, f2ID, startMidY, startMidX, startedMoving, startTime):
             if timestamp - startTime > config.maxGestureDuration {
                 state = .idle
                 return nil
@@ -86,7 +84,7 @@ final class SwipeRecognizer: GestureRecognizer {
             let f1 = touches.first(where: { $0.identifier == f1ID })
             let f2 = touches.first(where: { $0.identifier == f2ID })
 
-            guard let f1 = f1, let f2 = f2 else {
+            guard let f1, let f2 else {
                 state = .idle
                 return nil
             }
@@ -131,7 +129,7 @@ final class SwipeRecognizer: GestureRecognizer {
             )
             return nil
 
-        case .cooldown(let until):
+        case let .cooldown(until):
             if timestamp > until {
                 state = .idle
             }

@@ -31,46 +31,46 @@ extension CursorFeedbackOverlay {
         /// SF Symbol name rendered by `NSImage(systemSymbolName:)`.
         var symbolName: String {
             switch self {
-            case .close: return "xmark.circle.fill"
-            case .minimize: return "minus.circle.fill"
-            case .quit: return "xmark.circle.fill"
-            case .hide: return "eye.slash.circle.fill"
-            case .eject: return "eject.circle.fill"
-            case .almost: return "inset.filled.rectangle"
-            case .reasonable: return "inset.filled.center.rectangle"
-            case .makeSmaller: return "arrow.down.right.and.arrow.up.left"
-            case .maximize: return "rectangle.fill"
-            case .closeTab: return "xmark.rectangle.fill"
-            case .reopenTab: return "plus.rectangle.fill"
-            case .closeAllTabs: return "rectangle.fill.badge.xmark"
-            case .newWindow: return "macwindow.badge.plus"
-            case .newTab: return "plus.rectangle.fill.on.rectangle.fill"
-            case .fullscreen: return "arrow.down.left.and.arrow.up.right.circle.fill"
-            case .spaceRight: return "arrowshape.right.circle.fill"
-            case .spaceLeft: return "arrowshape.left.circle.fill"
+            case .close: "xmark.circle.fill"
+            case .minimize: "minus.circle.fill"
+            case .quit: "xmark.circle.fill"
+            case .hide: "eye.slash.circle.fill"
+            case .eject: "eject.circle.fill"
+            case .almost: "inset.filled.rectangle"
+            case .reasonable: "inset.filled.center.rectangle"
+            case .makeSmaller: "arrow.down.right.and.arrow.up.left"
+            case .maximize: "rectangle.fill"
+            case .closeTab: "xmark.rectangle.fill"
+            case .reopenTab: "plus.rectangle.fill"
+            case .closeAllTabs: "rectangle.fill.badge.xmark"
+            case .newWindow: "macwindow.badge.plus"
+            case .newTab: "plus.rectangle.fill.on.rectangle.fill"
+            case .fullscreen: "arrow.down.left.and.arrow.up.right.circle.fill"
+            case .spaceRight: "arrow.right.square.fill"
+            case .spaceLeft: "arrow.left.square.fill"
             }
         }
 
         /// Accessibility description of the action the symbol represents.
         var accessibilityDescription: String {
             switch self {
-            case .close: return "Close Window"
-            case .minimize: return "Minimize Window"
-            case .quit: return "Force Quit"
-            case .hide: return "Hide Application"
-            case .eject: return "Eject Volume"
-            case .almost: return "Almost Maximize Window"
-            case .reasonable: return "Reasonable Size"
-            case .makeSmaller: return "Make Smaller Window"
-            case .maximize: return "Maximize Window"
-            case .closeTab: return "Close Tab"
-            case .reopenTab: return "Reopen Tab"
-            case .closeAllTabs: return "Close All Tabs"
-            case .newWindow: return "New Window"
-            case .newTab: return "New Tab"
-            case .fullscreen: return "Toggle Fullscreen"
-            case .spaceRight: return "Move Window to Next Desktop"
-            case .spaceLeft: return "Move Window to Previous Desktop"
+            case .close: "Close Window"
+            case .minimize: "Minimize Window"
+            case .quit: "Force Quit"
+            case .hide: "Hide Application"
+            case .eject: "Eject Volume"
+            case .almost: "Almost Maximize Window"
+            case .reasonable: "Reasonable Size"
+            case .makeSmaller: "Make Smaller Window"
+            case .maximize: "Maximize Window"
+            case .closeTab: "Close Tab"
+            case .reopenTab: "Reopen Tab"
+            case .closeAllTabs: "Close All Tabs"
+            case .newWindow: "New Window"
+            case .newTab: "New Tab"
+            case .fullscreen: "Toggle Fullscreen"
+            case .spaceRight: "Move Window to Next Desktop"
+            case .spaceLeft: "Move Window to Previous Desktop"
             }
         }
 
@@ -79,40 +79,40 @@ extension CursorFeedbackOverlay {
         /// default. Colors map to layers in order: primary → accent → none.
         var paletteColors: [NSColor]? {
             switch self {
-            case .close: return nil
-            case .minimize: return [.black, .systemYellow]
-            case .quit: return [.white, NSColor(red: 0.749, green: 0.353, blue: 0.949, alpha: 1.0)]
-            case .hide: return [.black, .systemYellow]
-            case .eject: return [.white, .systemRed]
+            case .close: nil
+            case .minimize: [.black, .systemYellow]
+            case .quit: [.white, NSColor(red: 0.749, green: 0.353, blue: 0.949, alpha: 1.0)]
+            case .hide: [.black, .systemYellow]
+            case .eject: [.white, .systemRed]
             case .almost, .reasonable:
                 // Single Accent layer (the user's system accent colour), same as Maximize.
-                return [.controlAccentColor]
+                [.controlAccentColor]
             case .makeSmaller:
                 // Single Accent layer (the user's system accent colour), same family as Maximize.
-                return [.controlAccentColor]
+                [.controlAccentColor]
             case .maximize:
                 // Single Accent layer (the user's system accent colour).
-                return [.controlAccentColor]
+                [.controlAccentColor]
             case .fullscreen:
-                return [.black, .systemGreen]
+                [.black, .systemGreen]
             case .spaceRight, .spaceLeft:
                 // Single Accent layer (the user's system accent colour).
-                return [.controlAccentColor]
+                [.controlAccentColor]
             case .closeTab:
                 // System multicolor (red X, matching Close).
-                return nil
+                nil
             case .reopenTab:
                 // Black rectangle body + green plus, both at 100% (palette layer 1: black, layer 2: green).
-                return [.black, .systemGreen]
+                [.black, .systemGreen]
             case .closeAllTabs:
                 // Primary 100% + Red 100% for Cmd+Shift+W — 2-layer palette for fill variant
-                return [.white, .systemRed]
+                [.white, .systemRed]
             case .newWindow:
                 // Green window, white badge, black plus — badge is layer 1, window layer 2 for macwindow.badge.plus
-                return [.white, .systemGreen, .black]
+                [.white, .systemGreen, .black]
             case .newTab:
                 // Primary (black) rectangles + green plus at 100% — matches reopenTab/newWindow/fullscreen palette.
-                return [.black, .systemGreen]
+                [.black, .systemGreen]
             }
         }
 
@@ -129,9 +129,10 @@ extension CursorFeedbackOverlay {
 
         var entryAnimation: EntryAnimation? {
             switch self {
-            case .close, .quit, .newWindow: return .bounceUpByLayer
-            case .closeTab, .reopenTab, .closeAllTabs, .newTab: return .wiggleByLayer
-            case .minimize, .hide, .eject, .almost, .reasonable, .makeSmaller, .maximize, .fullscreen, .spaceRight, .spaceLeft: return nil
+            case .close, .quit, .newWindow: .bounceUpByLayer
+            case .closeTab, .reopenTab, .closeAllTabs, .newTab: .wiggleByLayer
+            case .minimize, .hide, .eject, .almost, .reasonable, .makeSmaller, .maximize, .fullscreen, .spaceRight,
+                 .spaceLeft: nil
             }
         }
 
@@ -155,10 +156,10 @@ extension CursorFeedbackOverlay {
 
         var replaceTransition: ReplaceTransition? {
             switch self {
-            case .almost, .reasonable, .maximize, .minimize, .hide: return .downUpReveal
-            case .eject: return .magicDownUpReveal
-            case .spaceRight, .spaceLeft, .newTab, .closeAllTabs: return .replace
-            case .close, .quit, .closeTab, .reopenTab, .newWindow, .fullscreen, .makeSmaller: return nil
+            case .almost, .reasonable, .maximize, .minimize, .hide: .downUpReveal
+            case .eject: .magicDownUpReveal
+            case .spaceRight, .spaceLeft, .newTab, .closeAllTabs: .replace
+            case .close, .quit, .closeTab, .reopenTab, .newWindow, .fullscreen, .makeSmaller: nil
             }
         }
 
@@ -168,8 +169,8 @@ extension CursorFeedbackOverlay {
         /// so the pre-morph state reads as neutral before filling in.
         var basePaletteColors: [NSColor]? {
             switch self {
-            case .minimize, .hide: return [.white]
-            default: return nil
+            case .minimize, .hide: [.white]
+            default: nil
             }
         }
 
@@ -180,18 +181,18 @@ extension CursorFeedbackOverlay {
         /// eject starts from its plain `eject.fill` glyph.
         var baseSymbol: String? {
             switch self {
-            case .almost, .reasonable, .maximize: return "rectangle"
-            case .eject: return "eject.fill"
+            case .almost, .reasonable, .maximize: "rectangle"
+            case .eject: "eject.fill"
             // Outlined/plain glyphs that morph into their filled counterparts
             // (minus.circle.fill / eye.slash.circle.fill) via the replace
             // transitions above.
-            case .minimize: return "minus.circle"
-            case .hide: return "eye.slash.circle"
-            case .spaceRight: return "arrowshape.right.circle"
-            case .spaceLeft: return "arrowshape.left.circle"
-            case .newTab: return "plus.rectangle.on.rectangle"
-            case .closeAllTabs: return "rectangle.badge.xmark"
-            default: return nil
+            case .minimize: "minus.circle"
+            case .hide: "eye.slash.circle"
+            case .spaceRight: "arrowshape.right.circle"
+            case .spaceLeft: "arrowshape.left.circle"
+            case .newTab: "plus.rectangle.on.rectangle"
+            case .closeAllTabs: "rectangle.badge.xmark"
+            default: nil
             }
         }
     }

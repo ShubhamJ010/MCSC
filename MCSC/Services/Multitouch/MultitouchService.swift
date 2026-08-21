@@ -37,7 +37,7 @@ final class MultitouchService {
     /// Set before calling start(). Uses weak-safe pattern via ViewModel.
     var onFrame: FrameCallback?
 
-    // Static ref to self for C callback (only one instance ever exists)
+    /// Static ref to self for C callback (only one instance ever exists)
     fileprivate static var shared: MultitouchService?
 
     /// A deferred `deviceStop` is scheduled by `stop()` because stopping a
@@ -133,20 +133,20 @@ final class MultitouchService {
 
 // MARK: - C Callback (free function, bridges back to instance)
 
-nonisolated private func multitouchCallback(
-    device: MTDeviceRef?,
+private nonisolated func multitouchCallback(
+    device _: MTDeviceRef?,
     fingers: UnsafeMutableRawPointer?,
     count: Int32,
     timestamp: Double,
-    frame: Int32
+    frame _: Int32
 ) -> Int32 {
-    guard let fingers = fingers, count > 0 else { return 0 }
+    guard let fingers, count > 0 else { return 0 }
 
     let fingerPtr = fingers.assumingMemoryBound(to: Finger.self)
     var points: [TouchPoint] = []
     points.reserveCapacity(Int(count))
 
-    for i in 0..<Int(count) {
+    for i in 0 ..< Int(count) {
         let f = fingerPtr[i]
         // Only include fingers that are actively touching/hovering
         if f.state >= 4 {

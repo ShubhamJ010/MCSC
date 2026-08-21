@@ -38,7 +38,6 @@ enum SettingsLayoutPriority {
 /// A description label that shrinks to its text and wraps at a width handed
 /// down from the outside (its own bounds would make the width chase itself).
 final class SettingsWrappingLabel: NSTextField {
-
     var availableWidth: CGFloat = 0 {
         didSet {
             guard availableWidth != oldValue else { return }
@@ -70,7 +69,9 @@ final class SettingsWrappingLabel: NSTextField {
     }
 
     @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
+    required init?(coder _: NSCoder) {
+        fatalError()
+    }
 
     /// Width the text takes on a single line; the column asks for this much
     /// before settling on a narrower, wrapping box.
@@ -105,7 +106,6 @@ enum SettingsItemVerticalAlignment {
 
 /// A unit of view stacked in a `SettingsLayoutView`.
 class SettingsSectionView: NSView {
-
     /// Box holding the section content. Its width follows the width mode and it stays centered.
     let contentGuide = NSLayoutGuide()
 
@@ -141,7 +141,9 @@ class SettingsSectionView: NSView {
     }
 
     @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
+    required init?(coder _: NSCoder) {
+        fatalError()
+    }
 
     private func setUpContentGuide() {
         addLayoutGuide(contentGuide)
@@ -182,13 +184,15 @@ class SettingsSectionView: NSView {
 
     /// Whether this section takes in the surplus height of the pane.
     var isVerticallyFlexible: Bool {
-        if case .flexible = heightMode { return true }
+        if case .flexible = heightMode {
+            return true
+        }
         return false
     }
 
     /// Lower bound this section keeps while stretching. nil while it follows its content.
     var flexibleMinimumHeight: CGFloat? {
-        guard case .flexible(let minimumHeight, _) = heightMode else { return nil }
+        guard case let .flexible(minimumHeight, _) = heightMode else { return nil }
         return minimumHeight
     }
 
@@ -198,7 +202,7 @@ class SettingsSectionView: NSView {
         minimumHeightConstraint = nil
         preferredHeightConstraint = nil
 
-        guard case .flexible(let minimumHeight, let preferredHeight) = heightMode else {
+        guard case let .flexible(minimumHeight, preferredHeight) = heightMode else {
             setContentHuggingPriority(.defaultLow, for: .vertical)
             return
         }
@@ -235,7 +239,6 @@ class SettingsSectionView: NSView {
 /// leading-aligned items. The label column follows its longest label across
 /// every section, and the item column follows whatever its items need.
 final class SettingsColumnSectionView: SettingsSectionView {
-
     private(set) var titleLabel: NSTextField!
 
     /// Width this section asks of the item column. Caps and floors it alike,
@@ -277,7 +280,9 @@ final class SettingsColumnSectionView: SettingsSectionView {
     }
 
     @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
+    required init?(coder _: NSCoder) {
+        fatalError()
+    }
 
     private func setUpGuides() {
         [labelBoxGuide, itemBoxGuide].forEach { addLayoutGuide($0) }
@@ -496,7 +501,6 @@ enum SettingsSectionAlignment {
 
 /// A separator spanning the whole container.
 final class SettingsSeparatorSectionView: SettingsSectionView {
-
     private(set) var separator: NSBox!
 
     override init(identifier: NSUserInterfaceItemIdentifier? = nil) {
@@ -516,12 +520,13 @@ final class SettingsSeparatorSectionView: SettingsSectionView {
     }
 
     @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
+    required init?(coder _: NSCoder) {
+        fatalError()
+    }
 }
 
 /// A section placing a single push button in the content box.
 final class SettingsButtonSectionView: SettingsSectionView {
-
     private(set) var button: NSButton!
 
     init(title: String,
@@ -558,13 +563,14 @@ final class SettingsButtonSectionView: SettingsSectionView {
     }
 
     @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
+    required init?(coder _: NSCoder) {
+        fatalError()
+    }
 }
 
 /// A section placing a leading-aligned checkbox in the content box, with an
 /// optional wrapping description underneath.
 final class SettingsCheckboxSectionView: SettingsSectionView {
-
     private(set) var checkbox: NSButton!
     private(set) var descriptionLabel: SettingsWrappingLabel?
 
@@ -608,7 +614,9 @@ final class SettingsCheckboxSectionView: SettingsSectionView {
     }
 
     @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
+    required init?(coder _: NSCoder) {
+        fatalError()
+    }
 
     override func layout() {
         super.layout()

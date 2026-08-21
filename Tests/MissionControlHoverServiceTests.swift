@@ -1,5 +1,5 @@
-import Foundation
 import Cocoa
+import Foundation
 import XCTest
 
 @MainActor
@@ -35,7 +35,7 @@ final class MissionControlHoverServiceTests: XCTestCase {
     func testStartAndStopTracking() {
         hoverService.start()
         XCTAssertTrue(hoverService.isTracking)
-        
+
         hoverService.stop()
         XCTAssertFalse(hoverService.isTracking)
     }
@@ -43,7 +43,7 @@ final class MissionControlHoverServiceTests: XCTestCase {
     func testTogglingEnabledState() {
         hoverService.isEnabled = false
         XCTAssertFalse(hoverService.isEnabled)
-        
+
         hoverService.isEnabled = true
         XCTAssertTrue(hoverService.isEnabled)
     }

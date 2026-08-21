@@ -16,12 +16,15 @@ class MCSCSettingsPane: SettingsPaneViewController {
     }
 
     @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
+    required init?(coder _: NSCoder) {
+        fatalError()
+    }
 
     /// Re-read state from the view model into the controls.
     func refresh() {}
 
-    /// The narrowest width every pane is laid out for. Matches the clone demo's 500pt (ref: DemoViewControllers.swift:56).
+    /// The narrowest width every pane is laid out for. Matches the clone demo's 500pt (ref:
+    /// DemoViewControllers.swift:56).
     static let minimumPaneWidth: CGFloat = 500
 }
 
@@ -46,8 +49,8 @@ final class GeneralSettingsPane: MCSCSettingsPane {
         // Startup — single toggle, no description needed.
         let startup = layoutView.addColumnSection(label: "Startup")
         launchAtLoginCheckbox = startup.addCheckbox(title: "Launch at Login",
-                                                     target: self,
-                                                     action: #selector(toggleLaunchAtLogin(_:)))
+                                                    target: self,
+                                                    action: #selector(toggleLaunchAtLogin(_:)))
 
         layoutView.addSeparatorSection()
 
@@ -59,11 +62,17 @@ final class GeneralSettingsPane: MCSCSettingsPane {
         dockActionsCheckbox = behavior.addCheckbox(title: "Dock Gestures & Shortcuts (outside Mission Control)",
                                                    target: self,
                                                    action: #selector(toggleDockActions(_:)))
-        behavior.addDescriptionLabel("Applies gestures and Cmd-shortcuts while hovering Dock icons outside Mission Control.")
+        behavior
+            .addDescriptionLabel(
+                "Applies gestures and Cmd-shortcuts while hovering Dock icons outside Mission Control."
+            )
         hoverCloseCheckbox = behavior.addCheckbox(title: "Hover Close Button",
                                                   target: self,
                                                   action: #selector(toggleHoverClose(_:)))
-        behavior.addDescriptionLabel("Shows a close button when hovering window thumbnails in Mission Control. Click to close; Cmd = quit, Option = minimize.")
+        behavior
+            .addDescriptionLabel(
+                "Shows a close button when hovering window thumbnails in Mission Control. Click to close; Cmd = quit, Option = minimize."
+            )
 
         layoutView.addSeparatorSection()
 
@@ -72,7 +81,11 @@ final class GeneralSettingsPane: MCSCSettingsPane {
         keyboardNavCheckbox = missionControl.addCheckbox(title: "Keyboard Navigation (Tab / Return)",
                                                          target: self,
                                                          action: #selector(toggleKeyboardNav(_:)))
-        missionControl.addDescriptionLabel("Tab / Shift+Tab cycle the selection between visible thumbnails row-major (wrap-around). Return activates the selected window. Typing filters windows fuzzy (e.g. “code” matches Xcode + Code) and Tab cycles only the filtered matches.")
+        missionControl.addDescriptionLabel(
+            "Tab / Shift+Tab cycle the selection between visible thumbnails row-major "
+                + "(wrap-around). Return activates the selected window. Typing filters windows fuzzy "
+                + "(e.g. “code” matches Xcode + Code) and Tab cycles only the filtered matches."
+        )
         let mcGapView = NSView(frame: .zero)
         mcGapView.translatesAutoresizingMaskIntoConstraints = false
         mcGapView.heightAnchor.constraint(equalToConstant: 8).isActive = true
@@ -82,7 +95,10 @@ final class GeneralSettingsPane: MCSCSettingsPane {
         spotlightFixCheckbox = missionControl.addCheckbox(title: "Restore Spotlight (⌘ + Space) in Mission Control",
                                                           target: self,
                                                           action: #selector(toggleSpotlightFix(_:)))
-        missionControl.addDescriptionLabel("Fixes Mission Control blocking Spotlight. Re-sends ⌘+Space when Mission Control is visible so Spotlight still opens.")
+        missionControl
+            .addDescriptionLabel(
+                "Fixes Mission Control blocking Spotlight. Re-sends ⌘+Space when Mission Control is visible so Spotlight still opens."
+            )
 
         layoutView.addSeparatorSection()
 
@@ -160,7 +176,7 @@ final class GeneralSettingsPane: MCSCSettingsPane {
         sender.state = viewModel.isCmdSpaceEnabled ? .on : .off
     }
 
-    @objc private func restoreDefaults(_ sender: NSButton) {
+    @objc private func restoreDefaults(_: NSButton) {
         viewModel.isAutoEjectEnabled = true
         viewModel.isDockActionsOutsideMCEnabled = true
         viewModel.isHoverCloseButtonEnabled = true
@@ -203,35 +219,126 @@ final class ShortcutSettingsPane: MCSCSettingsPane {
 
         // Group 2: Window — window chrome + size + desktop (Applies to window under cursor / Dock icon)
         let windowSection = layoutView.addColumnSection(label: "Window", itemColumnMaximumWidth: 340)
-        closeWindowCheckbox = addShortcutCheckbox(section: windowSection, mode: .close, title: "⌘ + ⇧ + E  — Close Window", action: #selector(toggleCloseWindow(_:)))
-        cmdMCheckbox = addShortcutCheckbox(section: windowSection, mode: .minimize, title: "⌘ + M  — Minimize", action: #selector(toggleCmdM(_:)))
-        cmdFCheckbox = addShortcutCheckbox(section: windowSection, mode: .fullscreen, title: "⌘ + F  — Toggle Fullscreen", action: #selector(toggleCmdF(_:)))
-        fillScreenCheckbox = addShortcutCheckbox(section: windowSection, mode: .maximize, title: "⌘ + ⇧ + D  — Fill Screen", action: #selector(toggleFillScreen(_:)))
-        almostMaximizeCheckbox = addShortcutCheckbox(section: windowSection, mode: .almost, title: "⌘ + ⇧ + A  — Almost Maximize", action: #selector(toggleAlmostMaximize(_:)))
-        reasonableSizeCheckbox = addShortcutCheckbox(section: windowSection, mode: .reasonable, title: "⌘ + ⇧ + R  — Reasonable Size", action: #selector(toggleReasonableSize(_:)))
-        makeLargerCheckbox = addShortcutCheckbox(section: windowSection, mode: .maximize, title: "⌘ + ⇧ + L  — Make Larger", action: #selector(toggleMakeLarger(_:)))
-        makeSmallerCheckbox = addShortcutCheckbox(section: windowSection, mode: .makeSmaller, title: "⌘ + ⇧ + S  — Make Smaller", action: #selector(toggleMakeSmaller(_:)))
-        moveNextDesktopCheckbox = addShortcutCheckbox(section: windowSection, mode: .spaceRight, title: "⌘ + ⇧ + →  — Move to Next Desktop", action: #selector(toggleMoveNextDesktop(_:)))
-        movePreviousDesktopCheckbox = addShortcutCheckbox(section: windowSection, mode: .spaceLeft, title: "⌘ + ⇧ + ←  — Move to Previous Desktop", action: #selector(toggleMovePreviousDesktop(_:)))
-        windowSection.addDescriptionLabel("Acts on the window under the cursor. Size/Desktop shortcuts are gesture-only by default — enable to create a keyboard shortcut.")
+        closeWindowCheckbox = addShortcutCheckbox(
+            section: windowSection,
+            mode: .close,
+            title: "⌘ + ⇧ + E  — Close Window",
+            action: #selector(toggleCloseWindow(_:))
+        )
+        cmdMCheckbox = addShortcutCheckbox(
+            section: windowSection,
+            mode: .minimize,
+            title: "⌘ + M  — Minimize",
+            action: #selector(toggleCmdM(_:))
+        )
+        cmdFCheckbox = addShortcutCheckbox(
+            section: windowSection,
+            mode: .fullscreen,
+            title: "⌘ + F  — Toggle Fullscreen",
+            action: #selector(toggleCmdF(_:))
+        )
+        fillScreenCheckbox = addShortcutCheckbox(
+            section: windowSection,
+            mode: .maximize,
+            title: "⌘ + ⇧ + D  — Fill Screen",
+            action: #selector(toggleFillScreen(_:))
+        )
+        almostMaximizeCheckbox = addShortcutCheckbox(
+            section: windowSection,
+            mode: .almost,
+            title: "⌘ + ⇧ + A  — Almost Maximize",
+            action: #selector(toggleAlmostMaximize(_:))
+        )
+        reasonableSizeCheckbox = addShortcutCheckbox(
+            section: windowSection,
+            mode: .reasonable,
+            title: "⌘ + ⇧ + R  — Reasonable Size",
+            action: #selector(toggleReasonableSize(_:))
+        )
+        makeLargerCheckbox = addShortcutCheckbox(
+            section: windowSection,
+            mode: .maximize,
+            title: "⌘ + ⇧ + L  — Make Larger",
+            action: #selector(toggleMakeLarger(_:))
+        )
+        makeSmallerCheckbox = addShortcutCheckbox(
+            section: windowSection,
+            mode: .makeSmaller,
+            title: "⌘ + ⇧ + S  — Make Smaller",
+            action: #selector(toggleMakeSmaller(_:))
+        )
+        moveNextDesktopCheckbox = addShortcutCheckbox(
+            section: windowSection,
+            mode: .spaceRight,
+            title: "⌘ + ⇧ + →  — Move to Next Desktop",
+            action: #selector(toggleMoveNextDesktop(_:))
+        )
+        movePreviousDesktopCheckbox = addShortcutCheckbox(
+            section: windowSection,
+            mode: .spaceLeft,
+            title: "⌘ + ⇧ + ←  — Move to Previous Desktop",
+            action: #selector(toggleMovePreviousDesktop(_:))
+        )
+        windowSection
+            .addDescriptionLabel(
+                "Acts on the window under the cursor. Size/Desktop shortcuts are gesture-only by default — enable to create a keyboard shortcut."
+            )
 
         layoutView.addSeparatorSection()
 
         // Group 3: Tab — tab strip actions (Applies to window tab bar)
         let tabSection = layoutView.addColumnSection(label: "Tab", itemColumnMaximumWidth: 340)
-        cmdWCheckbox = addShortcutCheckbox(section: tabSection, mode: .closeTab, title: "⌘ + W  — Close Tab", action: #selector(toggleCmdW(_:)))
-        cmdShiftWCheckbox = addShortcutCheckbox(section: tabSection, mode: .closeAllTabs, title: "⌘ + ⇧ + W  — Close All Tabs", action: #selector(toggleCmdShiftW(_:)))
-        cmdShiftTCheckbox = addShortcutCheckbox(section: tabSection, mode: .reopenTab, title: "⌘ + ⇧ + T  — Reopen Tab", action: #selector(toggleCmdShiftT(_:)))
-        cmdTCheckbox = addShortcutCheckbox(section: tabSection, mode: .newTab, title: "⌘ + T  — New Tab", action: #selector(toggleCmdT(_:)))
-        tabSection.addDescriptionLabel("Acts on the tab bar of the window under the cursor (falls back to Cmd+W/Cmd+T keystroke when no tab strip).")
+        cmdWCheckbox = addShortcutCheckbox(
+            section: tabSection,
+            mode: .closeTab,
+            title: "⌘ + W  — Close Tab",
+            action: #selector(toggleCmdW(_:))
+        )
+        cmdShiftWCheckbox = addShortcutCheckbox(
+            section: tabSection,
+            mode: .closeAllTabs,
+            title: "⌘ + ⇧ + W  — Close All Tabs",
+            action: #selector(toggleCmdShiftW(_:))
+        )
+        cmdShiftTCheckbox = addShortcutCheckbox(
+            section: tabSection,
+            mode: .reopenTab,
+            title: "⌘ + ⇧ + T  — Reopen Tab",
+            action: #selector(toggleCmdShiftT(_:))
+        )
+        cmdTCheckbox = addShortcutCheckbox(
+            section: tabSection,
+            mode: .newTab,
+            title: "⌘ + T  — New Tab",
+            action: #selector(toggleCmdT(_:))
+        )
+        tabSection
+            .addDescriptionLabel(
+                "Acts on the tab bar of the window under the cursor (falls back to Cmd+W/Cmd+T keystroke when no tab strip)."
+            )
 
         layoutView.addSeparatorSection()
 
         // Group 4: App — app-targeted actions (Dock)
         let appShortcuts = layoutView.addColumnSection(label: "App", itemColumnMaximumWidth: 340)
-        cmdQCheckbox = addShortcutCheckbox(section: appShortcuts, mode: .quit, title: "⌘ + Q  — Quit App", action: #selector(toggleCmdQ(_:)))
-        cmdHCheckbox = addShortcutCheckbox(section: appShortcuts, mode: .hide, title: "⌘ + H  — Hide App", action: #selector(toggleCmdH(_:)))
-        cmdNCheckbox = addShortcutCheckbox(section: appShortcuts, mode: .newWindow, title: "⌘ + N  — New Window", action: #selector(toggleCmdN(_:)))
+        cmdQCheckbox = addShortcutCheckbox(
+            section: appShortcuts,
+            mode: .quit,
+            title: "⌘ + Q  — Quit App",
+            action: #selector(toggleCmdQ(_:))
+        )
+        cmdHCheckbox = addShortcutCheckbox(
+            section: appShortcuts,
+            mode: .hide,
+            title: "⌘ + H  — Hide App",
+            action: #selector(toggleCmdH(_:))
+        )
+        cmdNCheckbox = addShortcutCheckbox(
+            section: appShortcuts,
+            mode: .newWindow,
+            title: "⌘ + N  — New Window",
+            action: #selector(toggleCmdN(_:))
+        )
         appShortcuts.addDescriptionLabel("Acts on the app owning the window / Dock icon under the cursor.")
 
         layoutView.addSeparatorSection()
@@ -279,7 +386,7 @@ final class ShortcutSettingsPane: MCSCSettingsPane {
 
         attrString.append(NSAttributedString(string: title, attributes: [
             .font: font,
-            .foregroundColor: NSColor.labelColor
+            .foregroundColor: NSColor.labelColor,
         ]))
 
         return attrString
@@ -390,7 +497,7 @@ final class ShortcutSettingsPane: MCSCSettingsPane {
         sender.state = viewModel.isMovePreviousDesktopEnabled ? .on : .off
     }
 
-    @objc private func restoreDefaults(_ sender: NSButton) {
+    @objc private func restoreDefaults(_: NSButton) {
         viewModel.isCmdWEnabled = true
         viewModel.isCmdQEnabled = true
         viewModel.isCmdMEnabled = true
@@ -428,6 +535,7 @@ final class GestureSettingsPane: MCSCSettingsPane {
         let cmdActionPopup: NSPopUpButton
         let enableSwitch: NSSwitch
     }
+
     private var gestureRows: [GestureRow] = []
 
     override func loadView() {
@@ -459,11 +567,16 @@ final class GestureSettingsPane: MCSCSettingsPane {
         func addGestureRow(kind: GestureKind) {
             let isFirst = (gestureIndex == 0)
             let section = layoutView.addColumnSection(label: kind.displayName,
-                                                      itemColumnMaximumWidth: isFirst ? Self.itemColumnMaximumWidth : nil,
+                                                      itemColumnMaximumWidth: isFirst ? Self
+                                                          .itemColumnMaximumWidth : nil,
                                                       identifier: .init(kind.rawValue))
 
             // Primary action — only natural actions for this gesture kind
-            let popup = section.addPopUpButton(controlSize: .regular, target: self, action: #selector(actionChanged(_:)))
+            let popup = section.addPopUpButton(
+                controlSize: .regular,
+                target: self,
+                action: #selector(actionChanged(_:))
+            )
             for action in kind.naturalActions {
                 popup.addItem(withTitle: action.menuTitle)
                 popup.lastItem?.representedObject = action.rawValue
@@ -513,7 +626,13 @@ final class GestureSettingsPane: MCSCSettingsPane {
 
             section.addCustomView(cmdRow, verticalAlignment: .centerY)
 
-            gestureRows.append(GestureRow(kind: kind, section: section, actionPopup: popup, cmdActionPopup: cmdPopup, enableSwitch: toggle))
+            gestureRows.append(GestureRow(
+                kind: kind,
+                section: section,
+                actionPopup: popup,
+                cmdActionPopup: cmdPopup,
+                enableSwitch: toggle
+            ))
             gestureIndex += 1
         }
 
@@ -546,17 +665,15 @@ final class GestureSettingsPane: MCSCSettingsPane {
 
         let masterOn = viewModel.isGesturesEnabled
         for row in gestureRows {
-            let kindEnabled: Bool = {
-                switch row.kind {
-                case .pinchIn: return viewModel.isPinchInEnabled
-                case .pinchOut: return viewModel.isPinchOutEnabled
-                case .swipeLeft: return viewModel.isSwipeLeftEnabled
-                case .swipeRight: return viewModel.isSwipeRightEnabled
-                case .swipeDown: return viewModel.isSwipeDownEnabled
-                case .swipeUp: return viewModel.isSwipeUpEnabled
-                case .twoFingerDoubleTap: return viewModel.isTwoFingerDoubleTapEnabled
-                }
-            }()
+            let kindEnabled: Bool = switch row.kind {
+            case .pinchIn: viewModel.isPinchInEnabled
+            case .pinchOut: viewModel.isPinchOutEnabled
+            case .swipeLeft: viewModel.isSwipeLeftEnabled
+            case .swipeRight: viewModel.isSwipeRightEnabled
+            case .swipeDown: viewModel.isSwipeDownEnabled
+            case .swipeUp: viewModel.isSwipeUpEnabled
+            case .twoFingerDoubleTap: viewModel.isTwoFingerDoubleTapEnabled
+            }
             let rowEnabled = masterOn && kindEnabled
             row.enableSwitch.state = kindEnabled ? .on : .off
             row.enableSwitch.isEnabled = masterOn
@@ -575,10 +692,12 @@ final class GestureSettingsPane: MCSCSettingsPane {
                 cmdAction = GestureDefaults.action(for: row.kind, isCmd: true)
                 viewModel.setGestureAction(cmdAction, for: row.kind, isCmd: true)
             }
-            if let idx = row.actionPopup.itemArray.firstIndex(where: { ($0.representedObject as? String) == plainAction.rawValue }) {
+            if let idx = row.actionPopup.itemArray
+                .firstIndex(where: { ($0.representedObject as? String) == plainAction.rawValue }) {
                 row.actionPopup.selectItem(at: idx)
             }
-            if let idx = row.cmdActionPopup.itemArray.firstIndex(where: { ($0.representedObject as? String) == cmdAction.rawValue }) {
+            if let idx = row.cmdActionPopup.itemArray
+                .firstIndex(where: { ($0.representedObject as? String) == cmdAction.rawValue }) {
                 row.cmdActionPopup.selectItem(at: idx)
             }
         }
@@ -623,7 +742,7 @@ final class GestureSettingsPane: MCSCSettingsPane {
         viewModel.setGestureAction(action, for: kind, isCmd: true)
     }
 
-    @objc private func restoreDefaults(_ sender: NSButton) {
+    @objc private func restoreDefaults(_: NSButton) {
         viewModel.isGesturesEnabled = true
         viewModel.isPinchInEnabled = true
         viewModel.isPinchOutEnabled = true

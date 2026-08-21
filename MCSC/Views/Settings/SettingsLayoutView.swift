@@ -8,7 +8,6 @@ import Cocoa
 /// leftover space becomes equal margins so the block stays centered. This
 /// view owns the section spacing. Ported from usagimaru/MacAppSettingsUI.
 final class SettingsLayoutView: NSView {
-
     /// Guide aggregating the label column width (no position, shared width only).
     private let labelColumnWidthGuide = NSLayoutGuide()
     /// Guide aggregating the item column width.
@@ -37,7 +36,9 @@ final class SettingsLayoutView: NSView {
     }
 
     @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
+    required init?(coder _: NSCoder) {
+        fatalError()
+    }
 
     /// Lay this view into a pane view with system standard spacing on all edges.
     func install(in parentView: NSView) {
@@ -53,7 +54,7 @@ final class SettingsLayoutView: NSView {
     }
 
     private func setUpGuides() {
-        [labelColumnWidthGuide, itemColumnWidthGuide].forEach { guide in
+        for guide in [labelColumnWidthGuide, itemColumnWidthGuide] {
             addLayoutGuide(guide)
             // Only the width matters, but an undefined position counts as
             // ambiguous, so pin the guide to the origin.
@@ -234,7 +235,7 @@ final class SettingsLayoutView: NSView {
         NSLayoutConstraint.deactivate(flexibleSectionLinkConstraints)
         flexibleSectionLinkConstraints.removeAll()
 
-        let flexibleSections = sections.filter { $0.isVerticallyFlexible }
+        let flexibleSections = sections.filter(\.isVerticallyFlexible)
 
         // No section takes in the surplus, so the pane keeps stacking upward.
         guard let firstSection = flexibleSections.first else {
@@ -265,7 +266,7 @@ final class SettingsLayoutView: NSView {
     /// Take in the widths the sections declared. Only the narrowest one
     /// satisfies every declaration at once, so that becomes the column width.
     func invalidateItemColumnDeclaredWidth() {
-        guard let narrowestDeclaredWidth = columnSections.compactMap({ $0.itemColumnMaximumWidth }).min() else {
+        guard let narrowestDeclaredWidth = columnSections.compactMap(\.itemColumnMaximumWidth).min() else {
             itemColumnDeclaredWidthConstraint?.isActive = false
             return
         }

@@ -1,5 +1,5 @@
-import Cocoa
 import ApplicationServices
+import Cocoa
 
 @_silgen_name("_AXUIElementGetWindow")
 @discardableResult
@@ -9,7 +9,7 @@ func _AXUIElementGetWindow(_ element: AXUIElement, _ identifier: UnsafeMutablePo
 protocol MissionControlHoverServiceProtocol: AnyObject {
     var isEnabled: Bool { get set }
     var isTracking: Bool { get }
-    
+
     func start()
     func stop()
 }
@@ -19,7 +19,7 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
     private let accessibilityService: AccessibilityServiceProtocol
     private let isMissionControlActiveProvider: () -> Bool
     private let overlay: PreviewCloseButtonOverlay
-    
+
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
     private var axObserver: AXObserver?
@@ -27,12 +27,15 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
     private var windowFetchTimer: Timer?
     /// Internal so tests can verify lifecycle without exposing to production
     /// callers outside the module.
-    internal var spaceChangeObserver: NSObjectProtocol?
-    
+    var spaceChangeObserver: NSObjectProtocol?
+
     private var windows: [[String: Any]] = []
     /// Test-only window count for verifying dedup behavior without depending
     /// on the real CGWindowList scan. Returns the number of tracked windows.
-    internal var _testWindowCount: Int { windows.count }
+    var _testWindowCount: Int {
+        windows.count
+    }
+
     private(set) var isTracking = false
     private var isMissionControlActive = false
     private var isCmdHeld = false
@@ -76,13 +79,19 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
     /// The action the hover button currently represents, derived from held
     /// modifiers: Cmd → force quit, Option → minimize, Control → fullscreen,
     /// neither → close. Cmd takes precedence when several are held.
-    internal var currentOverlayMode: PreviewCloseButtonOverlay.Mode {
-        if isCmdHeld { return .quit }
-        if isControlHeld { return .fullscreen }
-        if isOptionHeld { return .minimize }
+    var currentOverlayMode: PreviewCloseButtonOverlay.Mode {
+        if isCmdHeld {
+            return .quit
+        }
+        if isControlHeld {
+            return .fullscreen
+        }
+        if isOptionHeld {
+            return .minimize
+        }
         return .close
     }
-    
+
     var isEnabled = true {
         didSet {
             if !isEnabled {
@@ -102,16 +111,16 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
         self.overlay = overlay ?? PreviewCloseButtonOverlay()
         self.isKeyboardNavigationEnabledProvider = isKeyboardNavigationEnabledProvider
     }
-    
+
     func start() {
         guard !isTracking else { return }
         isTracking = true
-        
+
         setupDockObserver()
         startInputTap()
         setupSpaceChangeObserver()
     }
-    
+
     func stop() {
         guard isTracking else { return }
         stopDockObserver()
@@ -122,49 +131,50 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
         hideOverlay()
         isTracking = false
     }
-    
+
     // MARK: - Dock AXObserver
-    
+
     private static let dockNotifications = [
         "AXExposeShowAllWindows",
         "AXExposeShowFrontWindows",
         "AXExposeShowDesktop",
-        "AXExposeExit"
+        "AXExposeExit",
     ]
 
     private func setupDockObserver() {
-        guard let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first else {
+        guard let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first
+        else {
             return
         }
-        
+
         let pid = dockApp.processIdentifier
         let dockElement = AXUIElementCreateApplication(pid)
         self.dockAXElement = dockElement
-        
+
         var observer: AXObserver?
-        let callback: AXObserverCallback = { (observer, element, notification, refcon) in
-            guard let refcon = refcon else { return }
+        let callback: AXObserverCallback = { _, _, notification, refcon in
+            guard let refcon else { return }
             let service = Unmanaged<MissionControlHoverService>.fromOpaque(refcon).takeUnretainedValue()
             let notifName = notification as String
-            
+
             DispatchQueue.main.async {
                 service.handleDockNotification(notifName)
             }
         }
-        
+
         guard AXObserverCreate(pid, callback, &observer) == .success, let obs = observer else {
             return
         }
-        
+
         let selfPtr = Unmanaged.passUnretained(self).toOpaque()
         for notif in Self.dockNotifications {
             AXObserverAddNotification(obs, dockElement, notif as CFString, selfPtr)
         }
-        
+
         CFRunLoopAddSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(obs), .commonModes)
         self.axObserver = obs
     }
-    
+
     private func stopDockObserver() {
         if let obs = axObserver, let dockElement = dockAXElement {
             for notif in Self.dockNotifications {
@@ -175,7 +185,7 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
             self.dockAXElement = nil
         }
     }
-    
+
     private func handleDockNotification(_ notification: String) {
         if notification == "AXExposeExit" {
             isMissionControlActive = false
@@ -187,15 +197,15 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
             fetchWindows()
             startWindowFetchTimer()
             startKeyboardSession()
-            
+
             if let mouseLocation = CGEvent(source: nil)?.location {
                 updateOverlay(at: mouseLocation)
             }
         }
     }
-    
+
     // MARK: - Window Polling
-    
+
     private func startWindowFetchTimer() {
         stopWindowFetchTimer()
         windowFetchTimer = Timer.scheduledCommon(
@@ -206,7 +216,7 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
             Task { @MainActor in self?.fetchWindows() }
         }
     }
-    
+
     private func stopWindowFetchTimer() {
         windowFetchTimer?.invalidate()
         windowFetchTimer = nil
@@ -225,7 +235,7 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
             queue: .main
         ) { [weak self] _ in
             MainActor.assumeIsolated {
-                guard let self = self else { return }
+                guard let self else { return }
                 self.fetchWindows()
                 if let mouseLocation = CGEvent(source: nil)?.location {
                     self.updateOverlay(at: mouseLocation)
@@ -240,9 +250,12 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
             spaceChangeObserver = nil
         }
     }
-    
+
     private func fetchWindows() {
-        guard let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else {
+        guard let list = CGWindowListCopyWindowInfo(
+            [.optionOnScreenOnly, .excludeDesktopElements],
+            kCGNullWindowID
+        ) as? [[String: Any]] else {
             return
         }
 
@@ -265,24 +278,24 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
             windows = filtered
         }
     }
-    
+
     // MARK: - Input Event Tap
-    
+
     private func startInputTap() {
         guard eventTap == nil else { return }
-        
+
         let mask = (1 << CGEventType.mouseMoved.rawValue)
             | (1 << CGEventType.leftMouseDragged.rawValue)
             | (1 << CGEventType.leftMouseDown.rawValue)
             | (1 << CGEventType.flagsChanged.rawValue)
-        
+
         guard let tap = CGEvent.tapCreate(
             tap: .cghidEventTap,
             place: .headInsertEventTap,
             options: .defaultTap,
             eventsOfInterest: CGEventMask(mask),
-            callback: { (proxy, type, event, refcon) -> Unmanaged<CGEvent>? in
-                guard let refcon = refcon else { return Unmanaged.passUnretained(event) }
+            callback: { _, type, event, refcon -> Unmanaged<CGEvent>? in
+                guard let refcon else { return Unmanaged.passUnretained(event) }
                 let service = Unmanaged<MissionControlHoverService>.fromOpaque(refcon).takeUnretainedValue()
 
                 // macOS disables event taps on timeout or user input; re-enable
@@ -299,19 +312,27 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
                     let optionPressed = event.flags.contains(.maskAlternate)
                     let controlPressed = event.flags.contains(.maskControl)
                     if Thread.isMainThread {
-                        service.handleFlagsChanged(cmdPressed: cmdPressed, optionPressed: optionPressed, controlPressed: controlPressed)
+                        service.handleFlagsChanged(
+                            cmdPressed: cmdPressed,
+                            optionPressed: optionPressed,
+                            controlPressed: controlPressed
+                        )
                     } else {
                         DispatchQueue.main.async {
-                            service.handleFlagsChanged(cmdPressed: cmdPressed, optionPressed: optionPressed, controlPressed: controlPressed)
+                            service.handleFlagsChanged(
+                                cmdPressed: cmdPressed,
+                                optionPressed: optionPressed,
+                                controlPressed: controlPressed
+                            )
                         }
                     }
                     return Unmanaged.passUnretained(event)
                 }
-                
+
                 if type == .leftMouseDown {
                     let location = event.location
                     var intercepted = false
-                    
+
                     // Safely check if click hit the overlay button without blocking main thread
                     if Thread.isMainThread {
                         intercepted = service.handleMouseDown(at: location)
@@ -320,13 +341,13 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
                             intercepted = service.handleMouseDown(at: location)
                         }
                     }
-                    
+
                     if intercepted {
                         return nil // Swallow the click so Mission Control does not dismiss prematurely
                     }
                     return Unmanaged.passUnretained(event)
                 }
-                
+
                 let location = event.location
                 if Thread.isMainThread {
                     service.handleMouseMoved(at: location)
@@ -335,21 +356,21 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
                         service.handleMouseMoved(at: location)
                     }
                 }
-                
+
                 return Unmanaged.passUnretained(event)
             },
             userInfo: Unmanaged.passUnretained(self).toOpaque()
         ) else {
             return
         }
-        
+
         self.eventTap = tap
         let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
         self.runLoopSource = source
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
     }
-    
+
     private func stopInputTap() {
         if let source = runLoopSource {
             CFRunLoopSourceInvalidate(source)
@@ -361,46 +382,46 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
             eventTap = nil
         }
     }
-    
+
     func handleFlagsChanged(cmdPressed: Bool, optionPressed: Bool, controlPressed: Bool = false) {
-        guard isTracking && isEnabled else { return }
+        guard isTracking, isEnabled else { return }
         isCmdHeld = cmdPressed
         isOptionHeld = optionPressed
         isControlHeld = controlPressed
         overlay.setMode(currentOverlayMode)
     }
-    
+
     func handleMouseDown(at location: CGPoint) -> Bool {
         guard isTracking && isEnabled, isMissionControlActive || isMissionControlActiveProvider() else {
             return false
         }
-        
+
         guard let rect = overlayRect, rect.contains(location), let window = hoveredWindow else {
             return false
         }
-        
+
         executeAction(on: window)
         return true
     }
-    
+
     func handleMouseMoved(at mouseLocation: CGPoint) {
         guard isTracking && isEnabled else {
             hideOverlay()
             return
         }
-        
+
         guard isMissionControlActive || isMissionControlActiveProvider() else {
             hideOverlay()
             return
         }
-        
+
         if windows.isEmpty {
             fetchWindows()
         }
-        
+
         updateOverlay(at: mouseLocation)
     }
-    
+
     private func updateOverlay(at mouseLocation: CGPoint) {
         // If mouse is hovering over the action button itself, keep it visible
         if let rect = overlayRect, rect.contains(mouseLocation), hoveredWindow != nil {
@@ -410,13 +431,13 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
             }
             return
         }
-        
+
         // Mouse left the button: release hover state.
         if isOverlayHovered {
             isOverlayHovered = false
             overlay.setHovered(false)
         }
-        
+
         // Find window containing cursor
         for windowInfo in windows {
             guard let boundsDict = windowInfo[kCGWindowBounds as String] as? [String: CGFloat],
@@ -426,21 +447,26 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
                   let height = boundsDict["Height"] else {
                 continue
             }
-            
+
             let windowFrame = CGRect(x: x, y: y, width: width, height: height)
-            
+
             if windowFrame.contains(mouseLocation) {
                 hoveredWindow = windowInfo
                 let halfDim = PreviewCloseButtonOverlay.buttonDimension / 2.0
-                overlayRect = CGRect(x: x - halfDim, y: y - halfDim, width: PreviewCloseButtonOverlay.buttonDimension, height: PreviewCloseButtonOverlay.buttonDimension)
+                overlayRect = CGRect(
+                    x: x - halfDim,
+                    y: y - halfDim,
+                    width: PreviewCloseButtonOverlay.buttonDimension,
+                    height: PreviewCloseButtonOverlay.buttonDimension
+                )
                 overlay.show(at: windowFrame, mode: currentOverlayMode)
                 return
             }
         }
-        
+
         hideOverlay()
     }
-    
+
     private func hideOverlay() {
         if hoveredWindow != nil || overlay.isVisible {
             hoveredWindow = nil
@@ -452,12 +478,12 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
             overlay.hide()
         }
     }
-    
+
     // MARK: - Actions
-    
+
     private func executeAction(on windowInfo: [String: Any]) {
         HapticService.perform(.pinchIn)
-        
+
         switch currentOverlayMode {
         case .close:
             MissionControlWindowActions.performClose(on: windowInfo, accessibilityService: accessibilityService)
@@ -468,11 +494,11 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
         case .fullscreen:
             MissionControlWindowActions.performFullscreen(on: windowInfo)
         }
-        
+
         if let windowID = windowInfo[kCGWindowNumber as String] as? CGWindowID {
             windows.removeAll { ($0[kCGWindowNumber as String] as? CGWindowID) == windowID }
         }
-        
+
         hideOverlay()
     }
 
@@ -554,7 +580,9 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
         if searchSession.query.isEmpty {
             searchOverlay?.hide()
         } else {
-            if searchOverlay == nil { searchOverlay = SearchBarOverlay() }
+            if searchOverlay == nil {
+                searchOverlay = SearchBarOverlay()
+            }
             searchOverlay?.show(query: searchSession.query)
         }
 

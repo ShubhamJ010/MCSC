@@ -60,8 +60,8 @@ final class DockInteractionSuppressor: DockInteractionSuppressorProtocol {
             place: .headInsertEventTap,
             options: .defaultTap,
             eventsOfInterest: CGEventMask(mask),
-            callback: { (proxy, type, event, refcon) -> Unmanaged<CGEvent>? in
-                guard let refcon = refcon else { return Unmanaged.passUnretained(event) }
+            callback: { _, type, event, refcon -> Unmanaged<CGEvent>? in
+                guard let refcon else { return Unmanaged.passUnretained(event) }
                 let suppressor = Unmanaged<DockInteractionSuppressor>.fromOpaque(refcon).takeUnretainedValue()
 
                 if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
@@ -81,7 +81,8 @@ final class DockInteractionSuppressor: DockInteractionSuppressorProtocol {
                 let location = event.location
                 let rawType = type.rawValue
 
-                // 1. Always swallow trackpad gesture events (smart zoom/smartMagnify -> App Exposé, magnify, swipe, etc.)
+                // 1. Always swallow trackpad gesture events (smart zoom/smartMagnify -> App Exposé, magnify, swipe,
+                // etc.)
                 // when cursor is over the Dock.
                 if rawType == 29 || rawType == 30 || rawType == 31 || rawType == 32 || rawType == 33 || rawType == 34 {
                     if suppressor.isDockHoveredProvider?(location) ?? false {

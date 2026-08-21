@@ -34,7 +34,7 @@ final class PinchInRecognizerTests: XCTestCase {
         }
 
         switch result {
-        case .pinchIn(let center):
+        case let .pinchIn(center):
             XCTAssertEqual(center.0, 0.5, accuracy: 0.01)
             XCTAssertEqual(center.1, 0.5, accuracy: 0.01)
         default:
@@ -60,7 +60,7 @@ final class PinchInRecognizerTests: XCTestCase {
         }
 
         switch res {
-        case .cmdPinchIn(let center):
+        case let .cmdPinchIn(center):
             XCTAssertEqual(center.0, 0.5, accuracy: 0.01)
             XCTAssertEqual(center.1, 0.5, accuracy: 0.01)
         default:

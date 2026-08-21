@@ -7,7 +7,6 @@ import Foundation
 ///        → tap1Up (all 2 lifted, waiting for second tap)
 ///        → cooldown (second tap detected → action fired) → idle
 final class TwoFingerDoubleTapRecognizer: GestureRecognizer {
-
     struct Config {
         /// Maximum time between first lift and second touch (seconds).
         var doubleTapWindow: Double = 0.35
@@ -47,14 +46,13 @@ final class TwoFingerDoubleTapRecognizer: GestureRecognizer {
         guard isEnabled?() ?? true else { return nil }
 
         switch state {
-
         case .idle:
             if touches.count >= 2 {
                 state = .tap1Down(startTime: timestamp, startTouches: touches)
             }
             return nil
 
-        case .tap1Down(let startTime, let startTouches):
+        case let .tap1Down(startTime, startTouches):
             // Timeout: fingers held too long — not a tap
             if timestamp - startTime > config.maxTapDuration {
                 state = .idle
@@ -72,12 +70,12 @@ final class TwoFingerDoubleTapRecognizer: GestureRecognizer {
                 }
             }
             // All 2 fingers lifted → first tap complete
-            if touches.count == 0 {
+            if touches.isEmpty {
                 state = .tap1Up(liftTime: timestamp)
             }
             return nil
 
-        case .tap1Up(let liftTime):
+        case let .tap1Up(liftTime):
             // Timeout: second tap didn't come in time
             if timestamp - liftTime > config.doubleTapWindow {
                 state = .idle
@@ -91,7 +89,7 @@ final class TwoFingerDoubleTapRecognizer: GestureRecognizer {
             }
             return nil
 
-        case .cooldown(let until):
+        case let .cooldown(until):
             if timestamp > until {
                 state = .idle
             }

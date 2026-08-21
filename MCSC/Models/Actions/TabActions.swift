@@ -59,7 +59,7 @@ struct NewWindowAction: ShortcutAction {
     func perform(at point: CGPoint, service: AccessibilityServiceProtocol) {
         // Wake Exposé so the keystroke reaches the app while Mission Control is
         // still intercepting input — same pattern as ToggleFullscreenAction.
-        _ = CoreDockSendNotification("com.apple.expose.awake" as CFString, 0)
+        _ = coreDockSendNotification("com.apple.expose.awake" as CFString, 0)
         guard let element = service.getElement(at: point) else { return }
 
         var pid: pid_t = 0
@@ -73,7 +73,7 @@ struct NewTabAction: ShortcutAction {
     func perform(at point: CGPoint, service: AccessibilityServiceProtocol) {
         // Wake Exposé so the keystroke reaches the app while Mission Control is
         // still intercepting input — same pattern as ToggleFullscreenAction.
-        _ = CoreDockSendNotification("com.apple.expose.awake" as CFString, 0)
+        _ = coreDockSendNotification("com.apple.expose.awake" as CFString, 0)
         guard let element = service.getElement(at: point) else { return }
 
         var pid: pid_t = 0

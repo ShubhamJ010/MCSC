@@ -1,5 +1,5 @@
-import XCTest
 import Foundation
+import XCTest
 
 final class RouterTests: XCTestCase {
     private var mockService: MockAccessibilityService!
@@ -30,7 +30,7 @@ final class RouterTests: XCTestCase {
         )
 
         switch result {
-        case .consumeAndExecute(let feedbackMode, _):
+        case let .consumeAndExecute(feedbackMode, _):
             XCTAssertEqual(feedbackMode, .close)
         case .ignore:
             XCTFail("Expected shortcut to be consumed and executed")
@@ -106,7 +106,7 @@ final class RouterTests: XCTestCase {
         )
 
         switch result {
-        case .consumeAndExecute(let feedbackMode, _):
+        case let .consumeAndExecute(feedbackMode, _):
             XCTAssertEqual(feedbackMode, .fullscreen)
         case .ignore:
             XCTFail("Expected Cmd+F to route to fullscreen")
@@ -129,7 +129,7 @@ final class RouterTests: XCTestCase {
         )
 
         switch result {
-        case .consumeAndExecute(let feedbackMode, _):
+        case let .consumeAndExecute(feedbackMode, _):
             XCTAssertEqual(feedbackMode, .newTab)
         case .ignore:
             XCTFail("Expected Cmd+T to route to newTab")
@@ -152,7 +152,7 @@ final class RouterTests: XCTestCase {
         )
 
         switch result {
-        case .consumeAndExecute(let feedbackMode, _):
+        case let .consumeAndExecute(feedbackMode, _):
             XCTAssertEqual(feedbackMode, .newWindow)
         case .ignore:
             XCTFail("Expected Cmd+N to route to newWindow")
@@ -175,7 +175,7 @@ final class RouterTests: XCTestCase {
         )
 
         switch result {
-        case .consumeAndExecute(let feedbackMode, _):
+        case let .consumeAndExecute(feedbackMode, _):
             XCTAssertEqual(feedbackMode, .closeAllTabs)
         case .ignore:
             XCTFail("Expected Cmd+Shift+W to route to closeAllTabs")
@@ -198,24 +198,24 @@ final class RouterTests: XCTestCase {
         )
 
         switch result {
-        case .consumeAndExecute(let feedbackMode, _):
+        case let .consumeAndExecute(feedbackMode, _):
             XCTAssertEqual(feedbackMode, .reopenTab)
         case .ignore:
             XCTFail("Expected Cmd+Shift+T to route to reopenTab")
         }
     }
 
-    func testGestureRouterPinchInRoutesToClose() {
-        let result = gestureRouter.routeGesture(
+    func testGestureRouterPinchInRoutesToClose() throws {
+        let result = try gestureRouter.routeGesture(
             .pinchIn(atNormalized: (0.5, 0.5)),
             at: CGPoint(x: 200, y: 200),
-            target: .window(mockService.mockElement!),
+            target: .window(XCTUnwrap(mockService.mockElement)),
             service: mockService,
             activateApp: { _ in }
         )
 
         switch result {
-        case .execute(let feedbackMode, let haptic, _):
+        case let .execute(feedbackMode, haptic, _):
             XCTAssertEqual(feedbackMode, .close)
             XCTAssertEqual(haptic, .pinchIn)
         case .none:
@@ -223,17 +223,17 @@ final class RouterTests: XCTestCase {
         }
     }
 
-    func testGestureRouterCmdPinchInRoutesToQuit() {
-        let result = gestureRouter.routeGesture(
+    func testGestureRouterCmdPinchInRoutesToQuit() throws {
+        let result = try gestureRouter.routeGesture(
             .cmdPinchIn(atNormalized: (0.5, 0.5)),
             at: CGPoint(x: 200, y: 200),
-            target: .window(mockService.mockElement!),
+            target: .window(XCTUnwrap(mockService.mockElement)),
             service: mockService,
             activateApp: { _ in }
         )
 
         switch result {
-        case .execute(let feedbackMode, let haptic, _):
+        case let .execute(feedbackMode, haptic, _):
             XCTAssertEqual(feedbackMode, .quit)
             XCTAssertEqual(haptic, .pinchIn)
         case .none:
@@ -241,17 +241,17 @@ final class RouterTests: XCTestCase {
         }
     }
 
-    func testGestureRouterDoubleTapRoutesToReasonableSize() {
-        let result = gestureRouter.routeGesture(
+    func testGestureRouterDoubleTapRoutesToReasonableSize() throws {
+        let result = try gestureRouter.routeGesture(
             .twoFingerDoubleTap,
             at: CGPoint(x: 200, y: 200),
-            target: .window(mockService.mockElement!),
+            target: .window(XCTUnwrap(mockService.mockElement)),
             service: mockService,
             activateApp: { _ in }
         )
 
         switch result {
-        case .execute(let feedbackMode, let haptic, _):
+        case let .execute(feedbackMode, haptic, _):
             XCTAssertEqual(feedbackMode, .reasonable)
             XCTAssertEqual(haptic, .twoFingerDoubleTap)
         case .none:
@@ -259,9 +259,9 @@ final class RouterTests: XCTestCase {
         }
     }
 
-    func testMakeSmallerRoutesOnWindowTargetWithMakeSmallerFeedback() {
-        let result = routePinchInBound(to: .makeSmaller, target: .window(mockService.mockElement!))
-        guard case .execute(let mode, _, _) = result else {
+    func testMakeSmallerRoutesOnWindowTargetWithMakeSmallerFeedback() throws {
+        let result = try routePinchInBound(to: .makeSmaller, target: .window(XCTUnwrap(mockService.mockElement)))
+        guard case let .execute(mode, _, _) = result else {
             XCTFail("Expected makeSmaller on window to execute")
             return
         }
@@ -269,16 +269,17 @@ final class RouterTests: XCTestCase {
     }
 
     func testMakeSmallerRoutesOnDockTargetWithMakeSmallerFeedback() {
-        let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder").first ?? NSRunningApplication.current
+        let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder")
+            .first ?? NSRunningApplication.current
         let result = routePinchInBound(to: .makeSmaller, target: .dock(dockApp))
-        guard case .execute(let mode, _, _) = result else {
+        guard case let .execute(mode, _, _) = result else {
             XCTFail("Expected makeSmaller on dock to execute")
             return
         }
         XCTAssertEqual(mode, .makeSmaller)
     }
 
-    func testShortcutRouterCmdWRoutesToEjectWhenFinderMountedVolume() {
+    func testShortcutRouterCmdWRoutesToEjectWhenFinderMountedVolume() throws {
         let mockVolumeService = MockMountedVolumeService()
         mockVolumeService.mockEjectablePath = "/Volumes/AppInstaller"
 
@@ -291,20 +292,20 @@ final class RouterTests: XCTestCase {
         var config = ShortcutConfiguration()
         config.isAutoEjectEnabled = true
 
-        let result = shortcutRouter.routeShortcut(
+        let result = try shortcutRouter.routeShortcut(
             keyCode: ShortcutActionRouter.kKeyW,
             flags: .maskCommand,
             location: CGPoint(x: 100, y: 100),
             config: config,
             isMissionControlActive: true,
-            target: .window(mockService.mockElement!),
+            target: .window(XCTUnwrap(mockService.mockElement)),
             service: mockService,
             volumeService: mockVolumeService,
             activateApp: { _ in }
         )
 
         switch result {
-        case .consumeAndExecute(let feedbackMode, let action):
+        case let .consumeAndExecute(feedbackMode, action):
             XCTAssertEqual(feedbackMode, .eject)
             action()
             XCTAssertEqual(mockVolumeService.ejectVolumeCalledWith, "/Volumes/AppInstaller")
@@ -313,7 +314,7 @@ final class RouterTests: XCTestCase {
         }
     }
 
-    func testShortcutRouterCmdQRoutesToEjectWhenFinderMountedVolume() {
+    func testShortcutRouterCmdQRoutesToEjectWhenFinderMountedVolume() throws {
         let mockVolumeService = MockMountedVolumeService()
         mockVolumeService.mockEjectablePath = "/Volumes/AppInstaller"
 
@@ -326,20 +327,20 @@ final class RouterTests: XCTestCase {
         var config = ShortcutConfiguration()
         config.isAutoEjectEnabled = true
 
-        let result = shortcutRouter.routeShortcut(
+        let result = try shortcutRouter.routeShortcut(
             keyCode: ShortcutActionRouter.kKeyQ,
             flags: .maskCommand,
             location: CGPoint(x: 100, y: 100),
             config: config,
             isMissionControlActive: true,
-            target: .window(mockService.mockElement!),
+            target: .window(XCTUnwrap(mockService.mockElement)),
             service: mockService,
             volumeService: mockVolumeService,
             activateApp: { _ in }
         )
 
         switch result {
-        case .consumeAndExecute(let feedbackMode, let action):
+        case let .consumeAndExecute(feedbackMode, action):
             XCTAssertEqual(feedbackMode, .eject)
             action()
             XCTAssertEqual(mockVolumeService.ejectVolumeCalledWith, "/Volumes/AppInstaller")
@@ -348,7 +349,7 @@ final class RouterTests: XCTestCase {
         }
     }
 
-    func testShortcutRouterDoesNotEjectWhenAutoEjectDisabled() {
+    func testShortcutRouterDoesNotEjectWhenAutoEjectDisabled() throws {
         let mockVolumeService = MockMountedVolumeService()
         mockVolumeService.mockEjectablePath = "/Volumes/AppInstaller"
 
@@ -359,27 +360,27 @@ final class RouterTests: XCTestCase {
         var config = ShortcutConfiguration()
         config.isAutoEjectEnabled = false
 
-        let result = shortcutRouter.routeShortcut(
+        let result = try shortcutRouter.routeShortcut(
             keyCode: ShortcutActionRouter.kKeyW,
             flags: .maskCommand,
             location: CGPoint(x: 100, y: 100),
             config: config,
             isMissionControlActive: true,
-            target: .window(mockService.mockElement!),
+            target: .window(XCTUnwrap(mockService.mockElement)),
             service: mockService,
             volumeService: mockVolumeService,
             activateApp: { _ in }
         )
 
         switch result {
-        case .consumeAndExecute(let feedbackMode, _):
+        case let .consumeAndExecute(feedbackMode, _):
             XCTAssertEqual(feedbackMode, .close)
         case .ignore:
             XCTFail("Expected standard close action when auto-eject disabled")
         }
     }
 
-    func testGestureRouterPinchInRoutesToEjectWhenFinderMountedVolume() {
+    func testGestureRouterPinchInRoutesToEjectWhenFinderMountedVolume() throws {
         let mockVolumeService = MockMountedVolumeService()
         mockVolumeService.mockEjectablePath = "/Volumes/AppInstaller"
 
@@ -387,17 +388,17 @@ final class RouterTests: XCTestCase {
         mockService.mockApp = finderApp
         mockService.mockDocumentPath = "/Volumes/AppInstaller"
 
-        let result = gestureRouter.routeGesture(
+        let result = try gestureRouter.routeGesture(
             .pinchIn(atNormalized: (0.5, 0.5)),
             at: CGPoint(x: 200, y: 200),
-            target: .window(mockService.mockElement!),
+            target: .window(XCTUnwrap(mockService.mockElement)),
             service: mockService,
             volumeService: mockVolumeService,
             activateApp: { _ in }
         )
 
         switch result {
-        case .execute(let feedbackMode, let haptic, let action):
+        case let .execute(feedbackMode, haptic, action):
             XCTAssertEqual(feedbackMode, .eject)
             XCTAssertEqual(haptic, .pinchIn)
             action()
@@ -407,7 +408,7 @@ final class RouterTests: XCTestCase {
         }
     }
 
-    func testGestureRouterDoesNotEjectWhenAutoEjectDisabled() {
+    func testGestureRouterDoesNotEjectWhenAutoEjectDisabled() throws {
         let mockVolumeService = MockMountedVolumeService()
         mockVolumeService.mockEjectablePath = "/Volumes/AppInstaller"
 
@@ -415,10 +416,10 @@ final class RouterTests: XCTestCase {
         mockService.mockApp = finderApp
         mockService.mockDocumentPath = "/Volumes/AppInstaller"
 
-        let result = gestureRouter.routeGesture(
+        let result = try gestureRouter.routeGesture(
             .pinchIn(atNormalized: (0.5, 0.5)),
             at: CGPoint(x: 200, y: 200),
-            target: .window(mockService.mockElement!),
+            target: .window(XCTUnwrap(mockService.mockElement)),
             service: mockService,
             volumeService: mockVolumeService,
             isAutoEjectEnabled: false,
@@ -426,7 +427,7 @@ final class RouterTests: XCTestCase {
         )
 
         switch result {
-        case .execute(let feedbackMode, let haptic, _):
+        case let .execute(feedbackMode, haptic, _):
             XCTAssertEqual(feedbackMode, .close)
             XCTAssertEqual(haptic, .pinchIn)
             XCTAssertNil(mockVolumeService.ejectVolumeCalledWith)
@@ -436,7 +437,8 @@ final class RouterTests: XCTestCase {
     }
 
     func testShortcutRouterExecutesDockShortcutWhenMissionControlInactiveAndDockActionsOutsideMCEnabled() {
-        let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder").first ?? NSRunningApplication.current
+        let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder")
+            .first ?? NSRunningApplication.current
         var config = ShortcutConfiguration()
         config.isDockActionsOutsideMCEnabled = true
 
@@ -452,7 +454,7 @@ final class RouterTests: XCTestCase {
         )
 
         switch result {
-        case .consumeAndExecute(let feedbackMode, _):
+        case let .consumeAndExecute(feedbackMode, _):
             XCTAssertEqual(feedbackMode, .close)
         case .ignore:
             XCTFail("Expected dock shortcut to be consumed and executed outside MC when enabled")
@@ -460,7 +462,8 @@ final class RouterTests: XCTestCase {
     }
 
     func testShortcutRouterIgnoresDockShortcutWhenMissionControlInactiveAndDockActionsOutsideMCDisabled() {
-        let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder").first ?? NSRunningApplication.current
+        let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder")
+            .first ?? NSRunningApplication.current
         var config = ShortcutConfiguration()
         config.isDockActionsOutsideMCEnabled = false
 
@@ -484,7 +487,8 @@ final class RouterTests: XCTestCase {
     }
 
     func testShortcutRouterExecutesAllDockShortcutsOutsideMCWhenEnabled() {
-        let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder").first ?? NSRunningApplication.current
+        let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder")
+            .first ?? NSRunningApplication.current
         var config = ShortcutConfiguration()
         config.isDockActionsOutsideMCEnabled = true
 
@@ -498,7 +502,7 @@ final class RouterTests: XCTestCase {
             service: mockService,
             activateApp: { _ in }
         )
-        if case .consumeAndExecute(let mode, _) = qResult {
+        if case let .consumeAndExecute(mode, _) = qResult {
             XCTAssertEqual(mode, .quit)
         } else {
             XCTFail("Expected Cmd+Q on dock to execute")
@@ -514,7 +518,7 @@ final class RouterTests: XCTestCase {
             service: mockService,
             activateApp: { _ in }
         )
-        if case .consumeAndExecute(let mode, _) = mResult {
+        if case let .consumeAndExecute(mode, _) = mResult {
             XCTAssertEqual(mode, .minimize)
         } else {
             XCTFail("Expected Cmd+M on dock to execute")
@@ -530,7 +534,7 @@ final class RouterTests: XCTestCase {
             service: mockService,
             activateApp: { _ in }
         )
-        if case .consumeAndExecute(let mode, _) = hResult {
+        if case let .consumeAndExecute(mode, _) = hResult {
             XCTAssertEqual(mode, .hide)
         } else {
             XCTFail("Expected Cmd+H on dock to execute")
@@ -538,7 +542,8 @@ final class RouterTests: XCTestCase {
     }
 
     func testGestureRouterRoutesAllGesturesToDockTargets() {
-        let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder").first ?? NSRunningApplication.current
+        let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder")
+            .first ?? NSRunningApplication.current
 
         let gesturesToExpectedModes: [(GestureResult, CursorFeedbackOverlay.Mode)] = [
             (.pinchIn(atNormalized: (0.5, 0.5)), .close),
@@ -565,7 +570,7 @@ final class RouterTests: XCTestCase {
                 service: mockService,
                 activateApp: { _ in }
             )
-            if case .execute(let mode, _, _) = result {
+            if case let .execute(mode, _, _) = result {
                 XCTAssertEqual(mode, expectedMode, "Gesture \(gesture) should route to \(expectedMode)")
             } else {
                 XCTFail("Expected gesture \(gesture) on dock to execute")
@@ -580,10 +585,12 @@ final class RouterTests: XCTestCase {
             for isCmd in [false, true] {
                 XCTAssertNotEqual(
                     GestureDefaults.action(for: kind, isCmd: isCmd), .moveNextDesktop,
-                    "\(kind) (cmd=\(isCmd)) must not be assigned by default")
+                    "\(kind) (cmd=\(isCmd)) must not be assigned by default"
+                )
                 XCTAssertNotEqual(
                     GestureDefaults.action(for: kind, isCmd: isCmd), .movePreviousDesktop,
-                    "\(kind) (cmd=\(isCmd)) must not be assigned by default")
+                    "\(kind) (cmd=\(isCmd)) must not be assigned by default"
+                )
             }
         }
     }
@@ -595,7 +602,7 @@ final class RouterTests: XCTestCase {
         let key = "mcsc.gestures.actions"
         let original = UserDefaults.standard.dictionary(forKey: key)
         defer {
-            if let original = original {
+            if let original {
                 UserDefaults.standard.set(original, forKey: key)
             } else {
                 UserDefaults.standard.removeObject(forKey: key)
@@ -613,33 +620,37 @@ final class RouterTests: XCTestCase {
         )
     }
 
-    func testMoveNextDesktopRoutesOnWindowTargetWithSpaceRightFeedback() {
-        let result = routePinchInBound(to: .moveNextDesktop, target: .window(mockService.mockElement!))
-        guard case .execute(let mode, _, _) = result else {
+    func testMoveNextDesktopRoutesOnWindowTargetWithSpaceRightFeedback() throws {
+        let result = try routePinchInBound(to: .moveNextDesktop, target: .window(XCTUnwrap(mockService.mockElement)))
+        guard case let .execute(mode, _, _) = result else {
             return XCTFail("Expected moveNextDesktop on window to execute")
         }
         XCTAssertEqual(mode, .spaceRight)
     }
 
-    func testMovePreviousDesktopRoutesOnWindowTargetWithSpaceLeftFeedback() {
-        let result = routePinchInBound(to: .movePreviousDesktop, target: .window(mockService.mockElement!))
-        guard case .execute(let mode, _, _) = result else {
+    func testMovePreviousDesktopRoutesOnWindowTargetWithSpaceLeftFeedback() throws {
+        let result = try routePinchInBound(
+            to: .movePreviousDesktop,
+            target: .window(XCTUnwrap(mockService.mockElement))
+        )
+        guard case let .execute(mode, _, _) = result else {
             return XCTFail("Expected movePreviousDesktop on window to execute")
         }
         XCTAssertEqual(mode, .spaceLeft)
     }
 
     func testDesktopMoveOverDockTargetsFocusedAppWindow() {
-        let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder").first ?? NSRunningApplication.current
+        let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder")
+            .first ?? NSRunningApplication.current
 
         let next = routePinchInBound(to: .moveNextDesktop, target: .dock(dockApp))
-        guard case .execute(let nextMode, _, _) = next else {
+        guard case let .execute(nextMode, _, _) = next else {
             return XCTFail("Expected moveNextDesktop on dock to execute")
         }
         XCTAssertEqual(nextMode, .spaceRight)
 
         let previous = routePinchInBound(to: .movePreviousDesktop, target: .dock(dockApp))
-        guard case .execute(let previousMode, _, _) = previous else {
+        guard case let .execute(previousMode, _, _) = previous else {
             return XCTFail("Expected movePreviousDesktop on dock to execute")
         }
         XCTAssertEqual(previousMode, .spaceLeft)
@@ -651,7 +662,9 @@ final class DesktopNavigationActionTests: XCTestCase {
     /// side-effect closures append here instead of posting real events.
     private final class LogBox {
         var entries: [String] = []
-        func append(_ entry: String) { entries.append(entry) }
+        func append(_ entry: String) {
+            entries.append(entry)
+        }
     }
 
     func testSequenceHoldsMouseDownAcrossSwitchAndReleasesLast() {
@@ -718,8 +731,8 @@ final class MockMountedVolumeService: MountedVolumeServiceProtocol {
     var ejectVolumeCalledWith: String?
     var ejectVolumeSuccess: Bool = true
 
-    func ejectableVolumePath(forDocumentPath path: String?, windowTitle: String?) -> String? {
-        return mockEjectablePath
+    func ejectableVolumePath(forDocumentPath _: String?, windowTitle _: String?) -> String? {
+        mockEjectablePath
     }
 
     func ejectVolume(at mountPath: String, completion: @escaping (Bool) -> Void) {

@@ -1,6 +1,6 @@
-import XCTest
-import Foundation
 import Cocoa
+import Foundation
+import XCTest
 
 final class DockInteractionSuppressorTests: XCTestCase {
     private var suppressor: DockInteractionSuppressor!
@@ -35,28 +35,28 @@ final class DockInteractionSuppressorTests: XCTestCase {
         XCTAssertFalse(suppressor.isSuppressing)
     }
 
-    func testDockHoveredProviderIntegration() {
+    func testDockHoveredProviderIntegration() throws {
         var queriedPoint: CGPoint?
         suppressor.isDockHoveredProvider = { point in
             queriedPoint = point
             return point.y > 900
         }
 
-        XCTAssertTrue(suppressor.isDockHoveredProvider!(CGPoint(x: 500, y: 950)))
+        XCTAssertTrue(try XCTUnwrap(suppressor.isDockHoveredProvider?(CGPoint(x: 500, y: 950))))
         XCTAssertEqual(queriedPoint, CGPoint(x: 500, y: 950))
 
-        XCTAssertFalse(suppressor.isDockHoveredProvider!(CGPoint(x: 500, y: 100)))
+        XCTAssertFalse(try XCTUnwrap(suppressor.isDockHoveredProvider?(CGPoint(x: 500, y: 100))))
         XCTAssertEqual(queriedPoint, CGPoint(x: 500, y: 100))
     }
 
-    func testIsEnabledProviderIntegration() {
+    func testIsEnabledProviderIntegration() throws {
         var isEnabled = true
         suppressor.isEnabledProvider = { isEnabled }
 
-        XCTAssertTrue(suppressor.isEnabledProvider!())
+        XCTAssertTrue(try XCTUnwrap(suppressor.isEnabledProvider?()))
 
         isEnabled = false
-        XCTAssertFalse(suppressor.isEnabledProvider!())
+        XCTAssertFalse(try XCTUnwrap(suppressor.isEnabledProvider?()))
     }
 
     func testMultipleStartsAndStopsAreSafe() {

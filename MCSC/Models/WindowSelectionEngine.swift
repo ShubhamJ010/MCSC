@@ -1,12 +1,12 @@
-import Foundation
 import CoreGraphics
+import Foundation
 
 /// Pure, stateless fuzzy matching over a Mission Control window list.
 ///
 /// Matches `query` against `kCGWindowOwnerName` and ranks exact prefixes
 /// ahead of substring hits. No service or view dependencies — reusable by
 /// any feature that needs "pick a window by typing."
-struct WindowSelectionEngine {
+enum WindowSelectionEngine {
     /// Inset from the top-left window origin to the highlight shoulder point.
     /// Kept in sync with hover-button geometry (`PreviewCloseButtonOverlay`
     /// uses `buttonDimension/2 = 16`; 20 pt stays clear of the button while
@@ -70,9 +70,13 @@ struct WindowSelectionEngine {
         }
 
         matches.sort { a, b in
-            if a.rank != b.rank { return a.rank < b.rank }
+            if a.rank != b.rank {
+                return a.rank < b.rank
+            }
             let nameOrder = a.ownerName.localizedStandardCompare(b.ownerName)
-            if nameOrder != .orderedSame { return nameOrder == .orderedAscending }
+            if nameOrder != .orderedSame {
+                return nameOrder == .orderedAscending
+            }
             return windowNumber(a.windowInfo) < windowNumber(b.windowInfo)
         }
         return matches
@@ -93,8 +97,12 @@ struct WindowSelectionEngine {
     }
 
     private static func numberToCGFloat(_ value: Any) -> CGFloat? {
-        if let n = value as? NSNumber { return CGFloat(n.doubleValue) }
-        if let v = value as? CGFloat { return v }
+        if let n = value as? NSNumber {
+            return CGFloat(n.doubleValue)
+        }
+        if let v = value as? CGFloat {
+            return v
+        }
         return nil
     }
 
@@ -139,17 +147,23 @@ struct WindowSelectionEngine {
             let bBounds = b.windowInfo[kCGWindowBounds as String] as? [String: Any] ?? [:]
             let aY = cgNumber(aBounds, key: "Y")
             let bY = cgNumber(bBounds, key: "Y")
-            if abs(aY - bY) > 40 { return aY < bY }
+            if abs(aY - bY) > 40 {
+                return aY < bY
+            }
             let aX = cgNumber(aBounds, key: "X")
             let bX = cgNumber(bBounds, key: "X")
-            if aX != bX { return aX < bX }
+            if aX != bX {
+                return aX < bX
+            }
             return windowNumber(a.windowInfo) < windowNumber(b.windowInfo)
         }
         return matches
     }
 
     private static func windowNumber(_ info: [String: Any]) -> Int {
-        if let n = info[kCGWindowNumber as String] as? NSNumber { return n.intValue }
+        if let n = info[kCGWindowNumber as String] as? NSNumber {
+            return n.intValue
+        }
         return 0
     }
 }

@@ -19,17 +19,15 @@ final class ShortcutViewModel {
 
     private lazy var multitouchService = MultitouchService()
     private lazy var gestureEngine = GestureEngine()
-    private lazy var hoverService: MissionControlHoverServiceProtocol = {
-        MissionControlHoverService(
-            accessibilityService: accessibilityService,
-            isMissionControlActiveProvider: { [weak self] in
-                self?.missionControlService.isMissionControlActive ?? false
-            },
-            isKeyboardNavigationEnabledProvider: { [weak self] in
-                self?.config.isKeyboardNavigationEnabled ?? true
-            }
-        )
-    }()
+    private lazy var hoverService: MissionControlHoverServiceProtocol = MissionControlHoverService(
+        accessibilityService: accessibilityService,
+        isMissionControlActiveProvider: { [weak self] in
+            self?.missionControlService.isMissionControlActive ?? false
+        },
+        isKeyboardNavigationEnabledProvider: { [weak self] in
+            self?.config.isKeyboardNavigationEnabled ?? true
+        }
+    )
 
     private lazy var cursorFeedback = CursorFeedbackOverlay()
     private lazy var volumeService: MountedVolumeServiceProtocol = MountedVolumeService()
@@ -40,11 +38,11 @@ final class ShortcutViewModel {
     private lazy var dockSuppressor: DockInteractionSuppressorProtocol = {
         let suppressor = DockInteractionSuppressor()
         suppressor.isDockHoveredProvider = { [weak self] point in
-            guard let self = self else { return false }
+            guard let self else { return false }
             return self.accessibilityService.isDockRegion(at: point)
         }
         suppressor.isEnabledProvider = { [weak self] in
-            guard let self = self else { return false }
+            guard let self else { return false }
             return !self.missionControlService.isMissionControlActive && self.config.isDockActionsOutsideMCEnabled
         }
         return suppressor
@@ -54,7 +52,7 @@ final class ShortcutViewModel {
     /// so they can dismiss it before dragging a window across Spaces. Provider
     /// uses `[weak self]` so the registry never keeps the VM alive.
     private lazy var actionRegistry = ActionRegistry(isMissionControlActiveProvider: { [weak self] in
-        guard let self = self else { return false }
+        guard let self else { return false }
         return self.missionControlService.isMissionControlActive
     })
     private lazy var shortcutRouter = ShortcutActionRouter(actions: actionRegistry)
@@ -62,43 +60,147 @@ final class ShortcutViewModel {
 
     var config = ShortcutConfiguration()
 
-    // Forwarding properties for configuration (keeps AppDelegate API unchanged)
-    var isCmdWEnabled: Bool { get { config.isCmdWEnabled } set { config.isCmdWEnabled = newValue } }
-    var isCmdQEnabled: Bool { get { config.isCmdQEnabled } set { config.isCmdQEnabled = newValue } }
-    var isCmdMEnabled: Bool { get { config.isCmdMEnabled } set { config.isCmdMEnabled = newValue } }
-    var isCmdHEnabled: Bool { get { config.isCmdHEnabled } set { config.isCmdHEnabled = newValue } }
-    var isCmdFEnabled: Bool { get { config.isCmdFEnabled } set { config.isCmdFEnabled = newValue } }
-    var isCmdSpaceEnabled: Bool { get { config.isCmdSpaceEnabled } set { config.isCmdSpaceEnabled = newValue } }
-    var isCmdTEnabled: Bool { get { config.isCmdTEnabled } set { config.isCmdTEnabled = newValue } }
-    var isCmdNEnabled: Bool { get { config.isCmdNEnabled } set { config.isCmdNEnabled = newValue } }
-    var isCmdShiftWEnabled: Bool { get { config.isCmdShiftWEnabled } set { config.isCmdShiftWEnabled = newValue } }
-    var isCmdShiftTEnabled: Bool { get { config.isCmdShiftTEnabled } set { config.isCmdShiftTEnabled = newValue } }
-    var isCloseWindowEnabled: Bool { get { config.isCloseWindowEnabled } set { config.isCloseWindowEnabled = newValue } }
-    var isFillScreenEnabled: Bool { get { config.isFillScreenEnabled } set { config.isFillScreenEnabled = newValue } }
-    var isAlmostMaximizeEnabled: Bool { get { config.isAlmostMaximizeEnabled } set { config.isAlmostMaximizeEnabled = newValue } }
-    var isReasonableSizeEnabled: Bool { get { config.isReasonableSizeEnabled } set { config.isReasonableSizeEnabled = newValue } }
-    var isMakeLargerEnabled: Bool { get { config.isMakeLargerEnabled } set { config.isMakeLargerEnabled = newValue } }
-    var isMakeSmallerEnabled: Bool { get { config.isMakeSmallerEnabled } set { config.isMakeSmallerEnabled = newValue } }
-    var isMoveNextDesktopEnabled: Bool { get { config.isMoveNextDesktopEnabled } set { config.isMoveNextDesktopEnabled = newValue } }
-    var isMovePreviousDesktopEnabled: Bool { get { config.isMovePreviousDesktopEnabled } set { config.isMovePreviousDesktopEnabled = newValue } }
-    var isAutoEjectEnabled: Bool { get { config.isAutoEjectEnabled } set { config.isAutoEjectEnabled = newValue } }
-    var isDockActionsOutsideMCEnabled: Bool { get { config.isDockActionsOutsideMCEnabled } set { config.isDockActionsOutsideMCEnabled = newValue } }
-    var isGesturesEnabled: Bool { get { config.isGesturesEnabled } set { config.isGesturesEnabled = newValue } }
-    var isPinchInEnabled: Bool { get { config.isPinchInEnabled } set { config.isPinchInEnabled = newValue } }
-    var isPinchOutEnabled: Bool { get { config.isPinchOutEnabled } set { config.isPinchOutEnabled = newValue } }
-    var isSwipeLeftEnabled: Bool { get { config.isSwipeLeftEnabled } set { config.isSwipeLeftEnabled = newValue } }
-    var isSwipeRightEnabled: Bool { get { config.isSwipeRightEnabled } set { config.isSwipeRightEnabled = newValue } }
-    var isSwipeDownEnabled: Bool { get { config.isSwipeDownEnabled } set { config.isSwipeDownEnabled = newValue } }
-    var isSwipeUpEnabled: Bool { get { config.isSwipeUpEnabled } set { config.isSwipeUpEnabled = newValue } }
-    var isTwoFingerDoubleTapEnabled: Bool { get { config.isTwoFingerDoubleTapEnabled } set { config.isTwoFingerDoubleTapEnabled = newValue } }
-    var isKeyboardNavigationEnabled: Bool { get { config.isKeyboardNavigationEnabled } set { config.isKeyboardNavigationEnabled = newValue } }
-    var isHapticFeedbackEnabled: Bool { get { config.isHapticFeedbackEnabled } set { config.isHapticFeedbackEnabled = newValue } }
-    var isCursorFeedbackEnabled: Bool { get { config.isCursorFeedbackEnabled } set { config.isCursorFeedbackEnabled = newValue } }
+    /// Forwarding properties for configuration (keeps AppDelegate API unchanged)
+    var isCmdWEnabled: Bool {
+        get { config.isCmdWEnabled } set { config.isCmdWEnabled = newValue }
+    }
 
-    // Gesture action mappings
-    func gestureAction(for kind: GestureKind, isCmd: Bool) -> GestureAction { config.action(for: kind, isCmd: isCmd) }
-    func setGestureAction(_ action: GestureAction, for kind: GestureKind, isCmd: Bool) { config.setAction(action, for: kind, isCmd: isCmd) }
-    func resetGestureMappings() { config.resetGestureMappings() }
+    var isCmdQEnabled: Bool {
+        get { config.isCmdQEnabled } set { config.isCmdQEnabled = newValue }
+    }
+
+    var isCmdMEnabled: Bool {
+        get { config.isCmdMEnabled } set { config.isCmdMEnabled = newValue }
+    }
+
+    var isCmdHEnabled: Bool {
+        get { config.isCmdHEnabled } set { config.isCmdHEnabled = newValue }
+    }
+
+    var isCmdFEnabled: Bool {
+        get { config.isCmdFEnabled } set { config.isCmdFEnabled = newValue }
+    }
+
+    var isCmdSpaceEnabled: Bool {
+        get { config.isCmdSpaceEnabled } set { config.isCmdSpaceEnabled = newValue }
+    }
+
+    var isCmdTEnabled: Bool {
+        get { config.isCmdTEnabled } set { config.isCmdTEnabled = newValue }
+    }
+
+    var isCmdNEnabled: Bool {
+        get { config.isCmdNEnabled } set { config.isCmdNEnabled = newValue }
+    }
+
+    var isCmdShiftWEnabled: Bool {
+        get { config.isCmdShiftWEnabled } set { config.isCmdShiftWEnabled = newValue }
+    }
+
+    var isCmdShiftTEnabled: Bool {
+        get { config.isCmdShiftTEnabled } set { config.isCmdShiftTEnabled = newValue }
+    }
+
+    var isCloseWindowEnabled: Bool {
+        get { config.isCloseWindowEnabled } set { config.isCloseWindowEnabled = newValue }
+    }
+
+    var isFillScreenEnabled: Bool {
+        get { config.isFillScreenEnabled } set { config.isFillScreenEnabled = newValue }
+    }
+
+    var isAlmostMaximizeEnabled: Bool {
+        get { config.isAlmostMaximizeEnabled } set { config.isAlmostMaximizeEnabled = newValue }
+    }
+
+    var isReasonableSizeEnabled: Bool {
+        get { config.isReasonableSizeEnabled } set { config.isReasonableSizeEnabled = newValue }
+    }
+
+    var isMakeLargerEnabled: Bool {
+        get { config.isMakeLargerEnabled } set { config.isMakeLargerEnabled = newValue }
+    }
+
+    var isMakeSmallerEnabled: Bool {
+        get { config.isMakeSmallerEnabled } set { config.isMakeSmallerEnabled = newValue }
+    }
+
+    var isMoveNextDesktopEnabled: Bool {
+        get { config.isMoveNextDesktopEnabled } set { config.isMoveNextDesktopEnabled = newValue }
+    }
+
+    var isMovePreviousDesktopEnabled: Bool {
+        get { config.isMovePreviousDesktopEnabled } set { config.isMovePreviousDesktopEnabled = newValue }
+    }
+
+    var isAutoEjectEnabled: Bool {
+        get { config.isAutoEjectEnabled } set { config.isAutoEjectEnabled = newValue }
+    }
+
+    var isDockActionsOutsideMCEnabled: Bool {
+        get { config.isDockActionsOutsideMCEnabled } set { config.isDockActionsOutsideMCEnabled = newValue }
+    }
+
+    var isGesturesEnabled: Bool {
+        get { config.isGesturesEnabled } set { config.isGesturesEnabled = newValue }
+    }
+
+    var isPinchInEnabled: Bool {
+        get { config.isPinchInEnabled } set { config.isPinchInEnabled = newValue }
+    }
+
+    var isPinchOutEnabled: Bool {
+        get { config.isPinchOutEnabled } set { config.isPinchOutEnabled = newValue }
+    }
+
+    var isSwipeLeftEnabled: Bool {
+        get { config.isSwipeLeftEnabled } set { config.isSwipeLeftEnabled = newValue }
+    }
+
+    var isSwipeRightEnabled: Bool {
+        get { config.isSwipeRightEnabled } set { config.isSwipeRightEnabled = newValue }
+    }
+
+    var isSwipeDownEnabled: Bool {
+        get { config.isSwipeDownEnabled } set { config.isSwipeDownEnabled = newValue }
+    }
+
+    var isSwipeUpEnabled: Bool {
+        get { config.isSwipeUpEnabled } set { config.isSwipeUpEnabled = newValue }
+    }
+
+    var isTwoFingerDoubleTapEnabled: Bool {
+        get { config.isTwoFingerDoubleTapEnabled } set { config.isTwoFingerDoubleTapEnabled = newValue }
+    }
+
+    var isKeyboardNavigationEnabled: Bool {
+        get { config.isKeyboardNavigationEnabled } set { config.isKeyboardNavigationEnabled = newValue }
+    }
+
+    var isHapticFeedbackEnabled: Bool {
+        get { config.isHapticFeedbackEnabled } set { config.isHapticFeedbackEnabled = newValue }
+    }
+
+    var isCursorFeedbackEnabled: Bool {
+        get { config.isCursorFeedbackEnabled } set { config.isCursorFeedbackEnabled = newValue }
+    }
+
+    /// Gesture action mappings
+    func gestureAction(for kind: GestureKind, isCmd: Bool) -> GestureAction {
+        config.action(for: kind, isCmd: isCmd)
+    }
+
+    func setGestureAction(_ action: GestureAction, for kind: GestureKind, isCmd: Bool) {
+        config.setAction(
+            action,
+            for: kind,
+            isCmd: isCmd
+        )
+    }
+
+    func resetGestureMappings() {
+        config.resetGestureMappings()
+    }
 
     var isHoverCloseButtonEnabled: Bool {
         get { hoverService.isEnabled }
@@ -109,7 +211,7 @@ final class ShortcutViewModel {
     private var isCoolingDown = false
 
     var isLaunchAtLoginEnabled: Bool {
-        return launchAtLoginService.isEnabled
+        launchAtLoginService.isEnabled
     }
 
     init(eventTapService: EventTapServiceProtocol,
@@ -142,7 +244,7 @@ final class ShortcutViewModel {
         }
 
         eventTapService.onShortcutDetected = { [weak self] keyCode, flags, location in
-            guard let self = self else { return false }
+            guard let self else { return false }
 
             let isCmdPressed = flags.contains(.maskCommand)
             let isShiftPressed = flags.contains(.maskShift)
@@ -150,7 +252,8 @@ final class ShortcutViewModel {
             let isOptionPressed = flags.contains(.maskAlternate)
 
             if isCmdPressed && !isShiftPressed && !isControlPressed && !isOptionPressed {
-                if keyCode == ShortcutActionRouter.kKeySpace && self.config.isCmdSpaceEnabled && !self.missionControlService.isSimulating {
+                if keyCode == ShortcutActionRouter.kKeySpace, self.config.isCmdSpaceEnabled,
+                   !self.missionControlService.isSimulating {
                     if self.missionControlService.checkMissionControlActive() {
                         self.missionControlService.executeFixSequence()
                         return true
@@ -173,8 +276,13 @@ final class ShortcutViewModel {
             )
 
             switch resolution {
-            case .consumeAndExecute(let feedbackMode, let action):
-                self.executeFeedbackThenAction(at: effectiveLocation, feedbackMode: feedbackMode, haptic: nil, action: action)
+            case let .consumeAndExecute(feedbackMode, action):
+                self.executeFeedbackThenAction(
+                    at: effectiveLocation,
+                    feedbackMode: feedbackMode,
+                    haptic: nil,
+                    action: action
+                )
                 return true
             case .ignore:
                 return false
@@ -210,7 +318,7 @@ final class ShortcutViewModel {
         let swipeRecognizer = SwipeRecognizer()
         swipeRecognizer.isCmdHeld = cmdHeldProvider
         swipeRecognizer.isEnabled = { [weak self] in
-            guard let self = self else { return false }
+            guard let self else { return false }
             return self.config.isSwipeDownEnabled || self.config.isSwipeUpEnabled
         }
         swipeRecognizer.isSwipeDownEnabled = { [weak self] in self?.config.isSwipeDownEnabled ?? false }
@@ -219,7 +327,7 @@ final class ShortcutViewModel {
 
         // MultitouchService -> GestureEngine
         multitouchService.onFrame = { [weak self] touches, timestamp in
-            guard let self = self,
+            guard let self,
                   self.config.isGesturesEnabled,
                   !self.isCoolingDown else { return }
 
@@ -240,7 +348,7 @@ final class ShortcutViewModel {
 
         // GestureEngine -> Actions
         gestureEngine.onGestureRecognized = { [weak self] result in
-            guard let self = self else { return }
+            guard let self else { return }
             let axPoint = self.currentAXMouseLocation()
 
             let target = self.resolveTarget(at: axPoint)
@@ -256,8 +364,8 @@ final class ShortcutViewModel {
             )
 
             switch resolution {
-            case .execute(let feedbackMode, let haptic, let action):
-                if !self.missionControlService.isMissionControlActive && self.config.isDockActionsOutsideMCEnabled {
+            case let .execute(feedbackMode, haptic, action):
+                if !self.missionControlService.isMissionControlActive, self.config.isDockActionsOutsideMCEnabled {
                     self.dockSuppressor.isSuppressing = true
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
                         self?.dockSuppressor.isSuppressing = false
@@ -282,7 +390,7 @@ final class ShortcutViewModel {
         if config.isCursorFeedbackEnabled {
             cursorFeedback.show(at: point, mode: feedbackMode)
         }
-        if let haptic = haptic, config.isHapticFeedbackEnabled {
+        if let haptic, config.isHapticFeedbackEnabled {
             HapticService.perform(haptic)
         }
         DispatchQueue.main.async { [weak self] in
@@ -310,7 +418,7 @@ final class ShortcutViewModel {
     /// `true` when the cursor currently sits over a Dock icon region.
     /// Used to gate outside-Mission-Control dock gestures/shortcuts.
     private func isDockHovered() -> Bool {
-        return accessibilityService.isDockRegion(at: currentAXMouseLocation())
+        accessibilityService.isDockRegion(at: currentAXMouseLocation())
     }
 
     private func resolveTarget(at point: CGPoint) -> TargetResolution {

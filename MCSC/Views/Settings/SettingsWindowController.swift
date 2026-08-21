@@ -13,7 +13,6 @@ private enum SystemAccessibility {
 /// title (also on the Window menu), and the frame autosaves through
 /// UserDefaults. Reimplemented from usagimaru/MacAppSettingsUI.
 final class SettingsWindow: NSWindow {
-
     /// The standard window title, used when no pane is selected.
     var defaultWindowTitle = "Settings"
 
@@ -37,11 +36,10 @@ final class SettingsWindow: NSWindow {
     func setWindowTitle(with tabViewItem: NSTabViewItem?) {
         title = tabViewItem?.label ?? defaultWindowTitle
 
-        let windowTitle: String
-        if let tabTitle = tabViewItem?.label {
-            windowTitle = "\(defaultWindowTitle) — \(tabTitle)"
+        let windowTitle: String = if let tabTitle = tabViewItem?.label {
+            "\(defaultWindowTitle) — \(tabTitle)"
         } else {
-            windowTitle = defaultWindowTitle
+            defaultWindowTitle
         }
 
         if isVisible {
@@ -66,7 +64,7 @@ final class SettingsWindow: NSWindow {
             completion?()
         }
 
-        if animateIfPossible && SystemAccessibility.allowsMotion {
+        if animateIfPossible, SystemAccessibility.allowsMotion {
             isWindowResizing = true
             NSAnimationContext.runAnimationGroup { ctx in
                 ctx.allowsImplicitAnimation = true
@@ -120,8 +118,7 @@ final class SettingsWindow: NSWindow {
 /// launch, closes on Escape / Cmd-Period (`cancel(_:)`), and owns the
 /// `SettingsTabViewController` that manages the panes.
 final class SettingsWindowController: NSWindowController {
-
-    private struct Keys {
+    private enum Keys {
         static let lastWindowFrame = "MCSC.SettingsWindow.lastFrame"
     }
 
@@ -158,7 +155,9 @@ final class SettingsWindowController: NSWindowController {
     }
 
     @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
+    required init?(coder _: NSCoder) {
+        fatalError()
+    }
 
     private func initialWindowSetup() {
         shouldCascadeWindows = false
@@ -182,7 +181,7 @@ final class SettingsWindowController: NSWindowController {
     }
 
     /// Closes the window via Escape key or Cmd-Period.
-    @objc func cancel(_ sender: Any?) {
+    @objc func cancel(_: Any?) {
         if closesWindowWithEscapeKey {
             close()
         }

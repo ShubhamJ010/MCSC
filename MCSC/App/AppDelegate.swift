@@ -1,5 +1,5 @@
-import Cocoa
 import ApplicationServices
+import Cocoa
 import os
 
 /// The application delegate for the MCSC menu bar utility.
@@ -24,7 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// granted. Invalidated the moment trust is detected or the app quits.
     private var accessibilityPollTimer: Timer?
 
-    func applicationDidFinishLaunching(_ notification: Notification) {
+    func applicationDidFinishLaunching(_: Notification) {
         // Hide dock icon (menu bar utility, no Dock presence).
         NSApp.setActivationPolicy(.accessory)
 
@@ -62,7 +62,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         }
-        
+
         // Observe sleep/wake to recreate event tap
         sleepObserver = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.willSleepNotification,
@@ -72,7 +72,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             AppLogger.app.info("System sleeping - stopping event tap")
             self?.viewModel?.stop()
         }
-        
+
         wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didWakeNotification,
             object: nil,
@@ -82,7 +82,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.viewModel?.start()
         }
     }
-    
+
     /// Creates the minimal menu bar status item.
     /// All feature toggles now live in Settings (General/Shortcuts/Gestures);
     /// the menu only exposes Settings and Quit to stay minimal (AGENTS.md: lightweight).
@@ -95,7 +95,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let menu = NSMenu()
 
-        let aboutItem = NSMenuItem(title: "About MCSC", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        let aboutItem = NSMenuItem(
+            title: "About MCSC",
+            action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)),
+            keyEquivalent: ""
+        )
         menu.addItem(aboutItem)
 
         let settingsItem = NSMenuItem(title: "Settings…", action: #selector(showSettings), keyEquivalent: ",")
@@ -107,7 +111,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         statusItem?.menu = menu
     }
-    
+
     @objc private func showSettings() {
         guard let viewModel else { return }
         if settingsController == nil {
@@ -115,8 +119,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         settingsController?.show()
     }
-    
-    func applicationWillTerminate(_ notification: Notification) {
+
+    func applicationWillTerminate(_: Notification) {
         viewModel?.stop()
         accessibilityPollTimer?.invalidate()
         accessibilityPollTimer = nil

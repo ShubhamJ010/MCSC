@@ -6,7 +6,7 @@ import Cocoa
 /// while Mission Control is still intercepting window management is a no-op.
 @_silgen_name("CoreDockSendNotification")
 @discardableResult
-func CoreDockSendNotification(_ notification: CFString, _ unknown: Int32) -> CGError
+func coreDockSendNotification(_ notification: CFString, _ unknown: Int32) -> CGError
 
 /// Executes window-level operations (close, minimize, force-quit) on windows
 /// identified by Mission Control / Exposé window metadata dictionaries.
@@ -23,7 +23,7 @@ enum MissionControlWindowActions {
         let app = AXUIElementCreateApplication(pid)
         var windowsRef: CFTypeRef?
         if AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &windowsRef) == .success,
-           let windowsRef = windowsRef, CFGetTypeID(windowsRef) == CFArrayGetTypeID(),
+           let windowsRef, CFGetTypeID(windowsRef) == CFArrayGetTypeID(),
            let axWindows = windowsRef as? [AXUIElement] {
             for axWindow in axWindows {
                 var axId: CGWindowID = 0
@@ -59,7 +59,7 @@ enum MissionControlWindowActions {
                 app.activate(options: .activateIgnoringOtherApps)
             }
         }
-        
+
         if let boundsDict = windowInfo[kCGWindowBounds as String] as? [String: CGFloat] {
             let centerPoint = CGPoint(
                 x: (boundsDict["X"] ?? 0) + (boundsDict["Width"] ?? 0) / 2,
@@ -84,7 +84,7 @@ enum MissionControlWindowActions {
                 app.activate(options: .activateIgnoringOtherApps)
             }
         }
-        
+
         if let boundsDict = windowInfo[kCGWindowBounds as String] as? [String: CGFloat] {
             let centerPoint = CGPoint(
                 x: (boundsDict["X"] ?? 0) + (boundsDict["Width"] ?? 0) / 2,
@@ -110,7 +110,7 @@ enum MissionControlWindowActions {
     /// AX zoom button (`kAXZoomButtonAttribute`).
     static func performFullscreen(on windowInfo: [String: Any]) {
         // Wake the Exposé layer so the zoom press reaches the real window.
-        _ = CoreDockSendNotification("com.apple.expose.awake" as CFString, 0)
+        _ = coreDockSendNotification("com.apple.expose.awake" as CFString, 0)
 
         if pressWindowButton(attribute: kAXZoomButtonAttribute, on: windowInfo) {
             return

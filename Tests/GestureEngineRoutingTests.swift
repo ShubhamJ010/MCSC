@@ -131,7 +131,11 @@ final class GestureEngineRoutingTests: XCTestCase {
         let t2Next = TouchPoint(identifier: 2, state: 4, normalizedX: 0.55, normalizedY: 0.5, size: 1.0)
         engine.processFrame([t1Next, t2Next], timestamp: 1.1)
 
-        XCTAssertEqual(recognizedGestures.count, 0, "Poisoned touch cycle must not fire any gesture until all fingers lift")
+        XCTAssertEqual(
+            recognizedGestures.count,
+            0,
+            "Poisoned touch cycle must not fire any gesture until all fingers lift"
+        )
 
         // All fingers lift
         engine.processFrame([], timestamp: 1.2)

@@ -42,7 +42,7 @@ final class MCKeyboardTapService: MCKeyboardTapServiceProtocol {
             place: .headInsertEventTap,
             options: .defaultTap,
             eventsOfInterest: CGEventMask(eventMask),
-            callback: { (_, type, event, refcon) -> Unmanaged<CGEvent>? in
+            callback: { _, type, event, refcon -> Unmanaged<CGEvent>? in
                 guard let refcon else { return Unmanaged.passUnretained(event) }
                 let service = Unmanaged<MCKeyboardTapService>.fromOpaque(refcon).takeUnretainedValue()
 

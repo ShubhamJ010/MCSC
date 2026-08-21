@@ -1,5 +1,5 @@
-import Foundation
 import CoreGraphics
+import Foundation
 
 /// Stateful, side-effect-free keyboard session for the Mission Control
 /// type-to-select fuzzy finder.
@@ -69,7 +69,9 @@ struct WindowSearchSession {
             return selectedIndex >= 0 ? .activate : .ignore
 
         case KeyCode.escape:
-            if query.isEmpty { return .ignore }
+            if query.isEmpty {
+                return .ignore
+            }
             clear()
             return .clear
 
@@ -138,7 +140,7 @@ struct WindowSearchSession {
         guard let characters, !characters.isEmpty else { return .ignore }
         let filtered = characters.filter { $0.isLetter || $0.isNumber || $0.isWhitespace }
         guard !filtered.isEmpty else { return .ignore }
-        if query.isEmpty && filtered.trimmingCharacters(in: .whitespaces).isEmpty {
+        if query.isEmpty, filtered.trimmingCharacters(in: .whitespaces).isEmpty {
             return .ignore
         }
 

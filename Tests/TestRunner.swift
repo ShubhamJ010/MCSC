@@ -14,7 +14,7 @@ struct TestRunner {
             SearchBarOverlayTests.defaultTestSuite,
             CursorFeedbackOverlayTests.defaultTestSuite,
             RouterTests.defaultTestSuite,
-            DesktopNavigationActionTests.defaultTestSuite
+            DesktopNavigationActionTests.defaultTestSuite,
         ]
 
         var totalFailed = 0

@@ -53,7 +53,8 @@ struct MinimizeAppAction {
 
         if let windowList = windows as? [AXUIElement] {
             for window in windowList {
-                if let minimizeButton: AXUIElement = service.getAttributeValue(kAXMinimizeButtonAttribute, for: window) {
+                if let minimizeButton: AXUIElement = service
+                    .getAttributeValue(kAXMinimizeButtonAttribute, for: window) {
                     _ = service.performAction(kAXPressAction, on: minimizeButton)
                 }
             }
@@ -213,7 +214,7 @@ struct AlmostMaximizeAppAction {
 
 struct ToggleFullscreenAppAction {
     func perform(app: NSRunningApplication, service: AccessibilityServiceProtocol) {
-        _ = CoreDockSendNotification("com.apple.expose.awake" as CFString, 0)
+        _ = coreDockSendNotification("com.apple.expose.awake" as CFString, 0)
         let appElement = AXUIElementCreateApplication(app.processIdentifier)
         var windowsRef: CFTypeRef?
         AXUIElementCopyAttributeValue(appElement, kAXWindowsAttribute as CFString, &windowsRef)

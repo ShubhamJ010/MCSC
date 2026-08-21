@@ -17,17 +17,20 @@ final class MountedVolumeService: MountedVolumeServiceProtocol {
     func ejectableVolumePath(forDocumentPath path: String?, windowTitle: String?) -> String? {
         let keys: Set<URLResourceKey> = [.volumeNameKey, .volumeIsRemovableKey, .volumeIsEjectableKey]
         let options: FileManager.VolumeEnumerationOptions = [.skipHiddenVolumes]
-        let mountedURLs = FileManager.default.mountedVolumeURLs(includingResourceValuesForKeys: Array(keys), options: options) ?? []
+        let mountedURLs = FileManager.default.mountedVolumeURLs(
+            includingResourceValuesForKeys: Array(keys),
+            options: options
+        ) ?? []
 
         // Strategy 1: Match against mounted volume URLs using document path
-        if let path = path, !path.isEmpty {
+        if let path, !path.isEmpty {
             let normalizedPath = path.hasSuffix("/") ? String(path.dropLast()) : path
             for volURL in mountedURLs {
                 let volPath = volURL.path.hasSuffix("/") ? String(volURL.path.dropLast()) : volURL.path
                 guard !volPath.isEmpty && volPath != "/" else { continue }
                 if normalizedPath == volPath || normalizedPath.hasPrefix(volPath + "/") {
                     if let values = try? volURL.resourceValues(forKeys: keys),
-                       (values.volumeIsEjectable == true || values.volumeIsRemovable == true) {
+                       values.volumeIsEjectable == true || values.volumeIsRemovable == true {
                         return volURL.path
                     }
                 }
@@ -40,7 +43,7 @@ final class MountedVolumeService: MountedVolumeServiceProtocol {
                     let candidate = "/Volumes/\(components[1])"
                     let candidateURL = URL(fileURLWithPath: candidate)
                     if let values = try? candidateURL.resourceValues(forKeys: keys),
-                       (values.volumeIsEjectable == true || values.volumeIsRemovable == true) {
+                       values.volumeIsEjectable == true || values.volumeIsRemovable == true {
                         return candidate
                     }
                 }
@@ -56,7 +59,7 @@ final class MountedVolumeService: MountedVolumeServiceProtocol {
 
                 let volName = values.volumeName ?? volURL.lastPathComponent
                 if volName.localizedCaseInsensitiveCompare(title) == .orderedSame ||
-                   volURL.lastPathComponent.localizedCaseInsensitiveCompare(title) == .orderedSame {
+                    volURL.lastPathComponent.localizedCaseInsensitiveCompare(title) == .orderedSame {
                     return volURL.path
                 }
             }
@@ -75,7 +78,10 @@ final class MountedVolumeService: MountedVolumeServiceProtocol {
                     completion(true)
                 }
             } catch {
-                AppLogger.volume.error("Failed to eject volume at '\(mountPath, privacy: .public)': \(error.localizedDescription, privacy: .public)")
+                AppLogger.volume
+                    .error(
+                        "Failed to eject volume at '\(mountPath, privacy: .public)': \(error.localizedDescription, privacy: .public)"
+                    )
                 DispatchQueue.main.async {
                     completion(false)
                 }

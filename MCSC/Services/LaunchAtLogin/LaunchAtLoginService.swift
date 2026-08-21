@@ -1,6 +1,6 @@
 import Foundation
-import ServiceManagement
 import os
+import ServiceManagement
 
 /// Wraps `SMAppService` to register/unregister MCSC as a login item.
 /// Backs the "Launch at Login" menu item; reads the current status from the
@@ -10,7 +10,7 @@ final class LaunchAtLoginService {
 
     /// `true` when MCSC is currently configured to launch at login.
     var isEnabled: Bool {
-        return service.status == .enabled
+        service.status == .enabled
     }
 
     /// Flips the launch-at-login registration: registers when disabled and
@@ -33,8 +33,9 @@ final class LaunchAtLoginService {
 
     private func unregister() {
         service.unregister { error in
-            if let error = error {
-                AppLogger.app.error("Failed to unregister launch service: \(error.localizedDescription, privacy: .public)")
+            if let error {
+                AppLogger.app
+                    .error("Failed to unregister launch service: \(error.localizedDescription, privacy: .public)")
             }
         }
     }

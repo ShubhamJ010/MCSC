@@ -1,5 +1,5 @@
-import Cocoa
 import ApplicationServices
+import Cocoa
 
 /// Moves a window to the next or previous Desktop (Space).
 ///
@@ -21,8 +21,8 @@ struct MoveWindowToDesktopAction: ShortcutAction {
         /// Right Arrow = 124, Left Arrow = 123.
         var arrowKeyCode: Int64 {
             switch self {
-            case .next: return 124
-            case .previous: return 123
+            case .next: 124
+            case .previous: 123
             }
         }
     }
@@ -138,7 +138,7 @@ private enum SystemEffects {
         process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
         process.arguments = [
             "-e",
-            "tell application \"System Events\" to key code \(direction.arrowKeyCode) using control down"
+            "tell application \"System Events\" to key code \(direction.arrowKeyCode) using control down",
         ]
         process.standardOutput = FileHandle.nullDevice
         process.standardError = FileHandle.nullDevice

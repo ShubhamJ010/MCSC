@@ -40,8 +40,8 @@ final class EventTapService: EventTapServiceProtocol {
             place: .headInsertEventTap,
             options: .defaultTap,
             eventsOfInterest: CGEventMask(eventMask),
-            callback: { (proxy, type, event, refcon) -> Unmanaged<CGEvent>? in
-                guard let refcon = refcon else { return Unmanaged.passUnretained(event) }
+            callback: { _, type, event, refcon -> Unmanaged<CGEvent>? in
+                guard let refcon else { return Unmanaged.passUnretained(event) }
                 let service = Unmanaged<EventTapService>.fromOpaque(refcon).takeUnretainedValue()
 
                 // macOS disables event taps on timeout or user input; re-enable
@@ -78,7 +78,7 @@ final class EventTapService: EventTapServiceProtocol {
     /// until the app is restarted.
     private func reEnableTapIfDisabled(for type: CGEventType) {
         guard type == .tapDisabledByTimeout || type == .tapDisabledByUserInput else { return }
-        guard let eventTap = eventTap else { return }
+        guard let eventTap else { return }
         CGEvent.tapEnable(tap: eventTap, enable: true)
         AppLogger.eventTap.info("Event tap was disabled by the system; re-enabled.")
     }
@@ -86,11 +86,11 @@ final class EventTapService: EventTapServiceProtocol {
     /// Disables the tap, invalidates its run-loop source, and releases the
     /// event tap. Safe to call multiple times and when `start()` never ran.
     func stop() {
-        if let runLoopSource = runLoopSource {
+        if let runLoopSource {
             CFRunLoopSourceInvalidate(runLoopSource)
             CFRunLoopRemoveSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
         }
-        if let eventTap = eventTap {
+        if let eventTap {
             CGEvent.tapEnable(tap: eventTap, enable: false)
         }
         eventTap = nil

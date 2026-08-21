@@ -47,7 +47,7 @@ final class GestureEngine {
         // so a gesture triggers only once per finger-lift instead of on
         // continuous motion (e.g. repeatedly swiping up without lifting).
         if awaitingLift {
-            if touches.count == 0 {
+            if touches.isEmpty {
                 awaitingLift = false
             } else {
                 return
@@ -67,7 +67,7 @@ final class GestureEngine {
 
         // Un-poison only when ALL fingers are lifted
         if poisoned {
-            if touches.count == 0 {
+            if touches.isEmpty {
                 poisoned = false
             }
             return

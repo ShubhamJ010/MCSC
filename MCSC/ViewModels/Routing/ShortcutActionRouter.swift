@@ -24,13 +24,13 @@ final class ShortcutActionRouter {
     static let kKeySpace: Int64 = 49
     // Window & Tab — additional shortcuts (off by default, gesture-only previously)
     static let kKeyE: Int64 = 14 // Close Window — ⌘+Shift+E
-    static let kKeyD: Int64 = 2  // Fill Screen — ⌘+Shift+D
-    static let kKeyA: Int64 = 0  // Almost Maximize — ⌘+Shift+A
+    static let kKeyD: Int64 = 2 // Fill Screen — ⌘+Shift+D
+    static let kKeyA: Int64 = 0 // Almost Maximize — ⌘+Shift+A
     static let kKeyR: Int64 = 15 // Reasonable Size — ⌘+Shift+R
     static let kKeyL: Int64 = 37 // Make Larger — ⌘+Shift+L
-    static let kKeyS: Int64 = 1  // Make Smaller — ⌘+Shift+S
+    static let kKeyS: Int64 = 1 // Make Smaller — ⌘+Shift+S
     static let kKeyRight: Int64 = 124 // Move Next Desktop — ⌘+Shift+→
-    static let kKeyLeft: Int64 = 123  // Move Previous Desktop — ⌘+Shift+←
+    static let kKeyLeft: Int64 = 123 // Move Previous Desktop — ⌘+Shift+←
 
     private let actions: ActionRegistry
 
@@ -49,214 +49,311 @@ final class ShortcutActionRouter {
         volumeService: MountedVolumeServiceProtocol? = nil,
         activateApp: @escaping (CGPoint) -> Void
     ) -> ResolvedShortcutAction {
-        let isCmdPressed = flags.contains(.maskCommand)
+        guard shouldHandle(flags: flags) else { return .ignore }
+        guard isActive(isMissionControlActive: isMissionControlActive, target: target, config: config) else {
+            return .ignore
+        }
+        let app = resolveApp(from: target)
         let isShiftPressed = flags.contains(.maskShift)
-        let isControlPressed = flags.contains(.maskControl)
-        let isOptionPressed = flags.contains(.maskAlternate)
-
-        // Only handle Cmd or Cmd+Shift combos (no Ctrl or Option)
-        guard isCmdPressed && !isControlPressed && !isOptionPressed else {
-            return .ignore
-        }
-
-        let isDockOutsideMC: Bool
-        if case .dock = target {
-            isDockOutsideMC = config.isDockActionsOutsideMCEnabled
-        } else {
-            isDockOutsideMC = false
-        }
-
-        guard isMissionControlActive || isDockOutsideMC else {
-            return .ignore
-        }
-
-        let app: NSRunningApplication?
-        switch target {
-        case .dock(let resolvedApp):
-            app = resolvedApp
-        case .window, .none:
-            app = nil
-        }
-
-        // Pure Cmd shortcuts (no Shift)
-        if !isShiftPressed {
-            // Mounted volume auto-eject enhancement:
-            // If Cmd+W or Cmd+Q is triggered on a Finder window showing an ejectable/mounted volume,
-            // close the window and eject the volume with eject.circle.fill feedback.
-            if config.isAutoEjectEnabled,
-               case .window(let window) = target,
-               let volumeService = volumeService,
-               (keyCode == Self.kKeyW && config.isCmdWEnabled) || (keyCode == Self.kKeyQ && config.isCmdQEnabled),
-               let targetApp = service.getAppFromElement(window),
-               targetApp.bundleIdentifier == "com.apple.finder",
-               let mountPath = volumeService.ejectableVolumePath(
-                   forDocumentPath: service.getDocumentPath(for: window),
-                   windowTitle: service.getWindowTitle(for: window)
-               ) {
-                return .consumeAndExecute(feedbackMode: .eject) { [weak self] in
-                    guard let self = self else { return }
-                    self.actions.ejectVolumeAction.perform(
-                        window: window,
-                        mountPath: mountPath,
-                        service: service,
-                        volumeService: volumeService
-                    )
-                }
-            }
-
-            if keyCode == Self.kKeyW && config.isCmdWEnabled {
-                return .consumeAndExecute(feedbackMode: .close) { [weak self] in
-                    guard let self = self else { return }
-                    activateApp(location)
-                    if let app = app {
-                        self.actions.closeTabAppAction.perform(app: app, service: service)
-                    } else {
-                        self.actions.closeTabAction.perform(at: location, service: service)
-                    }
-                }
-            } else if keyCode == Self.kKeyQ && config.isCmdQEnabled {
-                return .consumeAndExecute(feedbackMode: .quit) { [weak self] in
-                    guard let self = self else { return }
-                    if let app = app {
-                        self.actions.forceQuitAppAction.perform(app: app)
-                    } else {
-                        self.actions.forceQuitAction.perform(at: location, service: service)
-                    }
-                }
-            } else if keyCode == Self.kKeyM && config.isCmdMEnabled {
-                return .consumeAndExecute(feedbackMode: .minimize) { [weak self] in
-                    guard let self = self else { return }
-                    if let app = app {
-                        self.actions.minimizeAppAction.perform(app: app, service: service)
-                    } else {
-                        self.actions.minimizeAction.perform(at: location, service: service)
-                    }
-                }
-            } else if keyCode == Self.kKeyH && config.isCmdHEnabled {
-                return .consumeAndExecute(feedbackMode: .hide) { [weak self] in
-                    guard let self = self else { return }
-                    if let app = app {
-                        app.hide()
-                    } else {
-                        self.actions.hideAction.perform(at: location, service: service)
-                    }
-                }
-            } else if keyCode == Self.kKeyF && config.isCmdFEnabled {
-                return .consumeAndExecute(feedbackMode: .fullscreen) { [weak self] in
-                    guard let self = self else { return }
-                    if let app = app {
-                        self.actions.toggleFullscreenAppAction.perform(app: app, service: service)
-                    } else {
-                        self.actions.toggleFullscreenAction.perform(at: location, service: service)
-                    }
-                }
-            } else if keyCode == Self.kKeyT && config.isCmdTEnabled {
-                let mode: CursorFeedbackOverlay.Mode = (app != nil) ? .newWindow : .newTab
-                return .consumeAndExecute(feedbackMode: mode) { [weak self] in
-                    guard let self = self else { return }
-                    if app != nil {
-                        self.actions.newWindowAction.perform(at: location, service: service)
-                    } else {
-                        self.actions.newTabAction.perform(at: location, service: service)
-                    }
-                }
-            } else if keyCode == Self.kKeyN && config.isCmdNEnabled {
-                return .consumeAndExecute(feedbackMode: .newWindow) { [weak self] in
-                    guard let self = self else { return }
-                    self.actions.newWindowAction.perform(at: location, service: service)
-                }
+        if isShiftPressed {
+            if let action = routeShiftShortcut(
+                keyCode: keyCode, config: config, target: target,
+                service: service, location: location, app: app
+            ) {
+                return action
             }
         } else {
-            // Cmd+Shift shortcuts — extra and window/size/desktop (off by default)
-            if keyCode == Self.kKeyW && config.isCmdShiftWEnabled {
-                return .consumeAndExecute(feedbackMode: .closeAllTabs) { [weak self] in
-                    guard let self = self else { return }
-                    self.actions.closeAllTabsAction.perform(at: location, service: service)
-                }
-            } else if keyCode == Self.kKeyT && config.isCmdShiftTEnabled {
-                return .consumeAndExecute(feedbackMode: .reopenTab) { [weak self] in
-                    guard let self = self else { return }
-                    if let app = app {
-                        self.actions.reopenTabAppAction.perform(app: app)
-                    } else {
-                        self.actions.reopenTabAction.perform(at: location, service: service)
-                    }
-                }
-            } else if keyCode == Self.kKeyE && config.isCloseWindowEnabled {
-                return .consumeAndExecute(feedbackMode: .close) { [weak self] in
-                    guard let self = self else { return }
-                    if let app = app {
-                        self.actions.closeAppAction.perform(app: app, service: service)
-                    } else {
-                        self.actions.closeAction.perform(at: location, service: service)
-                    }
-                }
-            } else if keyCode == Self.kKeyD && config.isFillScreenEnabled {
-                return .consumeAndExecute(feedbackMode: .maximize) { [weak self] in
-                    guard let self = self else { return }
-                    if let app = app {
-                        self.actions.fillScreenAppAction.perform(app: app, service: service)
-                    } else {
-                        self.actions.fillScreenAction.perform(at: location, service: service)
-                    }
-                }
-            } else if keyCode == Self.kKeyA && config.isAlmostMaximizeEnabled {
-                return .consumeAndExecute(feedbackMode: .almost) { [weak self] in
-                    guard let self = self else { return }
-                    if let app = app {
-                        self.actions.almostMaximizeAppAction.perform(app: app, service: service)
-                    } else {
-                        self.actions.almostMaximizeAction.perform(at: location, service: service)
-                    }
-                }
-            } else if keyCode == Self.kKeyR && config.isReasonableSizeEnabled {
-                return .consumeAndExecute(feedbackMode: .reasonable) { [weak self] in
-                    guard let self = self else { return }
-                    if let app = app {
-                        self.actions.reasonableSizeAppAction.perform(app: app, service: service)
-                    } else {
-                        self.actions.reasonableSizeAction.perform(at: location, service: service)
-                    }
-                }
-            } else if keyCode == Self.kKeyL && config.isMakeLargerEnabled {
-                return .consumeAndExecute(feedbackMode: .maximize) { [weak self] in
-                    guard let self = self else { return }
-                    if let app = app {
-                        self.actions.makeLargerAppAction.perform(app: app, service: service)
-                    } else {
-                        self.actions.makeLargerAction.perform(at: location, service: service)
-                    }
-                }
-            } else if keyCode == Self.kKeyS && config.isMakeSmallerEnabled {
-                return .consumeAndExecute(feedbackMode: .makeSmaller) { [weak self] in
-                    guard let self = self else { return }
-                    if let app = app {
-                        self.actions.makeSmallerAppAction.perform(app: app, service: service)
-                    } else {
-                        self.actions.makeSmallerAction.perform(at: location, service: service)
-                    }
-                }
-            } else if keyCode == Self.kKeyRight && config.isMoveNextDesktopEnabled {
-                return .consumeAndExecute(feedbackMode: .spaceRight) { [weak self] in
-                    guard let self = self else { return }
-                    if let app = app {
-                        self.actions.moveNextDesktopAction.perform(app: app, service: service)
-                    } else {
-                        self.actions.moveNextDesktopAction.perform(at: location, service: service)
-                    }
-                }
-            } else if keyCode == Self.kKeyLeft && config.isMovePreviousDesktopEnabled {
-                return .consumeAndExecute(feedbackMode: .spaceLeft) { [weak self] in
-                    guard let self = self else { return }
-                    if let app = app {
-                        self.actions.movePreviousDesktopAction.perform(app: app, service: service)
-                    } else {
-                        self.actions.movePreviousDesktopAction.perform(at: location, service: service)
-                    }
-                }
+            if let action = routeEjectIfNeeded(
+                keyCode: keyCode, config: config, target: target,
+                service: service, volumeService: volumeService
+            ) {
+                return action
+            }
+            if let action = routePureCmdShortcut(
+                keyCode: keyCode, config: config, service: service,
+                location: location, app: app, activateApp: activateApp
+            ) {
+                return action
             }
         }
-
         return .ignore
+    }
+
+    private func shouldHandle(flags: CGEventFlags) -> Bool {
+        flags.contains(.maskCommand)
+            && !flags.contains(.maskControl)
+            && !flags.contains(.maskAlternate)
+    }
+
+    private func isActive(
+        isMissionControlActive: Bool, target: TargetResolution, config: ShortcutConfiguration
+    ) -> Bool {
+        if isMissionControlActive {
+            return true
+        }
+        if case .dock = target {
+            return config.isDockActionsOutsideMCEnabled
+        }
+        return false
+    }
+
+    private func resolveApp(from target: TargetResolution) -> NSRunningApplication? {
+        if case let .dock(app) = target {
+            return app
+        }
+        return nil
+    }
+
+    private func routeEjectIfNeeded(
+        keyCode: Int64,
+        config: ShortcutConfiguration,
+        target: TargetResolution,
+        service: AccessibilityServiceProtocol,
+        volumeService: MountedVolumeServiceProtocol?
+    ) -> ResolvedShortcutAction? {
+        guard config.isAutoEjectEnabled,
+              case let .window(window) = target,
+              let volumeService,
+              (keyCode == Self.kKeyW && config.isCmdWEnabled)
+              || (keyCode == Self.kKeyQ && config.isCmdQEnabled),
+              let targetApp = service.getAppFromElement(window),
+              targetApp.bundleIdentifier == "com.apple.finder",
+              let mountPath = volumeService.ejectableVolumePath(
+                  forDocumentPath: service.getDocumentPath(for: window),
+                  windowTitle: service.getWindowTitle(for: window)
+              )
+        else { return nil }
+        return .consumeAndExecute(feedbackMode: .eject) { [weak self] in
+            guard let self else { return }
+            self.actions.ejectVolumeAction.perform(
+                window: window, mountPath: mountPath, service: service, volumeService: volumeService
+            )
+        }
+    }
+
+    private func routePureCmdShortcut(
+        keyCode: Int64,
+        config: ShortcutConfiguration,
+        service: AccessibilityServiceProtocol,
+        location: CGPoint,
+        app: NSRunningApplication?,
+        activateApp: @escaping (CGPoint) -> Void
+    ) -> ResolvedShortcutAction? {
+        switch (keyCode, config) {
+        case (Self.kKeyW, _) where config.isCmdWEnabled:
+            return .consumeAndExecute(feedbackMode: .close) { [weak self] in
+                guard let self else { return }
+                activateApp(location)
+                if let app {
+                    self.actions.closeTabAppAction.perform(app: app, service: service)
+                } else {
+                    self.actions.closeTabAction.perform(at: location, service: service)
+                }
+            }
+        case (Self.kKeyQ, _) where config.isCmdQEnabled:
+            return .consumeAndExecute(feedbackMode: .quit) { [weak self] in
+                guard let self else { return }
+                if let app {
+                    self.actions.forceQuitAppAction.perform(app: app)
+                } else {
+                    self.actions.forceQuitAction.perform(at: location, service: service)
+                }
+            }
+        case (Self.kKeyM, _) where config.isCmdMEnabled:
+            return .consumeAndExecute(feedbackMode: .minimize) { [weak self] in
+                guard let self else { return }
+                if let app {
+                    self.actions.minimizeAppAction.perform(app: app, service: service)
+                } else {
+                    self.actions.minimizeAction.perform(at: location, service: service)
+                }
+            }
+        case (Self.kKeyH, _) where config.isCmdHEnabled:
+            return .consumeAndExecute(feedbackMode: .hide) { [weak self] in
+                guard let self else { return }
+                if let app {
+                    app.hide()
+                } else {
+                    self.actions.hideAction.perform(at: location, service: service)
+                }
+            }
+        case (Self.kKeyF, _) where config.isCmdFEnabled:
+            return .consumeAndExecute(feedbackMode: .fullscreen) { [weak self] in
+                guard let self else { return }
+                if let app {
+                    self.actions.toggleFullscreenAppAction.perform(app: app, service: service)
+                } else {
+                    self.actions.toggleFullscreenAction.perform(at: location, service: service)
+                }
+            }
+        case (Self.kKeyT, _) where config.isCmdTEnabled:
+            let mode: CursorFeedbackOverlay.Mode = (app != nil) ? .newWindow : .newTab
+            return .consumeAndExecute(feedbackMode: mode) { [weak self] in
+                guard let self else { return }
+                if app != nil {
+                    self.actions.newWindowAction.perform(at: location, service: service)
+                } else {
+                    self.actions.newTabAction.perform(at: location, service: service)
+                }
+            }
+        case (Self.kKeyN, _) where config.isCmdNEnabled:
+            return .consumeAndExecute(feedbackMode: .newWindow) { [weak self] in
+                guard let self else { return }
+                self.actions.newWindowAction.perform(at: location, service: service)
+            }
+        default:
+            return nil
+        }
+    }
+
+    private func routeShiftShortcut(
+        keyCode: Int64,
+        config: ShortcutConfiguration,
+        target _: TargetResolution,
+        service: AccessibilityServiceProtocol,
+        location: CGPoint,
+        app: NSRunningApplication?
+    ) -> ResolvedShortcutAction? {
+        if let action = routeShiftTabActions(
+            keyCode: keyCode, config: config, service: service, location: location, app: app
+        ) {
+            return action
+        }
+        if let action = routeShiftWindowSizeActions(
+            keyCode: keyCode, config: config, service: service, location: location, app: app
+        ) {
+            return action
+        }
+        if let action = routeShiftDesktopActions(
+            keyCode: keyCode, config: config, service: service, location: location, app: app
+        ) {
+            return action
+        }
+        return nil
+    }
+
+    private func routeShiftTabActions(
+        keyCode: Int64,
+        config: ShortcutConfiguration,
+        service: AccessibilityServiceProtocol,
+        location: CGPoint,
+        app: NSRunningApplication?
+    ) -> ResolvedShortcutAction? {
+        switch keyCode {
+        case Self.kKeyW where config.isCmdShiftWEnabled:
+            .consumeAndExecute(feedbackMode: .closeAllTabs) { [weak self] in
+                guard let self else { return }
+                self.actions.closeAllTabsAction.perform(at: location, service: service)
+            }
+        case Self.kKeyT where config.isCmdShiftTEnabled:
+            .consumeAndExecute(feedbackMode: .reopenTab) { [weak self] in
+                guard let self else { return }
+                if let app {
+                    self.actions.reopenTabAppAction.perform(app: app)
+                } else {
+                    self.actions.reopenTabAction.perform(at: location, service: service)
+                }
+            }
+        case Self.kKeyE where config.isCloseWindowEnabled:
+            .consumeAndExecute(feedbackMode: .close) { [weak self] in
+                guard let self else { return }
+                if let app {
+                    self.actions.closeAppAction.perform(app: app, service: service)
+                } else {
+                    self.actions.closeAction.perform(at: location, service: service)
+                }
+            }
+        default:
+            nil
+        }
+    }
+
+    private func routeShiftWindowSizeActions(
+        keyCode: Int64,
+        config: ShortcutConfiguration,
+        service: AccessibilityServiceProtocol,
+        location: CGPoint,
+        app: NSRunningApplication?
+    ) -> ResolvedShortcutAction? {
+        switch keyCode {
+        case Self.kKeyD where config.isFillScreenEnabled:
+            .consumeAndExecute(feedbackMode: .maximize) { [weak self] in
+                guard let self else { return }
+                if let app {
+                    self.actions.fillScreenAppAction.perform(app: app, service: service)
+                } else {
+                    self.actions.fillScreenAction.perform(at: location, service: service)
+                }
+            }
+        case Self.kKeyA where config.isAlmostMaximizeEnabled:
+            .consumeAndExecute(feedbackMode: .almost) { [weak self] in
+                guard let self else { return }
+                if let app {
+                    self.actions.almostMaximizeAppAction.perform(app: app, service: service)
+                } else {
+                    self.actions.almostMaximizeAction.perform(at: location, service: service)
+                }
+            }
+        case Self.kKeyR where config.isReasonableSizeEnabled:
+            .consumeAndExecute(feedbackMode: .reasonable) { [weak self] in
+                guard let self else { return }
+                if let app {
+                    self.actions.reasonableSizeAppAction.perform(app: app, service: service)
+                } else {
+                    self.actions.reasonableSizeAction.perform(at: location, service: service)
+                }
+            }
+        case Self.kKeyL where config.isMakeLargerEnabled:
+            .consumeAndExecute(feedbackMode: .maximize) { [weak self] in
+                guard let self else { return }
+                if let app {
+                    self.actions.makeLargerAppAction.perform(app: app, service: service)
+                } else {
+                    self.actions.makeLargerAction.perform(at: location, service: service)
+                }
+            }
+        case Self.kKeyS where config.isMakeSmallerEnabled:
+            .consumeAndExecute(feedbackMode: .makeSmaller) { [weak self] in
+                guard let self else { return }
+                if let app {
+                    self.actions.makeSmallerAppAction.perform(app: app, service: service)
+                } else {
+                    self.actions.makeSmallerAction.perform(at: location, service: service)
+                }
+            }
+        default:
+            nil
+        }
+    }
+
+    private func routeShiftDesktopActions(
+        keyCode: Int64,
+        config: ShortcutConfiguration,
+        service: AccessibilityServiceProtocol,
+        location: CGPoint,
+        app: NSRunningApplication?
+    ) -> ResolvedShortcutAction? {
+        switch keyCode {
+        case Self.kKeyRight where config.isMoveNextDesktopEnabled:
+            .consumeAndExecute(feedbackMode: .spaceRight) { [weak self] in
+                guard let self else { return }
+                if let app {
+                    self.actions.moveNextDesktopAction.perform(app: app, service: service)
+                } else {
+                    self.actions.moveNextDesktopAction.perform(at: location, service: service)
+                }
+            }
+        case Self.kKeyLeft where config.isMovePreviousDesktopEnabled:
+            .consumeAndExecute(feedbackMode: .spaceLeft) { [weak self] in
+                guard let self else { return }
+                if let app {
+                    self.actions.movePreviousDesktopAction.perform(app: app, service: service)
+                } else {
+                    self.actions.movePreviousDesktopAction.perform(at: location, service: service)
+                }
+            }
+        default:
+            nil
+        }
     }
 }
