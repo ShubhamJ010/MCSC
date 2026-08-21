@@ -2,7 +2,7 @@
 
 <img src="./docs/assets/icon.png" width="96" alt="MCSC app icon">
 
-# MCSC
+# MCSC — Mission Control Shortcuts
 
 ### Keyboard shortcuts and trackpad gestures for Mission Control
 
@@ -81,8 +81,8 @@ Without it MCSC runs but cannot act on windows.
 ### Build from source
 
 ```bash
-git clone https://github.com/ShubhamJ010/MCSC.git
-cd MCSC
+git clone https://github.com/ShubhamJ010/mission-control-shortcuts.git
+cd mission-control-shortcuts
 open MCSC.xcodeproj
 ```
 
