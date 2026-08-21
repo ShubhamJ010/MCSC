@@ -22,6 +22,15 @@ final class ShortcutActionRouter {
     static let kKeyT: Int64 = 17
     static let kKeyN: Int64 = 45
     static let kKeySpace: Int64 = 49
+    // Window & Tab — additional shortcuts (off by default, gesture-only previously)
+    static let kKeyE: Int64 = 14 // Close Window — ⌘+Shift+E
+    static let kKeyD: Int64 = 2  // Fill Screen — ⌘+Shift+D
+    static let kKeyA: Int64 = 0  // Almost Maximize — ⌘+Shift+A
+    static let kKeyR: Int64 = 15 // Reasonable Size — ⌘+Shift+R
+    static let kKeyL: Int64 = 37 // Make Larger — ⌘+Shift+L
+    static let kKeyS: Int64 = 1  // Make Smaller — ⌘+Shift+S
+    static let kKeyRight: Int64 = 124 // Move Next Desktop — ⌘+Shift+→
+    static let kKeyLeft: Int64 = 123  // Move Previous Desktop — ⌘+Shift+←
 
     private let actions: ActionRegistry
 
@@ -158,7 +167,7 @@ final class ShortcutActionRouter {
                 }
             }
         } else {
-            // Cmd+Shift shortcuts
+            // Cmd+Shift shortcuts — extra and window/size/desktop (off by default)
             if keyCode == Self.kKeyW && config.isCmdShiftWEnabled {
                 return .consumeAndExecute(feedbackMode: .closeAllTabs) { [weak self] in
                     guard let self = self else { return }
@@ -171,6 +180,78 @@ final class ShortcutActionRouter {
                         self.actions.reopenTabAppAction.perform(app: app)
                     } else {
                         self.actions.reopenTabAction.perform(at: location, service: service)
+                    }
+                }
+            } else if keyCode == Self.kKeyE && config.isCloseWindowEnabled {
+                return .consumeAndExecute(feedbackMode: .close) { [weak self] in
+                    guard let self = self else { return }
+                    if let app = app {
+                        self.actions.closeAppAction.perform(app: app, service: service)
+                    } else {
+                        self.actions.closeAction.perform(at: location, service: service)
+                    }
+                }
+            } else if keyCode == Self.kKeyD && config.isFillScreenEnabled {
+                return .consumeAndExecute(feedbackMode: .maximize) { [weak self] in
+                    guard let self = self else { return }
+                    if let app = app {
+                        self.actions.fillScreenAppAction.perform(app: app, service: service)
+                    } else {
+                        self.actions.fillScreenAction.perform(at: location, service: service)
+                    }
+                }
+            } else if keyCode == Self.kKeyA && config.isAlmostMaximizeEnabled {
+                return .consumeAndExecute(feedbackMode: .almost) { [weak self] in
+                    guard let self = self else { return }
+                    if let app = app {
+                        self.actions.almostMaximizeAppAction.perform(app: app, service: service)
+                    } else {
+                        self.actions.almostMaximizeAction.perform(at: location, service: service)
+                    }
+                }
+            } else if keyCode == Self.kKeyR && config.isReasonableSizeEnabled {
+                return .consumeAndExecute(feedbackMode: .reasonable) { [weak self] in
+                    guard let self = self else { return }
+                    if let app = app {
+                        self.actions.reasonableSizeAppAction.perform(app: app, service: service)
+                    } else {
+                        self.actions.reasonableSizeAction.perform(at: location, service: service)
+                    }
+                }
+            } else if keyCode == Self.kKeyL && config.isMakeLargerEnabled {
+                return .consumeAndExecute(feedbackMode: .maximize) { [weak self] in
+                    guard let self = self else { return }
+                    if let app = app {
+                        self.actions.makeLargerAppAction.perform(app: app, service: service)
+                    } else {
+                        self.actions.makeLargerAction.perform(at: location, service: service)
+                    }
+                }
+            } else if keyCode == Self.kKeyS && config.isMakeSmallerEnabled {
+                return .consumeAndExecute(feedbackMode: .makeSmaller) { [weak self] in
+                    guard let self = self else { return }
+                    if let app = app {
+                        self.actions.makeSmallerAppAction.perform(app: app, service: service)
+                    } else {
+                        self.actions.makeSmallerAction.perform(at: location, service: service)
+                    }
+                }
+            } else if keyCode == Self.kKeyRight && config.isMoveNextDesktopEnabled {
+                return .consumeAndExecute(feedbackMode: .spaceRight) { [weak self] in
+                    guard let self = self else { return }
+                    if let app = app {
+                        self.actions.moveNextDesktopAction.perform(app: app, service: service)
+                    } else {
+                        self.actions.moveNextDesktopAction.perform(at: location, service: service)
+                    }
+                }
+            } else if keyCode == Self.kKeyLeft && config.isMovePreviousDesktopEnabled {
+                return .consumeAndExecute(feedbackMode: .spaceLeft) { [weak self] in
+                    guard let self = self else { return }
+                    if let app = app {
+                        self.actions.movePreviousDesktopAction.perform(app: app, service: service)
+                    } else {
+                        self.actions.movePreviousDesktopAction.perform(at: location, service: service)
                     }
                 }
             }

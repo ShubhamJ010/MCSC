@@ -142,6 +142,7 @@ final class GeneralSettingsPane: MCSCSettingsPane {
 final class ShortcutSettingsPane: MCSCSettingsPane {
     private var keyboardNavCheckbox: NSButton!
     private var cmdSpaceCheckbox: NSButton!
+    // Existing core
     private var cmdWCheckbox: NSButton!
     private var cmdQCheckbox: NSButton!
     private var cmdMCheckbox: NSButton!
@@ -151,6 +152,15 @@ final class ShortcutSettingsPane: MCSCSettingsPane {
     private var cmdNCheckbox: NSButton!
     private var cmdShiftWCheckbox: NSButton!
     private var cmdShiftTCheckbox: NSButton!
+    // New — window/size/desktop (off by default, gesture-only previously)
+    private var closeWindowCheckbox: NSButton!
+    private var fillScreenCheckbox: NSButton!
+    private var almostMaximizeCheckbox: NSButton!
+    private var reasonableSizeCheckbox: NSButton!
+    private var makeLargerCheckbox: NSButton!
+    private var makeSmallerCheckbox: NSButton!
+    private var moveNextDesktopCheckbox: NSButton!
+    private var movePreviousDesktopCheckbox: NSButton!
 
     override func loadView() {
         view = NSView()
@@ -179,23 +189,36 @@ final class ShortcutSettingsPane: MCSCSettingsPane {
 
         layoutView.addSeparatorSection()
 
-        // Group 2: Window Shortcuts (Core)
-        let windowShortcuts = layoutView.addColumnSection(label: "Window Shortcuts", itemColumnMaximumWidth: 340)
-        cmdWCheckbox = addShortcutCheckbox(section: windowShortcuts, mode: .close, title: "⌘ + W", action: #selector(toggleCmdW(_:)))
-        cmdQCheckbox = addShortcutCheckbox(section: windowShortcuts, mode: .quit, title: "⌘ + Q", action: #selector(toggleCmdQ(_:)))
-        cmdMCheckbox = addShortcutCheckbox(section: windowShortcuts, mode: .minimize, title: "⌘ + M", action: #selector(toggleCmdM(_:)))
-        cmdHCheckbox = addShortcutCheckbox(section: windowShortcuts, mode: .hide, title: "⌘ + H", action: #selector(toggleCmdH(_:)))
-        windowShortcuts.addDescriptionLabel("Applies to the window under the cursor in Mission Control or while hovering a Dock icon.")
+        // Group 2: Window & Tab — all window-targeted actions (Applies to window under cursor / Dock icon)
+        let windowTab = layoutView.addColumnSection(label: "Window & Tab", itemColumnMaximumWidth: 340)
+        // Tab
+        cmdWCheckbox = addShortcutCheckbox(section: windowTab, mode: .closeTab, title: "⌘ + W  — Close Tab", action: #selector(toggleCmdW(_:)))
+        cmdShiftWCheckbox = addShortcutCheckbox(section: windowTab, mode: .closeAllTabs, title: "⌘ + ⇧ + W  — Close All Tabs", action: #selector(toggleCmdShiftW(_:)))
+        cmdShiftTCheckbox = addShortcutCheckbox(section: windowTab, mode: .reopenTab, title: "⌘ + ⇧ + T  — Reopen Tab", action: #selector(toggleCmdShiftT(_:)))
+        cmdTCheckbox = addShortcutCheckbox(section: windowTab, mode: .newTab, title: "⌘ + T  — New Tab", action: #selector(toggleCmdT(_:)))
+        // Window chrome
+        closeWindowCheckbox = addShortcutCheckbox(section: windowTab, mode: .close, title: "⌘ + ⇧ + E  — Close Window", action: #selector(toggleCloseWindow(_:)))
+        cmdMCheckbox = addShortcutCheckbox(section: windowTab, mode: .minimize, title: "⌘ + M  — Minimize", action: #selector(toggleCmdM(_:)))
+        cmdFCheckbox = addShortcutCheckbox(section: windowTab, mode: .fullscreen, title: "⌘ + F  — Toggle Fullscreen", action: #selector(toggleCmdF(_:)))
+        // Size (gesture-only previously, now optional shortcuts)
+        fillScreenCheckbox = addShortcutCheckbox(section: windowTab, mode: .maximize, title: "⌘ + ⇧ + D  — Fill Screen", action: #selector(toggleFillScreen(_:)))
+        almostMaximizeCheckbox = addShortcutCheckbox(section: windowTab, mode: .almost, title: "⌘ + ⇧ + A  — Almost Maximize", action: #selector(toggleAlmostMaximize(_:)))
+        reasonableSizeCheckbox = addShortcutCheckbox(section: windowTab, mode: .reasonable, title: "⌘ + ⇧ + R  — Reasonable Size", action: #selector(toggleReasonableSize(_:)))
+        makeLargerCheckbox = addShortcutCheckbox(section: windowTab, mode: .maximize, title: "⌘ + ⇧ + L  — Make Larger", action: #selector(toggleMakeLarger(_:)))
+        makeSmallerCheckbox = addShortcutCheckbox(section: windowTab, mode: .makeSmaller, title: "⌘ + ⇧ + S  — Make Smaller", action: #selector(toggleMakeSmaller(_:)))
+        // Desktop (Space)
+        moveNextDesktopCheckbox = addShortcutCheckbox(section: windowTab, mode: .spaceRight, title: "⌘ + ⇧ + →  — Move to Next Desktop", action: #selector(toggleMoveNextDesktop(_:)))
+        movePreviousDesktopCheckbox = addShortcutCheckbox(section: windowTab, mode: .spaceLeft, title: "⌘ + ⇧ + ←  — Move to Previous Desktop", action: #selector(toggleMovePreviousDesktop(_:)))
+        windowTab.addDescriptionLabel("Applies to the window under the cursor in Mission Control or while hovering a Dock icon. Size/Desktop shortcuts are gesture-only by default — enable to create a keyboard shortcut.")
 
         layoutView.addSeparatorSection()
 
-        // Group 3: Extra Shortcuts (New, off by default)
-        let extraShortcuts = layoutView.addColumnSection(label: "Extra Shortcuts", itemColumnMaximumWidth: 340)
-        cmdFCheckbox = addShortcutCheckbox(section: extraShortcuts, mode: .fullscreen, title: "⌘ + F", action: #selector(toggleCmdF(_:)))
-        cmdTCheckbox = addShortcutCheckbox(section: extraShortcuts, mode: .newTab, title: "⌘ + T", action: #selector(toggleCmdT(_:)))
-        cmdNCheckbox = addShortcutCheckbox(section: extraShortcuts, mode: .newWindow, title: "⌘ + N", action: #selector(toggleCmdN(_:)))
-        cmdShiftWCheckbox = addShortcutCheckbox(section: extraShortcuts, mode: .closeAllTabs, title: "⌘ + ⇧ + W", action: #selector(toggleCmdShiftW(_:)))
-        cmdShiftTCheckbox = addShortcutCheckbox(section: extraShortcuts, mode: .reopenTab, title: "⌘ + ⇧ + T", action: #selector(toggleCmdShiftT(_:)))
+        // Group 3: App — app-targeted actions (Dock)
+        let appShortcuts = layoutView.addColumnSection(label: "App", itemColumnMaximumWidth: 340)
+        cmdQCheckbox = addShortcutCheckbox(section: appShortcuts, mode: .quit, title: "⌘ + Q  — Quit App", action: #selector(toggleCmdQ(_:)))
+        cmdHCheckbox = addShortcutCheckbox(section: appShortcuts, mode: .hide, title: "⌘ + H  — Hide App", action: #selector(toggleCmdH(_:)))
+        cmdNCheckbox = addShortcutCheckbox(section: appShortcuts, mode: .newWindow, title: "⌘ + N  — New Window", action: #selector(toggleCmdN(_:)))
+        appShortcuts.addDescriptionLabel("Acts on the app owning the window / Dock icon under the cursor.")
 
         layoutView.addSeparatorSection()
 
@@ -260,6 +283,14 @@ final class ShortcutSettingsPane: MCSCSettingsPane {
         cmdNCheckbox?.state = viewModel.isCmdNEnabled ? .on : .off
         cmdShiftWCheckbox?.state = viewModel.isCmdShiftWEnabled ? .on : .off
         cmdShiftTCheckbox?.state = viewModel.isCmdShiftTEnabled ? .on : .off
+        closeWindowCheckbox?.state = viewModel.isCloseWindowEnabled ? .on : .off
+        fillScreenCheckbox?.state = viewModel.isFillScreenEnabled ? .on : .off
+        almostMaximizeCheckbox?.state = viewModel.isAlmostMaximizeEnabled ? .on : .off
+        reasonableSizeCheckbox?.state = viewModel.isReasonableSizeEnabled ? .on : .off
+        makeLargerCheckbox?.state = viewModel.isMakeLargerEnabled ? .on : .off
+        makeSmallerCheckbox?.state = viewModel.isMakeSmallerEnabled ? .on : .off
+        moveNextDesktopCheckbox?.state = viewModel.isMoveNextDesktopEnabled ? .on : .off
+        movePreviousDesktopCheckbox?.state = viewModel.isMovePreviousDesktopEnabled ? .on : .off
     }
 
     @objc private func toggleKeyboardNav(_ sender: NSButton) {
@@ -317,6 +348,46 @@ final class ShortcutSettingsPane: MCSCSettingsPane {
         sender.state = viewModel.isCmdShiftTEnabled ? .on : .off
     }
 
+    @objc private func toggleCloseWindow(_ sender: NSButton) {
+        viewModel.isCloseWindowEnabled.toggle()
+        sender.state = viewModel.isCloseWindowEnabled ? .on : .off
+    }
+
+    @objc private func toggleFillScreen(_ sender: NSButton) {
+        viewModel.isFillScreenEnabled.toggle()
+        sender.state = viewModel.isFillScreenEnabled ? .on : .off
+    }
+
+    @objc private func toggleAlmostMaximize(_ sender: NSButton) {
+        viewModel.isAlmostMaximizeEnabled.toggle()
+        sender.state = viewModel.isAlmostMaximizeEnabled ? .on : .off
+    }
+
+    @objc private func toggleReasonableSize(_ sender: NSButton) {
+        viewModel.isReasonableSizeEnabled.toggle()
+        sender.state = viewModel.isReasonableSizeEnabled ? .on : .off
+    }
+
+    @objc private func toggleMakeLarger(_ sender: NSButton) {
+        viewModel.isMakeLargerEnabled.toggle()
+        sender.state = viewModel.isMakeLargerEnabled ? .on : .off
+    }
+
+    @objc private func toggleMakeSmaller(_ sender: NSButton) {
+        viewModel.isMakeSmallerEnabled.toggle()
+        sender.state = viewModel.isMakeSmallerEnabled ? .on : .off
+    }
+
+    @objc private func toggleMoveNextDesktop(_ sender: NSButton) {
+        viewModel.isMoveNextDesktopEnabled.toggle()
+        sender.state = viewModel.isMoveNextDesktopEnabled ? .on : .off
+    }
+
+    @objc private func toggleMovePreviousDesktop(_ sender: NSButton) {
+        viewModel.isMovePreviousDesktopEnabled.toggle()
+        sender.state = viewModel.isMovePreviousDesktopEnabled ? .on : .off
+    }
+
     @objc private func restoreDefaults(_ sender: NSButton) {
         viewModel.isKeyboardNavigationEnabled = true
         viewModel.isCmdSpaceEnabled = true
@@ -329,6 +400,14 @@ final class ShortcutSettingsPane: MCSCSettingsPane {
         viewModel.isCmdNEnabled = false
         viewModel.isCmdShiftWEnabled = false
         viewModel.isCmdShiftTEnabled = false
+        viewModel.isCloseWindowEnabled = false
+        viewModel.isFillScreenEnabled = false
+        viewModel.isAlmostMaximizeEnabled = false
+        viewModel.isReasonableSizeEnabled = false
+        viewModel.isMakeLargerEnabled = false
+        viewModel.isMakeSmallerEnabled = false
+        viewModel.isMoveNextDesktopEnabled = false
+        viewModel.isMovePreviousDesktopEnabled = false
         refreshAllPanes()
     }
 }

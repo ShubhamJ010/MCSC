@@ -32,6 +32,31 @@ struct ShortcutConfiguration {
     var isCmdShiftTEnabled = false {
         didSet { UserDefaults.standard.set(isCmdShiftTEnabled, forKey: Self.Keys.cmdShiftTEnabled) }
     }
+    // Window & Tab — additional window/size/desktop shortcuts (off by default, gesture-only previously)
+    var isCloseWindowEnabled = false {
+        didSet { UserDefaults.standard.set(isCloseWindowEnabled, forKey: Self.Keys.closeWindowEnabled) }
+    }
+    var isFillScreenEnabled = false {
+        didSet { UserDefaults.standard.set(isFillScreenEnabled, forKey: Self.Keys.fillScreenEnabled) }
+    }
+    var isAlmostMaximizeEnabled = false {
+        didSet { UserDefaults.standard.set(isAlmostMaximizeEnabled, forKey: Self.Keys.almostMaximizeEnabled) }
+    }
+    var isReasonableSizeEnabled = false {
+        didSet { UserDefaults.standard.set(isReasonableSizeEnabled, forKey: Self.Keys.reasonableSizeEnabled) }
+    }
+    var isMakeLargerEnabled = false {
+        didSet { UserDefaults.standard.set(isMakeLargerEnabled, forKey: Self.Keys.makeLargerEnabled) }
+    }
+    var isMakeSmallerEnabled = false {
+        didSet { UserDefaults.standard.set(isMakeSmallerEnabled, forKey: Self.Keys.makeSmallerEnabled) }
+    }
+    var isMoveNextDesktopEnabled = false {
+        didSet { UserDefaults.standard.set(isMoveNextDesktopEnabled, forKey: Self.Keys.moveNextDesktopEnabled) }
+    }
+    var isMovePreviousDesktopEnabled = false {
+        didSet { UserDefaults.standard.set(isMovePreviousDesktopEnabled, forKey: Self.Keys.movePreviousDesktopEnabled) }
+    }
     var isGesturesEnabled = true {
         didSet { UserDefaults.standard.set(isGesturesEnabled, forKey: Self.Keys.gesturesEnabled) }
     }
@@ -101,6 +126,14 @@ struct ShortcutConfiguration {
         if let v = Self.loadBool(forKey: Self.Keys.cmdNEnabled) { isCmdNEnabled = v }
         if let v = Self.loadBool(forKey: Self.Keys.cmdShiftWEnabled) { isCmdShiftWEnabled = v }
         if let v = Self.loadBool(forKey: Self.Keys.cmdShiftTEnabled) { isCmdShiftTEnabled = v }
+        if let v = Self.loadBool(forKey: Self.Keys.closeWindowEnabled) { isCloseWindowEnabled = v }
+        if let v = Self.loadBool(forKey: Self.Keys.fillScreenEnabled) { isFillScreenEnabled = v }
+        if let v = Self.loadBool(forKey: Self.Keys.almostMaximizeEnabled) { isAlmostMaximizeEnabled = v }
+        if let v = Self.loadBool(forKey: Self.Keys.reasonableSizeEnabled) { isReasonableSizeEnabled = v }
+        if let v = Self.loadBool(forKey: Self.Keys.makeLargerEnabled) { isMakeLargerEnabled = v }
+        if let v = Self.loadBool(forKey: Self.Keys.makeSmallerEnabled) { isMakeSmallerEnabled = v }
+        if let v = Self.loadBool(forKey: Self.Keys.moveNextDesktopEnabled) { isMoveNextDesktopEnabled = v }
+        if let v = Self.loadBool(forKey: Self.Keys.movePreviousDesktopEnabled) { isMovePreviousDesktopEnabled = v }
         if let v = Self.loadBool(forKey: Self.Keys.keyboardNavigation) { isKeyboardNavigationEnabled = v }
         if let v = Self.loadBool(forKey: Self.Keys.dockActionsOutsideMC) { isDockActionsOutsideMCEnabled = v }
         if let v = Self.loadBool(forKey: Self.Keys.gesturesEnabled) { isGesturesEnabled = v }
@@ -157,6 +190,14 @@ struct ShortcutConfiguration {
         isCmdNEnabled = false
         isCmdShiftWEnabled = false
         isCmdShiftTEnabled = false
+        isCloseWindowEnabled = false
+        isFillScreenEnabled = false
+        isAlmostMaximizeEnabled = false
+        isReasonableSizeEnabled = false
+        isMakeLargerEnabled = false
+        isMakeSmallerEnabled = false
+        isMoveNextDesktopEnabled = false
+        isMovePreviousDesktopEnabled = false
         isGesturesEnabled = true
         isPinchInEnabled = true
         isPinchOutEnabled = true
@@ -201,6 +242,14 @@ struct ShortcutConfiguration {
         static let cmdNEnabled = "mcsc.shortcuts.cmdN.enabled"
         static let cmdShiftWEnabled = "mcsc.shortcuts.cmdShiftW.enabled"
         static let cmdShiftTEnabled = "mcsc.shortcuts.cmdShiftT.enabled"
+        static let closeWindowEnabled = "mcsc.shortcuts.closeWindow.enabled"
+        static let fillScreenEnabled = "mcsc.shortcuts.fillScreen.enabled"
+        static let almostMaximizeEnabled = "mcsc.shortcuts.almostMaximize.enabled"
+        static let reasonableSizeEnabled = "mcsc.shortcuts.reasonableSize.enabled"
+        static let makeLargerEnabled = "mcsc.shortcuts.makeLarger.enabled"
+        static let makeSmallerEnabled = "mcsc.shortcuts.makeSmaller.enabled"
+        static let moveNextDesktopEnabled = "mcsc.shortcuts.moveNextDesktop.enabled"
+        static let movePreviousDesktopEnabled = "mcsc.shortcuts.movePreviousDesktop.enabled"
         static let keyboardNavigation = "mcsc.keyboardNavigation.enabled"
         static let dockActionsOutsideMC = "mcsc.dockActionsOutsideMC.enabled"
         static let gesturesEnabled = "mcsc.gestures.enabled"

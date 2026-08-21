@@ -73,6 +73,14 @@ final class ShortcutViewModel {
     var isCmdNEnabled: Bool { get { config.isCmdNEnabled } set { config.isCmdNEnabled = newValue } }
     var isCmdShiftWEnabled: Bool { get { config.isCmdShiftWEnabled } set { config.isCmdShiftWEnabled = newValue } }
     var isCmdShiftTEnabled: Bool { get { config.isCmdShiftTEnabled } set { config.isCmdShiftTEnabled = newValue } }
+    var isCloseWindowEnabled: Bool { get { config.isCloseWindowEnabled } set { config.isCloseWindowEnabled = newValue } }
+    var isFillScreenEnabled: Bool { get { config.isFillScreenEnabled } set { config.isFillScreenEnabled = newValue } }
+    var isAlmostMaximizeEnabled: Bool { get { config.isAlmostMaximizeEnabled } set { config.isAlmostMaximizeEnabled = newValue } }
+    var isReasonableSizeEnabled: Bool { get { config.isReasonableSizeEnabled } set { config.isReasonableSizeEnabled = newValue } }
+    var isMakeLargerEnabled: Bool { get { config.isMakeLargerEnabled } set { config.isMakeLargerEnabled = newValue } }
+    var isMakeSmallerEnabled: Bool { get { config.isMakeSmallerEnabled } set { config.isMakeSmallerEnabled = newValue } }
+    var isMoveNextDesktopEnabled: Bool { get { config.isMoveNextDesktopEnabled } set { config.isMoveNextDesktopEnabled = newValue } }
+    var isMovePreviousDesktopEnabled: Bool { get { config.isMovePreviousDesktopEnabled } set { config.isMovePreviousDesktopEnabled = newValue } }
     var isAutoEjectEnabled: Bool { get { config.isAutoEjectEnabled } set { config.isAutoEjectEnabled = newValue } }
     var isDockActionsOutsideMCEnabled: Bool { get { config.isDockActionsOutsideMCEnabled } set { config.isDockActionsOutsideMCEnabled = newValue } }
     var isGesturesEnabled: Bool { get { config.isGesturesEnabled } set { config.isGesturesEnabled = newValue } }
