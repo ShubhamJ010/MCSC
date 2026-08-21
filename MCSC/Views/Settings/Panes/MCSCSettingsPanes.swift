@@ -202,105 +202,208 @@ final class ShortcutSettingsPane: MCSCSettingsPane {
 // MARK: - Gestures
 
 final class GestureSettingsPane: MCSCSettingsPane {
+    /// Demo General pane caps the item column — keeps pop-ups from stretching edge-to-edge.
+    private static let itemColumnMaximumWidth: CGFloat = 220
+
+    private var layoutView: SettingsLayoutView?
     private var gesturesMasterCheckbox: NSButton!
-    private var pinchInCheckbox: NSButton!
-    private var pinchOutCheckbox: NSButton!
-    private var swipeLeftCheckbox: NSButton!
-    private var swipeRightCheckbox: NSButton!
-    private var swipeDownCheckbox: NSButton!
-    private var swipeUpCheckbox: NSButton!
-    private var twoFingerTapCheckbox: NSButton!
+
+    private struct GestureRow {
+        let kind: GestureKind
+        let section: SettingsColumnSectionView
+        let actionPopup: NSPopUpButton
+        let cmdActionPopup: NSPopUpButton
+        let enableSwitch: NSSwitch
+    }
+    private var gestureRows: [GestureRow] = []
 
     override func loadView() {
         view = NSView()
-
-        let layoutView = SettingsLayoutView()
-        layoutView.install(in: view)
-
-        let master = layoutView.addCheckboxSection(title: "Enable Gestures",
-                                                   description: "Master switch for all trackpad gesture recognition. Individual gestures can be toggled below.",
-                                                   target: self,
-                                                   action: #selector(toggleGestures(_:)))
-        gesturesMasterCheckbox = master.checkbox
-
-        layoutView.addSeparatorSection()
-
-        let trackpad = layoutView.addColumnSection(label: "Trackpad", itemColumnMaximumWidth: 380)
-        pinchInCheckbox = trackpad.addCheckbox(title: "Pinch In → Close / Quit",
-                                               target: self,
-                                               action: #selector(togglePinchIn(_:)))
-        pinchOutCheckbox = trackpad.addCheckbox(title: "Pinch Out → Fullscreen / New Window",
-                                                target: self,
-                                                action: #selector(togglePinchOut(_:)))
-        swipeLeftCheckbox = trackpad.addCheckbox(title: "Swipe Left → Close Tab (Cmd: Close All Cmd⌥W)",
-                                                 target: self,
-                                                 action: #selector(toggleSwipeLeft(_:)))
-        swipeRightCheckbox = trackpad.addCheckbox(title: "Swipe Right → Reopen Tab (Cmd: New Window Cmd⌥N)",
-                                                  target: self,
-                                                  action: #selector(toggleSwipeRight(_:)))
-        swipeDownCheckbox = trackpad.addCheckbox(title: "Swipe Down → Make Larger (+33%)",
-                                                 target: self,
-                                                 action: #selector(toggleSwipeDown(_:)))
-        swipeUpCheckbox = trackpad.addCheckbox(title: "Swipe Up → Minimize",
-                                               target: self,
-                                               action: #selector(toggleSwipeUp(_:)))
-        twoFingerTapCheckbox = trackpad.addCheckbox(title: "2-Finger Double Tap → Resize",
-                                                    target: self,
-                                                    action: #selector(toggleTwoFingerDoubleTap(_:)))
-
+        buildSections()
         sizePaneToFitContent(minimumWidth: Self.minimumPaneWidth)
         refresh()
     }
 
+    private func buildSections() {
+        let layoutView = SettingsLayoutView()
+        layoutView.install(in: view)
+        self.layoutView = layoutView
+
+        // Master switch — full-width checkbox with description, like DemoViewControllers General "Startup"
+        let master = layoutView.addCheckboxSection(title: "Enable Gestures",
+                                                   description: "Master switch for all trackpad gesture recognition. Individual gestures can be toggled below.",
+                                                   identifier: .init("Master"),
+                                                   target: self,
+                                                   action: #selector(toggleGestures(_:)))
+        gesturesMasterCheckbox = master.checkbox
+
+        layoutView.addSeparatorSection(identifier: .init("Sep.Master"))
+
+        // One column section per gesture — label in the label column, popup + checkbox accessory in the item column,
+        // ⌘ variant as a second stacked item. Splitting into Pinch / Swipe / Tap groups with
+        // separators mirrors the demo's section grouping and breaks up the 7-row wall (Guide/#sections).
+        var gestureIndex = 0
+        func addGestureRow(kind: GestureKind) {
+            let isFirst = (gestureIndex == 0)
+            let section = layoutView.addColumnSection(label: kind.displayName,
+                                                      itemColumnMaximumWidth: isFirst ? Self.itemColumnMaximumWidth : nil,
+                                                      identifier: .init(kind.rawValue))
+
+            // Primary action — .small matches the ⌘ row so the two pop-ups share a baseline grid
+            let popup = section.addPopUpButton(controlSize: .small, target: self, action: #selector(actionChanged(_:)))
+            for action in GestureAction.allCases {
+                popup.addItem(withTitle: action.menuTitle)
+                popup.lastItem?.representedObject = action.rawValue
+            }
+            popup.tag = gestureIndex
+
+            // Toggle — wire-frame demo uses DemoSwitch (Toggle .switch); NSSwitch is the AppKit
+            // equivalent without SwiftUI overhead (fits memory ceiling). Mirrors
+            // DemoViewControllers Wireframes section: trailing accessory, centerY aligned.
+            let toggle = NSSwitch()
+            toggle.target = self
+            toggle.action = #selector(toggleGestureEnabled(_:))
+            toggle.controlSize = NSControl.ControlSize.small
+            toggle.tag = gestureIndex
+            section.addAccessoryView(toggle, to: popup, spacing: 12)
+
+            // Small breathing gap between the plain and ⌘ rows — ~2mm less than before:
+            // keep visual separation but reduce by ~2pt. Gap view (2pt) + itemSpacing (6pt) ≈ 8pt.
+            let gapView = NSView(frame: .zero)
+            gapView.translatesAutoresizingMaskIntoConstraints = false
+            gapView.heightAnchor.constraint(equalToConstant: 2).isActive = true
+            section.addCustomView(gapView, verticalAlignment: .centerY)
+            // gap takes no column-width vote (clear color, non-contributing) — we lower its hugging
+            // so it doesn't widen the item column
+            gapView.setContentHuggingPriority(.defaultLow, for: .horizontal)
+            gapView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+            // ⌘ variant — second stacked item, same .small size, dimmed secondary label
+            let cmdRow = NSStackView()
+            cmdRow.orientation = .horizontal
+            cmdRow.spacing = 4
+            cmdRow.alignment = .centerY
+
+            let cmdLabel = NSTextField(labelWithString: "⌘")
+            cmdLabel.font = .boldSystemFont(ofSize: 14)
+            cmdLabel.textColor = .secondaryLabelColor
+            cmdLabel.setContentHuggingPriority(.required, for: .horizontal)
+
+            let cmdPopup = NSPopUpButton(frame: .zero, pullsDown: false)
+            cmdPopup.controlSize = .small
+            SettingsSectionView.applyControlSize(.small, to: cmdPopup)
+            cmdPopup.target = self
+            cmdPopup.action = #selector(cmdActionChanged(_:))
+            cmdPopup.tag = gestureIndex
+            for action in GestureAction.allCases {
+                cmdPopup.addItem(withTitle: action.menuTitle)
+                cmdPopup.lastItem?.representedObject = action.rawValue
+            }
+
+            cmdRow.addArrangedSubview(cmdLabel)
+            cmdRow.addArrangedSubview(cmdPopup)
+            cmdPopup.setContentHuggingPriority(.defaultHigh, for: .horizontal)
+
+            section.addCustomView(cmdRow, verticalAlignment: .centerY)
+
+            gestureRows.append(GestureRow(kind: kind, section: section, actionPopup: popup, cmdActionPopup: cmdPopup, enableSwitch: toggle))
+            gestureIndex += 1
+        }
+
+        // Group: Pinch (2)
+        addGestureRow(kind: .pinchIn)
+        addGestureRow(kind: .pinchOut)
+        layoutView.addSeparatorSection(identifier: .init("Sep.Pinch"))
+        // Group: Swipe (4) — the bulk of the pane
+        addGestureRow(kind: .swipeLeft)
+        addGestureRow(kind: .swipeRight)
+        addGestureRow(kind: .swipeDown)
+        addGestureRow(kind: .swipeUp)
+        layoutView.addSeparatorSection(identifier: .init("Sep.Swipe"))
+        // Group: Tap (1)
+        addGestureRow(kind: .twoFingerDoubleTap)
+
+        layoutView.addSeparatorSection(identifier: .init("Sep.Restore"))
+
+        layoutView.addButtonSection(title: "Restore Defaults",
+                                    controlSize: .regular,
+                                    alignment: .trailing,
+                                    widthMode: .contentBlock,
+                                    identifier: .init("RestoreDefaults"),
+                                    target: self,
+                                    action: #selector(restoreDefaults(_:)))
+    }
+
     override func refresh() {
         gesturesMasterCheckbox?.state = viewModel.isGesturesEnabled ? .on : .off
-        pinchInCheckbox?.state = viewModel.isPinchInEnabled ? .on : .off
-        pinchOutCheckbox?.state = viewModel.isPinchOutEnabled ? .on : .off
-        swipeLeftCheckbox?.state = viewModel.isSwipeLeftEnabled ? .on : .off
-        swipeRightCheckbox?.state = viewModel.isSwipeRightEnabled ? .on : .off
-        swipeDownCheckbox?.state = viewModel.isSwipeDownEnabled ? .on : .off
-        swipeUpCheckbox?.state = viewModel.isSwipeUpEnabled ? .on : .off
-        twoFingerTapCheckbox?.state = viewModel.isTwoFingerDoubleTapEnabled ? .on : .off
+
+        let masterOn = viewModel.isGesturesEnabled
+        for row in gestureRows {
+            let kindEnabled: Bool = {
+                switch row.kind {
+                case .pinchIn: return viewModel.isPinchInEnabled
+                case .pinchOut: return viewModel.isPinchOutEnabled
+                case .swipeLeft: return viewModel.isSwipeLeftEnabled
+                case .swipeRight: return viewModel.isSwipeRightEnabled
+                case .swipeDown: return viewModel.isSwipeDownEnabled
+                case .swipeUp: return viewModel.isSwipeUpEnabled
+                case .twoFingerDoubleTap: return viewModel.isTwoFingerDoubleTapEnabled
+                }
+            }()
+            let rowEnabled = masterOn && kindEnabled
+            row.enableSwitch.state = kindEnabled ? .on : .off
+            row.enableSwitch.isEnabled = masterOn
+            row.actionPopup.isEnabled = rowEnabled
+            row.cmdActionPopup.isEnabled = rowEnabled
+
+            let plainAction = viewModel.gestureAction(for: row.kind, isCmd: false)
+            let cmdAction = viewModel.gestureAction(for: row.kind, isCmd: true)
+            if let idx = row.actionPopup.itemArray.firstIndex(where: { ($0.representedObject as? String) == plainAction.rawValue }) {
+                row.actionPopup.selectItem(at: idx)
+            }
+            if let idx = row.cmdActionPopup.itemArray.firstIndex(where: { ($0.representedObject as? String) == cmdAction.rawValue }) {
+                row.cmdActionPopup.selectItem(at: idx)
+            }
+        }
+    }
+
+    private func setGestureEnabled(_ kind: GestureKind, enabled: Bool) {
+        switch kind {
+        case .pinchIn: viewModel.isPinchInEnabled = enabled
+        case .pinchOut: viewModel.isPinchOutEnabled = enabled
+        case .swipeLeft: viewModel.isSwipeLeftEnabled = enabled
+        case .swipeRight: viewModel.isSwipeRightEnabled = enabled
+        case .swipeDown: viewModel.isSwipeDownEnabled = enabled
+        case .swipeUp: viewModel.isSwipeUpEnabled = enabled
+        case .twoFingerDoubleTap: viewModel.isTwoFingerDoubleTapEnabled = enabled
+        }
     }
 
     @objc private func toggleGestures(_ sender: NSButton) {
         viewModel.isGesturesEnabled.toggle()
         sender.state = viewModel.isGesturesEnabled ? .on : .off
+        refresh()
     }
 
-    @objc private func togglePinchIn(_ sender: NSButton) {
-        viewModel.isPinchInEnabled.toggle()
-        sender.state = viewModel.isPinchInEnabled ? .on : .off
+    @objc private func toggleGestureEnabled(_ sender: NSSwitch) {
+        guard let kind = GestureKind.allCases[safe: sender.tag] else { return }
+        let enabled = (sender.state == .on)
+        setGestureEnabled(kind, enabled: enabled)
+        refresh()
     }
 
-    @objc private func togglePinchOut(_ sender: NSButton) {
-        viewModel.isPinchOutEnabled.toggle()
-        sender.state = viewModel.isPinchOutEnabled ? .on : .off
+    @objc private func actionChanged(_ sender: NSPopUpButton) {
+        guard let kind = GestureKind.allCases[safe: sender.tag],
+              let raw = sender.selectedItem?.representedObject as? String,
+              let action = GestureAction(rawValue: raw) else { return }
+        viewModel.setGestureAction(action, for: kind, isCmd: false)
     }
 
-    @objc private func toggleSwipeLeft(_ sender: NSButton) {
-        viewModel.isSwipeLeftEnabled.toggle()
-        sender.state = viewModel.isSwipeLeftEnabled ? .on : .off
-    }
-
-    @objc private func toggleSwipeRight(_ sender: NSButton) {
-        viewModel.isSwipeRightEnabled.toggle()
-        sender.state = viewModel.isSwipeRightEnabled ? .on : .off
-    }
-
-    @objc private func toggleSwipeDown(_ sender: NSButton) {
-        viewModel.isSwipeDownEnabled.toggle()
-        sender.state = viewModel.isSwipeDownEnabled ? .on : .off
-    }
-
-    @objc private func toggleSwipeUp(_ sender: NSButton) {
-        viewModel.isSwipeUpEnabled.toggle()
-        sender.state = viewModel.isSwipeUpEnabled ? .on : .off
-    }
-
-    @objc private func toggleTwoFingerDoubleTap(_ sender: NSButton) {
-        viewModel.isTwoFingerDoubleTapEnabled.toggle()
-        sender.state = viewModel.isTwoFingerDoubleTapEnabled ? .on : .off
+    @objc private func cmdActionChanged(_ sender: NSPopUpButton) {
+        guard let kind = GestureKind.allCases[safe: sender.tag],
+              let raw = sender.selectedItem?.representedObject as? String,
+              let action = GestureAction(rawValue: raw) else { return }
+        viewModel.setGestureAction(action, for: kind, isCmd: true)
     }
 
     @objc private func restoreDefaults(_ sender: NSButton) {
@@ -312,7 +415,14 @@ final class GestureSettingsPane: MCSCSettingsPane {
         viewModel.isSwipeDownEnabled = true
         viewModel.isSwipeUpEnabled = true
         viewModel.isTwoFingerDoubleTapEnabled = true
+        viewModel.resetGestureMappings()
         refreshAllPanes()
+    }
+}
+
+private extension Collection {
+    subscript(safe index: Index) -> Element? {
+        indices.contains(index) ? self[index] : nil
     }
 }
 

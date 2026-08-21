@@ -6,7 +6,7 @@ enum ResolvedGestureAction {
 }
 
 /// Routes gesture recognition results to their corresponding actions
-/// based on the target element under cursor.
+/// based on the target element under cursor and the user's configured mappings.
 final class GestureActionRouter {
     private let actions: ActionRegistry
 
@@ -21,251 +21,217 @@ final class GestureActionRouter {
         service: AccessibilityServiceProtocol,
         volumeService: MountedVolumeServiceProtocol? = nil,
         isAutoEjectEnabled: Bool = true,
+        config: ShortcutConfiguration = ShortcutConfiguration(),
         activateApp: @escaping (CGPoint) -> Void
     ) -> ResolvedGestureAction {
-        switch result {
-        case .pinchIn:
-            switch target {
-            case .dock(let app):
-                return .execute(feedbackMode: .close, haptic: .pinchIn) { [weak self] in
-                    self?.actions.closeAppAction.perform(app: app, service: service)
-                }
-            case .window(let window):
-                if isAutoEjectEnabled,
-                   let volumeService = volumeService,
-                   let targetApp = service.getAppFromElement(window),
-                   targetApp.bundleIdentifier == "com.apple.finder",
-                   let mountPath = volumeService.ejectableVolumePath(
-                       forDocumentPath: service.getDocumentPath(for: window),
-                       windowTitle: service.getWindowTitle(for: window)
-                   ) {
-                    return .execute(feedbackMode: .eject, haptic: .pinchIn) { [weak self] in
-                        self?.actions.ejectVolumeAction.perform(
-                            window: window,
-                            mountPath: mountPath,
-                            service: service,
-                            volumeService: volumeService
-                        )
-                    }
-                }
-                return .execute(feedbackMode: .close, haptic: .pinchIn) { [weak self] in
-                    self?.actions.closeAction.perform(at: point, service: service)
-                }
-            case .none:
-                return .none
-            }
+        let (kind, isCmd) = result.kindAndModifier
+        let haptic = kind.haptic(isCmd: isCmd)
 
-        case .cmdPinchIn:
-            switch target {
-            case .dock(let app):
-                return .execute(feedbackMode: .quit, haptic: .pinchIn) { [weak self] in
-                    self?.actions.forceQuitAppAction.perform(app: app)
-                }
-            case .window(let window):
-                if isAutoEjectEnabled,
-                   let volumeService = volumeService,
-                   let targetApp = service.getAppFromElement(window),
-                   targetApp.bundleIdentifier == "com.apple.finder",
-                   let mountPath = volumeService.ejectableVolumePath(
-                       forDocumentPath: service.getDocumentPath(for: window),
-                       windowTitle: service.getWindowTitle(for: window)
-                   ) {
-                    return .execute(feedbackMode: .eject, haptic: .pinchIn) { [weak self] in
-                        self?.actions.ejectVolumeAction.perform(
-                            window: window,
-                            mountPath: mountPath,
-                            service: service,
-                            volumeService: volumeService
-                        )
-                    }
-                }
-                return .execute(feedbackMode: .quit, haptic: .pinchIn) { [weak self] in
-                    self?.actions.forceQuitAction.perform(at: point, service: service)
-                }
-            case .none:
-                return .none
+        // Eject intercept (Finder window with ejectable volume) takes priority for
+        // pinch-in and plain swipe-left — mirrors legacy behaviour.
+        let shouldCheckEject: Bool = {
+            switch (kind, isCmd) {
+            case (.pinchIn, _): return true
+            case (.swipeLeft, false): return true
+            default: return false
             }
+        }()
+        if shouldCheckEject,
+           isAutoEjectEnabled,
+           case .window(let window) = target,
+           let volumeService = volumeService,
+           let targetApp = service.getAppFromElement(window),
+           targetApp.bundleIdentifier == "com.apple.finder",
+           let mountPath = volumeService.ejectableVolumePath(
+               forDocumentPath: service.getDocumentPath(for: window),
+               windowTitle: service.getWindowTitle(for: window)
+           ) {
+            return .execute(feedbackMode: .eject, haptic: haptic) { [weak self] in
+                self?.actions.ejectVolumeAction.perform(
+                    window: window,
+                    mountPath: mountPath,
+                    service: service,
+                    volumeService: volumeService
+                )
+            }
+        }
 
-        case .swipeLeft:
-            switch target {
-            case .dock(let app):
-                return .execute(feedbackMode: .closeTab, haptic: .swipeLeft) { [weak self] in
-                    activateApp(point)
-                    self?.actions.closeTabAppAction.perform(app: app, service: service)
-                }
-            case .window(let window):
-                if isAutoEjectEnabled,
-                   let volumeService = volumeService,
-                   let targetApp = service.getAppFromElement(window),
-                   targetApp.bundleIdentifier == "com.apple.finder",
-                   let mountPath = volumeService.ejectableVolumePath(
-                       forDocumentPath: service.getDocumentPath(for: window),
-                       windowTitle: service.getWindowTitle(for: window)
-                   ) {
-                    return .execute(feedbackMode: .eject, haptic: .swipeLeft) { [weak self] in
-                        self?.actions.ejectVolumeAction.perform(
-                            window: window,
-                            mountPath: mountPath,
-                            service: service,
-                            volumeService: volumeService
-                        )
-                    }
-                }
-                return .execute(feedbackMode: .closeTab, haptic: .swipeLeft) { [weak self] in
-                    activateApp(point)
-                    self?.actions.closeTabAction.perform(at: point, service: service)
-                }
-            case .none:
-                return .none
-            }
+        let action = config.action(for: kind, isCmd: isCmd)
+        let feedbackMode = feedbackMode(for: action)
+        // Swipe-left auto-activates target app before closing tab (legacy).
+        let needsActivate = (kind == .swipeLeft && !isCmd)
 
-        case .cmdSwipeLeft:
-            switch target {
-            case .window, .dock:
-                return .execute(feedbackMode: .closeAllTabs, haptic: .swipeLeft) { [weak self] in
-                    self?.actions.closeAllTabsAction.perform(at: point, service: service)
-                }
-            case .none:
-                return .none
-            }
+        switch target {
+        case .none:
+            return .none
+        case .dock(let app):
+            return dockAction(for: action, app: app, point: point, service: service, feedbackMode: feedbackMode, haptic: haptic, needsActivate: needsActivate, activateApp: activateApp)
+        case .window:
+            return windowAction(for: action, point: point, service: service, feedbackMode: feedbackMode, haptic: haptic, needsActivate: needsActivate, activateApp: activateApp)
+        }
+    }
 
-        case .swipeRight:
-            switch target {
-            case .dock(let app):
-                return .execute(feedbackMode: .reopenTab, haptic: .swipeRight) { [weak self] in
-                    self?.actions.reopenTabAppAction.perform(app: app)
-                }
-            case .window:
-                return .execute(feedbackMode: .reopenTab, haptic: .swipeRight) { [weak self] in
-                    self?.actions.reopenTabAction.perform(at: point, service: service)
-                }
-            case .none:
-                return .none
-            }
+    // MARK: - Action dispatch per target
 
-        case .cmdSwipeRight:
-            switch target {
-            case .window:
-                return .execute(feedbackMode: .newTab, haptic: .swipeRight) { [weak self] in
-                    self?.actions.newTabAction.perform(at: point, service: service)
-                }
-            case .dock:
-                // Dock has no window to add a tab to — fall back to new window
-                return .execute(feedbackMode: .newWindow, haptic: .swipeRight) { [weak self] in
-                    self?.actions.newWindowAction.perform(at: point, service: service)
-                }
-            case .none:
-                return .none
+    private func dockAction(
+        for action: GestureAction,
+        app: NSRunningApplication,
+        point: CGPoint,
+        service: AccessibilityServiceProtocol,
+        feedbackMode: CursorFeedbackOverlay.Mode,
+        haptic: HapticType,
+        needsActivate: Bool,
+        activateApp: @escaping (CGPoint) -> Void
+    ) -> ResolvedGestureAction {
+        switch action {
+        case .closeWindow:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                self?.actions.closeAppAction.perform(app: app, service: service)
             }
+        case .quitApp:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                self?.actions.forceQuitAppAction.perform(app: app)
+            }
+        case .closeTab:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                if needsActivate { activateApp(point) }
+                self?.actions.closeTabAppAction.perform(app: app, service: service)
+            }
+        case .closeAllTabs:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                self?.actions.closeAllTabsAction.perform(at: point, service: service)
+            }
+        case .reopenTab:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                self?.actions.reopenTabAppAction.perform(app: app)
+            }
+        case .newTab:
+            // Dock has no window to add a tab to — fall back to new window.
+            return .execute(feedbackMode: .newWindow, haptic: haptic) { [weak self] in
+                self?.actions.newWindowAction.perform(at: point, service: service)
+            }
+        case .newWindow:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                self?.actions.newWindowAction.perform(at: point, service: service)
+            }
+        case .toggleFullscreen:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                self?.actions.toggleFullscreenAppAction.perform(app: app, service: service)
+            }
+        case .fillScreen:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                self?.actions.fillScreenAppAction.perform(app: app, service: service)
+            }
+        case .almostMaximize:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                self?.actions.almostMaximizeAppAction.perform(app: app, service: service)
+            }
+        case .makeLarger:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                self?.actions.makeLargerAppAction.perform(app: app, service: service)
+            }
+        case .reasonableSize:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                self?.actions.reasonableSizeAppAction.perform(app: app, service: service)
+            }
+        case .minimize:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                self?.actions.minimizeAppAction.perform(app: app, service: service)
+            }
+        case .hideApp:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                guard self != nil else { return }
+                app.hide()
+            }
+        }
+    }
 
-        case .swipeDown:
-            switch target {
-            case .dock(let app):
-                return .execute(feedbackMode: .maximize, haptic: .swipeDown) { [weak self] in
-                    self?.actions.fillScreenAppAction.perform(app: app, service: service)
-                }
-            case .window:
-                return .execute(feedbackMode: .maximize, haptic: .swipeDown) { [weak self] in
-                    self?.actions.fillScreenAction.perform(at: point, service: service)
-                }
-            case .none:
-                return .none
+    private func windowAction(
+        for action: GestureAction,
+        point: CGPoint,
+        service: AccessibilityServiceProtocol,
+        feedbackMode: CursorFeedbackOverlay.Mode,
+        haptic: HapticType,
+        needsActivate: Bool,
+        activateApp: @escaping (CGPoint) -> Void
+    ) -> ResolvedGestureAction {
+        switch action {
+        case .closeWindow:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                self?.actions.closeAction.perform(at: point, service: service)
             }
+        case .quitApp:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                self?.actions.forceQuitAction.perform(at: point, service: service)
+            }
+        case .closeTab:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                if needsActivate { activateApp(point) }
+                self?.actions.closeTabAction.perform(at: point, service: service)
+            }
+        case .closeAllTabs:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                self?.actions.closeAllTabsAction.perform(at: point, service: service)
+            }
+        case .reopenTab:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                self?.actions.reopenTabAction.perform(at: point, service: service)
+            }
+        case .newTab:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                self?.actions.newTabAction.perform(at: point, service: service)
+            }
+        case .newWindow:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                self?.actions.newWindowAction.perform(at: point, service: service)
+            }
+        case .toggleFullscreen:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                self?.actions.toggleFullscreenAction.perform(at: point, service: service)
+            }
+        case .fillScreen:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                self?.actions.fillScreenAction.perform(at: point, service: service)
+            }
+        case .almostMaximize:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                self?.actions.almostMaximizeAction.perform(at: point, service: service)
+            }
+        case .makeLarger:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                self?.actions.makeLargerAction.perform(at: point, service: service)
+            }
+        case .reasonableSize:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                self?.actions.reasonableSizeAction.perform(at: point, service: service)
+            }
+        case .minimize:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                self?.actions.minimizeAction.perform(at: point, service: service)
+            }
+        case .hideApp:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                self?.actions.hideAction.perform(at: point, service: service)
+            }
+        }
+    }
 
-        case .cmdSwipeDown:
-            switch target {
-            case .dock(let app):
-                return .execute(feedbackMode: .maximize, haptic: .swipeDown) { [weak self] in
-                    self?.actions.makeLargerAppAction.perform(app: app, service: service)
-                }
-            case .window:
-                return .execute(feedbackMode: .maximize, haptic: .swipeDown) { [weak self] in
-                    self?.actions.makeLargerAction.perform(at: point, service: service)
-                }
-            case .none:
-                return .none
-            }
-
-        case .swipeUp:
-            switch target {
-            case .dock(let app):
-                return .execute(feedbackMode: .minimize, haptic: .swipeUp) { [weak self] in
-                    self?.actions.minimizeAppAction.perform(app: app, service: service)
-                }
-            case .window:
-                return .execute(feedbackMode: .minimize, haptic: .swipeUp) { [weak self] in
-                    self?.actions.minimizeAction.perform(at: point, service: service)
-                }
-            case .none:
-                return .none
-            }
-
-        case .cmdSwipeUp:
-            switch target {
-            case .dock(let app):
-                return .execute(feedbackMode: .hide, haptic: .swipeUp) { [weak self] in
-                    guard self != nil else { return }
-                    app.hide()
-                }
-            case .window:
-                return .execute(feedbackMode: .hide, haptic: .swipeUp) { [weak self] in
-                    self?.actions.hideAction.perform(at: point, service: service)
-                }
-            case .none:
-                return .none
-            }
-
-        case .twoFingerDoubleTap:
-            switch target {
-            case .dock(let app):
-                return .execute(feedbackMode: .reasonable, haptic: .twoFingerDoubleTap) { [weak self] in
-                    self?.actions.reasonableSizeAppAction.perform(app: app, service: service)
-                }
-            case .window:
-                return .execute(feedbackMode: .reasonable, haptic: .twoFingerDoubleTap) { [weak self] in
-                    self?.actions.reasonableSizeAction.perform(at: point, service: service)
-                }
-            case .none:
-                return .none
-            }
-
-        case .cmdTwoFingerDoubleTap:
-            switch target {
-            case .dock(let app):
-                return .execute(feedbackMode: .almost, haptic: .cmdTwoFingerDoubleTap) { [weak self] in
-                    self?.actions.almostMaximizeAppAction.perform(app: app, service: service)
-                }
-            case .window:
-                return .execute(feedbackMode: .almost, haptic: .cmdTwoFingerDoubleTap) { [weak self] in
-                    self?.actions.almostMaximizeAction.perform(at: point, service: service)
-                }
-            case .none:
-                return .none
-            }
-
-        case .pinchOut:
-            switch target {
-            case .dock(let app):
-                return .execute(feedbackMode: .fullscreen, haptic: .pinchOut) { [weak self] in
-                    self?.actions.toggleFullscreenAppAction.perform(app: app, service: service)
-                }
-            case .window:
-                return .execute(feedbackMode: .fullscreen, haptic: .pinchOut) { [weak self] in
-                    self?.actions.toggleFullscreenAction.perform(at: point, service: service)
-                }
-            case .none:
-                return .none
-            }
-
-        case .cmdPinchOut:
-            switch target {
-            case .window, .dock:
-                return .execute(feedbackMode: .newWindow, haptic: .pinchOut) { [weak self] in
-                    self?.actions.newWindowAction.perform(at: point, service: service)
-                }
-            case .none:
-                return .none
-            }
+    private func feedbackMode(for action: GestureAction) -> CursorFeedbackOverlay.Mode {
+        switch action {
+        case .closeWindow: return .close
+        case .quitApp: return .quit
+        case .closeTab: return .closeTab
+        case .closeAllTabs: return .closeAllTabs
+        case .reopenTab: return .reopenTab
+        case .newTab: return .newTab
+        case .newWindow: return .newWindow
+        case .toggleFullscreen: return .fullscreen
+        case .fillScreen: return .maximize
+        case .almostMaximize: return .almost
+        case .makeLarger: return .maximize
+        case .reasonableSize: return .reasonable
+        case .minimize: return .minimize
+        case .hideApp: return .hide
         }
     }
 }

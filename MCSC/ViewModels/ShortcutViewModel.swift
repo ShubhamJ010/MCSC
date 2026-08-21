@@ -75,6 +75,11 @@ final class ShortcutViewModel {
     var isTwoFingerDoubleTapEnabled: Bool { get { config.isTwoFingerDoubleTapEnabled } set { config.isTwoFingerDoubleTapEnabled = newValue } }
     var isKeyboardNavigationEnabled: Bool { get { config.isKeyboardNavigationEnabled } set { config.isKeyboardNavigationEnabled = newValue } }
 
+    // Gesture action mappings
+    func gestureAction(for kind: GestureKind, isCmd: Bool) -> GestureAction { config.action(for: kind, isCmd: isCmd) }
+    func setGestureAction(_ action: GestureAction, for kind: GestureKind, isCmd: Bool) { config.setAction(action, for: kind, isCmd: isCmd) }
+    func resetGestureMappings() { config.resetGestureMappings() }
+
     var isHoverCloseButtonEnabled: Bool {
         get { hoverService.isEnabled }
         set { hoverService.isEnabled = newValue }
@@ -226,6 +231,7 @@ final class ShortcutViewModel {
                 service: self.accessibilityService,
                 volumeService: self.volumeService,
                 isAutoEjectEnabled: self.config.isAutoEjectEnabled,
+                config: self.config,
                 activateApp: { [weak self] loc in self?.activateAppIfNeeded(at: loc) }
             )
 

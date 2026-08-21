@@ -378,9 +378,51 @@ final class SettingsColumnSectionView: SettingsSectionView {
         return button
     }
 
+    /// Pop-up button — mirrors DemoViewControllers.addPopUpButton usage.
+    @discardableResult
+    func addPopUpButton(controlSize: NSControl.ControlSize = .regular,
+                        target: AnyObject?,
+                        action: Selector?) -> NSPopUpButton {
+        let popUpButton = NSPopUpButton(frame: .zero, pullsDown: false)
+        popUpButton.target = target
+        popUpButton.action = action
+        Self.applyControlSize(controlSize, to: popUpButton)
+        appendItem(popUpButton, verticalAlignment: .firstBaseline, contributesToColumnWidth: true)
+        return popUpButton
+    }
+
     /// Arbitrary view.
     func addCustomView(_ view: NSView, verticalAlignment: SettingsItemVerticalAlignment = .firstBaseline) {
         appendItem(view, verticalAlignment: verticalAlignment, contributesToColumnWidth: true)
+    }
+
+    /// Attach an accessory view next to a previously added item — e.g. checkbox trailing a pop-up.
+    /// Follows upstream SettingsColumnSectionView.addAccessoryView semantics.
+    @discardableResult
+    func addAccessoryView(_ accessoryView: NSView,
+                          to item: NSView,
+                          spacing: CGFloat = SettingsLayoutMetrics.columnSpacing) -> NSView {
+        accessoryView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(accessoryView)
+
+        let pairGuide = NSLayoutGuide()
+        addLayoutGuide(pairGuide)
+
+        NSLayoutConstraint.activate([
+            accessoryView.centerYAnchor.constraint(equalTo: item.centerYAnchor),
+            accessoryView.leadingAnchor.constraint(equalTo: item.trailingAnchor, constant: spacing),
+            accessoryView.trailingAnchor.constraint(lessThanOrEqualTo: itemBoxGuide.trailingAnchor),
+            accessoryView.topAnchor.constraint(greaterThanOrEqualTo: topAnchor),
+            accessoryView.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor),
+
+            pairGuide.leadingAnchor.constraint(equalTo: item.leadingAnchor),
+            pairGuide.trailingAnchor.constraint(equalTo: accessoryView.trailingAnchor),
+            pairGuide.topAnchor.constraint(equalTo: topAnchor),
+            pairGuide.heightAnchor.constraint(equalToConstant: 0),
+            itemColumnWidthGuide.widthAnchor.constraint(greaterThanOrEqualTo: pairGuide.widthAnchor),
+        ])
+
+        return accessoryView
     }
 
     private func appendItem(_ item: NSView,
