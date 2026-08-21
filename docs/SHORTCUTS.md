@@ -63,13 +63,70 @@ These shortcuts work anywhere a window or app is targeted inside Mission Control
 Point at a window preview to act on that window, or point at a Dock item (app
 icon) to act on the whole app.
 
-| Shortcut | Window target | Dock (app) target |
-| --- | --- | --- |
-| `Cmd + W` | Close the window | Close the active tab in the app |
-| `Cmd + Q` | Force quit the app owning the window | Force quit the app |
-| `Cmd + M` | Minimize the window | Minimize all windows of the app |
-| `Cmd + H` | Hide the app owning the window | Hide the app |
-| `Cmd + Space` | Recover the Mission Control / Spotlight state (see below) | Same |
+| Shortcut | Window target | Dock (app) target | Default |
+| --- | --- | --- | --- |
+| `Cmd + W` | Close the window | Close the active tab in the app | ON |
+| `Cmd + Q` | Force quit the app owning the window | Force quit the app | ON |
+| `Cmd + M` | Minimize the window | Minimize all windows of the app | ON |
+| `Cmd + H` | Hide the app owning the window | Hide the app | ON |
+| `Cmd + F` | Toggle fullscreen (`kAXZoomButtonAttribute`) | Toggle fullscreen (all windows) | OFF |
+| `Cmd + T` | New tab (`Cmd+T`) | New window (`Cmd+N` fallback) | OFF |
+| `Cmd + N` | New window (`Cmd+N`) | New window (`Cmd+N`) | OFF |
+| `Cmd + Shift + W` | Close all tabs (`Cmd+Shift+W`) | Close all tabs | OFF |
+| `Cmd + Shift + T` | Reopen last closed tab (`Cmd+Shift+T`) | Reopen tab (to app) | OFF |
+| `Cmd + Space` | Recover the Mission Control / Spotlight state (see below) | Same | ON |
+
+> Config: `ShortcutConfiguration` (`mcsc.shortcuts.*`) — toggled in **Settings → Shortcuts** (`MCSC/Views/Settings/Panes/MCSCSettingsPanes.swift:142`). Window shortcuts require `Cmd` held without `Ctrl/Opt/Shift` (except the two `Cmd+Shift` combos). All require `isMissionControlActive || isDockActionsOutsideMCEnabled`.
+
+---
+
+## All 17 Actions — Categorized (Shortcut vs Gesture)
+
+Source of truth: `GestureAction` (`MCSC/Models/Gestures/GestureAction.swift:87`, `CaseIterable` 17) — every action is executable via **gesture** (re-mappable), only a subset has a **dedicated keyboard shortcut**. Routers: `ShortcutActionRouter.swift:32` (keyboard) vs `GestureActionRouter.swift:24` (trackpad).
+
+### Tab — `MCSC/Models/Actions/TabActions.swift:13`
+
+| Action | Keyboard | Gesture default | Window (`at:point`) | Dock (`app:`) |
+| --- | --- | --- | --- | --- |
+| `Close Tab` | `Cmd+W` (fallback when no tab strip) | `Swipe Left` plain | `CloseTabAction` — `findActiveTabCloseButton` else `Cmd+W` (`0x0D`) | `CloseTabAppAction` — keyWindow tab btn else `Cmd+W` |
+| `Close All Tabs` | `Cmd+Shift+W` | `Cmd+Swipe Left` | `CloseAllTabsAction` `Cmd+Shift+W` (`0x0D`) | same `at:point` |
+| `Reopen Tab` | `Cmd+Shift+T` | `Swipe Right` plain | `ReopenTabAction` `Cmd+Shift+T` (`0x11`) | `ReopenTabAppAction` `Cmd+Shift+T` to `pid` |
+| `New Tab` | `Cmd+T` (window only) | `Cmd+Swipe Right` | `NewTabAction` `Cmd+T` (`0x11`) | fallback → `NewWindowAction` `Cmd+N` (`GestureActionRouter.swift:108`) |
+
+### Window — `MCSC/Models/Actions/WindowActions/WindowControlActions.swift:3`
+
+| Action | Keyboard | Gesture default | Impl |
+| --- | --- | --- | --- |
+| `Close Window` | — (gesture-only) | `Pinch In` plain | `CloseWindowAction` `kAXCloseButtonAttribute` + `kAXPressAction` |
+| `Minimize` | `Cmd+M` | `Swipe Up` plain | `MinimizeWindowAction` `kAXMinimizeButtonAttribute` / `MinimizeAppAction` (dock: loops `kAXWindowsAttribute`) |
+| `Toggle Fullscreen` | `Cmd+F` (OFF) | `Pinch Out` plain | `ToggleFullscreenAction` `kAXZoomButtonAttribute` + `CoreDockSendNotification("com.apple.expose.awake")` |
+
+### Size — `MCSC/Models/Actions/WindowActions/SizeActions.swift:3` (`setFrame`, no shortcut posting)
+
+| Action | Keyboard | Gesture default | Impl |
+| --- | --- | --- | --- |
+| `Fill Screen` | — | `Swipe Down` plain | `FillScreenAction` `setFrame(axBounds)` full screen |
+| `Almost Maximize` | — | `Cmd+2-Finger Double Tap` | `AlmostMaximizeAction` `90.4×87.2%` centered |
+| `Reasonable Size` | — | `2-Finger Double Tap` plain | `ReasonableSizeAction` `60.4×58%` centered |
+| `Make Larger` | — | `Cmd+Swipe Down` | `MakeLargerAction` `×1.33` center-anchored, clamped |
+| `Make Smaller` | — | — (unbound) | `MakeSmallerAction` `÷1.33` (200×100 pt floor) — inverse of Make Larger |
+
+### App — `MCSC/Models/Actions/AppActions.swift:3`
+
+| Action | Keyboard | Gesture default | Impl |
+| --- | --- | --- | --- |
+| `Quit App` | `Cmd+Q` | `Cmd+Pinch In` | `ForceQuitAction` / `ForceQuitAppAction` `forceTerminate()` (self-kill guard) |
+| `Hide App` | `Cmd+H` | `Cmd+Swipe Up` | `HideApplicationAction` / `app.hide()` |
+| `New Window` | `Cmd+N` | `Cmd+Pinch Out` | `NewWindowAction` `Cmd+N` (`0x2D`) + `CoreDockSendNotification` |
+
+### Desktop (Space) — `MCSC/Models/Actions/WindowActions/DesktopNavigationActions.swift:16` (window drag)
+
+| Action | Keyboard | Gesture default | Impl |
+| --- | --- | --- | --- |
+| `Move to Next Desktop` | — | `Cmd+Swipe Right` alt (`naturalActions`) | `MoveWindowToDesktopAction(.next)` hold title bar (`40,12`) → `System Events` `Ctrl+→` (`124`) via `osascript` (~1.7s) |
+| `Move to Previous Desktop` | — | `Swipe Left` alt | `MoveWindowToDesktopAction(.previous)` `Ctrl+←` (`123`) |
+
+> **Summary:** 5 keyboard shortcuts ON by default (`W/Q/M/H/Space`), 5 extra OFF (`F/T/N/ShiftW/ShiftT`), 7 size/desktop actions are **gesture-only or unbound**. All 17 are re-mappable in **Settings → Gestures** (`GestureSettingsPane:338`, `naturalActions` filter `GestureAction.swift:63`); use `GestureAction.allCases` to allow any action on any gesture.
 
 > [!NOTE]
 > `Cmd + Q` and the Dock-target actions perform a **force** termination. They
@@ -159,9 +216,9 @@ does not dismiss prematurely, plays a haptic, and runs the selected action.
 ## Source references
 
 - Key handling and shortcut-to-action mapping:
-  `../MCSC/ViewModels/ShortcutViewModel.swift` + `../MCSC/ViewModels/Routing/ShortcutActionRouter.swift` (eject branch + `volumeService`)
-- Window- and app-level action implementations:
-  `../MCSC/Models/ShortcutActions.swift` + `../MCSC/Models/Actions/VolumeActions.swift` (`EjectVolumeAction`)
+  `../MCSC/ViewModels/ShortcutViewModel.swift` + `../MCSC/ViewModels/Routing/ShortcutActionRouter.swift` (eject branch + `volumeService`) + `../MCSC/ViewModels/Routing/GestureActionRouter.swift` + `../MCSC/Models/Gestures/GestureAction.swift` (17 `GestureAction`, `GestureKind.naturalActions`)
+- Action implementations (categorized):
+  `../MCSC/Models/Actions/TabActions.swift` (Tab 4) · `../MCSC/Models/Actions/WindowActions/WindowControlActions.swift` (Window 3) · `../MCSC/Models/Actions/WindowActions/SizeActions.swift` (Size 5) · `../MCSC/Models/Actions/AppActions.swift` (App 3) · `../MCSC/Models/Actions/WindowActions/DesktopNavigationActions.swift` (Space 2) + `../MCSC/Models/Actions/VolumeActions.swift` (`EjectVolumeAction`)
 - Mounted volume detection/ejection: `../MCSC/Services/Volume/MountedVolumeService.swift` (`MountedVolumeService`, `NSWorkspace.unmountAndEjectDevice`)
 - Accessibility document/title helpers: `../MCSC/Services/Accessibility/AccessibilityService.swift` (`getDocumentPath`, `getWindowTitle`)
 - Menu bar toggle: `../MCSC/App/AppDelegate.swift` (`Auto-Eject Mounted Volumes` → `ShortcutConfiguration.isAutoEjectEnabled`)

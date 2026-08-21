@@ -65,29 +65,29 @@ stateDiagram-v2
 
 ---
 
-## Gesture reference
+## Gesture reference — 7 Gestures × Plain + `Cmd` = 14 Bindings
 
 Point at a window preview to act on that window, or point at a Dock item (app
 icon) to act on the whole app. Holding `Command` while performing a gesture
-switches to the "command" variant listed in the right column.
+switches to the `Cmd` variant (right column). All 14 bindings are re-mappable in **Settings → Gestures**.
 
-| Gesture | Action | `Cmd` + gesture |
-| --- | --- | --- |
-| Pinch in | Close window / quit app | Force quit app |
-| Pinch out | Toggle fullscreen | New window (`Cmd + N`) |
-| Two-finger swipe left | Close active tab | Close all tabs (`Cmd + Shift + W`) |
-| Two-finger swipe right | Reopen closed tab | New tab (`Cmd + T`) / New window on Dock |
-| Two-finger swipe up | Minimize window | Hide application |
-| Two-finger swipe down | Fill screen | Make larger (+33%) |
-| Two-finger double tap | Reasonable size (60%) | Almost maximize (90%) |
+| # | Gesture (Kind) | Plain default | `Cmd` + gesture | Symbol | File |
+| --- | --- | --- | --- | --- | --- |
+| 1 | **Pinch In** (`pinchIn`) | `Close Window` | `Quit App` | `arrow.inward` | `PinchInRecognizer.swift` |
+| 2 | **Pinch Out** (`pinchOut`) | `Toggle Fullscreen` | `New Window` (`Cmd+N`) | `arrow.outward` | `PinchOutRecognizer.swift` |
+| 3 | **Swipe Left** (`swipeLeft`) | `Close Tab` | `Close All Tabs` (`Cmd+Shift+W`) | `arrow.left` | `TwoFingerSwipeLeftRecognizer.swift` |
+| 4 | **Swipe Right** (`swipeRight`) | `Reopen Tab` | `New Tab` (`Cmd+T`) / `New Window` on Dock | `arrow.right` | `TwoFingerSwipeRightRecognizer.swift` |
+| 5 | **Swipe Up** (`swipeUp`) | `Minimize` | `Hide App` | `arrow.up` | `SwipeRecognizer.swift` |
+| 6 | **Swipe Down** (`swipeDown`) | `Fill Screen` | `Make Larger` (+33%) | `arrow.down` | `SwipeRecognizer.swift` |
+| 7 | **2-Finger Double Tap** (`twoFingerDoubleTap`) | `Reasonable Size` (60%) | `Almost Maximize` (90%) | `hand.tap` | `TwoFingerDoubleTapRecognizer.swift` |
+
+Source: `GestureKind` (`MCSC/Models/Gestures/GestureAction.swift:8`, 7 cases) × `GestureDefaults` (`GestureAction.swift:136`, `plain`/`cmd` 14) · `HapticType` (`GestureKind.haptic:48`) · `GestureResult` (`Models/Gestures/GestureRecognizer.swift:4`, 14 cases).
 
 > [!NOTE]
-> **Make Smaller (−33%)** is an additional resize action available for **Pinch In**, **Swipe Down**, and **2-Finger Double Tap** (filtered to natural actions — not shown for unrelated gestures). It is not bound to a gesture by default. It shrinks the window from its center by ~33% using the inverse of Make Larger's 1.33 factor (÷1.33), clamped to a 200×100 pt minimum, so Make Larger → Make Smaller restores the original size. Point at a window preview to act on that window, or at a Dock item to act on the whole app.
+> **Make Smaller (−33%)** is a 5th size action (`SizeActions.swift:61`) available for **Pinch In**, **Swipe Down**, and **2-Finger Double Tap** via `naturalActions` but **unbound by default** (no default `GestureDefaults` entry). It shrinks via `÷1.33` clamped to 200×100 pt — inverse of `Make Larger` so `Larger → Smaller` restores size. Also selectable for any gesture if you change `Settings → Gestures` popup filter from `kind.naturalActions` (`GestureAction.swift:63`) to `GestureAction.allCases` (`MCSCSettingsPanes.swift:388`).
 
 > [!NOTE]
-> The swipe-down pair looks similar but is not identical. Without `Command` it
-> expands the window to **fill the screen**; with `Command` it grows the window
-> by **33%** from its center. Both show the maximize symbol at the cursor.
+> Swipe-down pair: plain = **fill screen** (`setFrame(axBounds)`), `Cmd` = **+33%** (`MakeLargerAction` `×1.33` center-anchored). Both show `rectangle.fill` maximize symbol.
 
 ### Target resolution
 
@@ -155,15 +155,30 @@ When the cursor is over a **Finder window showing an ejectable/removable volume*
 - **Ejection:** `EjectVolumeAction` → `MountedVolumeService.ejectVolume(at:)` (`NSWorkspace.unmountAndEjectDevice`).
   See [SHORTCUTS.md](./SHORTCUTS.md) for the full detection and toggle details.
 
-| Recognizer | File |
-|------------|------|
-| `PinchInRecognizer` | `PinchInRecognizer.swift` |
-| `PinchOutRecognizer` | `PinchOutRecognizer.swift` |
-| `SwipeRecognizer` (up+down) | `SwipeRecognizer.swift` |
-| `TwoFingerSwipeLeft/Right` | `TwoFingerSwipe*.swift` |
-| `TwoFingerDoubleTap` | `TwoFingerDoubleTapRecognizer.swift` |
+#### All 17 Actions — What Gestures Can Trigger
 
-Registration order: `DoubleTap → PinchIn → PinchOut → SwipeLeft → SwipeRight → Swipe` (`ShortcutViewModel.swift:134`).
+Gestures can trigger **any** of the 17 `GestureAction` (`GestureAction.swift:87`), but Settings filters popups to `kind.naturalActions` (`GestureAction.swift:63`) for natural UX:
+
+| Category | Actions (17) | Natural gestures |
+| --- | --- | --- |
+| **Tab** (4) | `Close Tab`, `Close All Tabs`, `Reopen Tab`, `New Tab` | Swipe Left/Right |
+| **Window** (3) | `Close Window`, `Minimize`, `Toggle Fullscreen` | Pinch In/Out, Swipe Up |
+| **Size** (5) — `WindowActions/SizeActions.swift:3` | `Fill Screen`, `Almost Maximize`, `Reasonable Size`, `Make Larger`, `Make Smaller` | Pinch In/Out, Swipe Down, 2FTap |
+| **App** (3) | `Quit App`, `Hide App`, `New Window` | Pinch In/Out, Swipe Up |
+| **Desktop** (2) — `WindowActions/DesktopNavigationActions.swift:16` | `Move to Next Desktop`, `Move to Previous Desktop` | Swipe Left/Right |
+
+Full definitions: `WindowActions/WindowControlActions.swift:3` (chrome) · `WindowActions/SizeActions.swift:3` (tiling `setFrame`) · `TabActions.swift:13` · `AppActions.swift:3` · `WindowActions/DesktopNavigationActions.swift:16`. See `SHORTCUTS.md` for categorized tables with keyboard equivalents.
+
+| Recognizer | File | `GestureKind` |
+|------------|------|---------------|
+| `TwoFingerDoubleTapRecognizer` | `TwoFingerDoubleTapRecognizer.swift` | `twoFingerDoubleTap` |
+| `PinchInRecognizer` | `PinchInRecognizer.swift` | `pinchIn` |
+| `PinchOutRecognizer` | `PinchOutRecognizer.swift` | `pinchOut` |
+| `TwoFingerSwipeLeftRecognizer` | `TwoFingerSwipeLeftRecognizer.swift` | `swipeLeft` |
+| `TwoFingerSwipeRightRecognizer` | `TwoFingerSwipeRightRecognizer.swift` | `swipeRight` |
+| `SwipeRecognizer` (up+down) | `SwipeRecognizer.swift` | `swipeUp` + `swipeDown` |
+
+Registration order: `DoubleTap → PinchIn → PinchOut → SwipeLeft → SwipeRight → Swipe` (`ShortcutViewModel.swift:176` → `GestureEngine.register`). First recognizer to return `GestureResult` (`GestureRecognizer.swift:4`) wins, then all reset + `awaitingLift` until fingers lift.
 
 ---
 
@@ -179,19 +194,18 @@ Accessibility actions and the same feedback-symbol system described in
 
 ## Source references
 
-- Gesture recognition and dispatch:
-  `../MCSC/Models/GestureRecognizer.swift` (`GestureEngine`, `GestureResult`)
-- Individual recognizers: `../MCSC/Models/PinchInRecognizer.swift`, `../MCSC/Models/PinchOutRecognizer.swift`,
-  `../MCSC/Models/SwipeRecognizer.swift`,
-  `../MCSC/Models/TwoFingerSwipeLeftRecognizer.swift`,
-  `../MCSC/Models/TwoFingerSwipeRightRecognizer.swift`,
-  `../MCSC/Models/TwoFingerDoubleTapRecognizer.swift`
-- Raw multitouch input: `../MCSC/Services/MultitouchService.swift`,
-  `../MCSC/Services/MultitouchBridge.swift`
+- Kinds & actions: `../MCSC/Models/Gestures/GestureAction.swift` (7 `GestureKind`, 17 `GestureAction`, `naturalActions`, `GestureDefaults`) + `../MCSC/Models/Gestures/GestureRecognizer.swift` (`GestureEngine`, `GestureResult` 14 cases) · config `../MCSC/ViewModels/ShortcutConfiguration.swift` (`gestureActions`/`cmdGestureActions`)
+- Individual recognizers: `../MCSC/Models/Gestures/PinchInRecognizer.swift`, `../MCSC/Models/Gestures/PinchOutRecognizer.swift`,
+  `../MCSC/Models/Gestures/SwipeRecognizer.swift`,
+  `../MCSC/Models/Gestures/TwoFingerSwipeLeftRecognizer.swift`,
+  `../MCSC/Models/Gestures/TwoFingerSwipeRightRecognizer.swift`,
+  `../MCSC/Models/Gestures/TwoFingerDoubleTapRecognizer.swift` · base `../MCSC/Models/Gestures/BasePinchRecognizer.swift`
+- Raw multitouch input: `../MCSC/Services/Multitouch/MultitouchService.swift`,
+  `../MCSC/Services/Multitouch/MultitouchBridge.swift`
 - Gesture-to-action mapping and target resolution:
-  `../MCSC/ViewModels/ShortcutViewModel.swift` + `../MCSC/ViewModels/Routing/GestureActionRouter.swift` (eject branch + `volumeService`)
-- Action implementations: `../MCSC/Models/ShortcutActions.swift` + `../MCSC/Models/Actions/VolumeActions.swift` (`EjectVolumeAction`)
+  `../MCSC/ViewModels/ShortcutViewModel.swift:176` (registration + `multitouchService.onFrame`) + `../MCSC/ViewModels/Routing/GestureActionRouter.swift:24` (eject branch + `volumeService`) + `../MCSC/ViewModels/Routing/ActionRegistry.swift:4`
+- Action implementations (17): `../MCSC/Models/Actions/TabActions.swift` (Tab 4) · `../MCSC/Models/Actions/WindowActions/WindowControlActions.swift` (Window 3) · `../MCSC/Models/Actions/WindowActions/SizeActions.swift` (Size 5) · `../MCSC/Models/Actions/AppActions.swift` (App 3) · `../MCSC/Models/Actions/WindowActions/DesktopNavigationActions.swift` (Space 2) + `../MCSC/Models/Actions/VolumeActions.swift` (`EjectVolumeAction`) + `../MCSC/Views/Settings/Panes/MCSCSettingsPanes.swift:338` (`GestureSettingsPane` popups)
 - Mounted volume detection/ejection: `../MCSC/Services/Volume/MountedVolumeService.swift`
 - Haptics: `../MCSC/Services/HapticService.swift` (`pinchOut` distinct from `pinchIn`: `alignment → levelChange` expand feel vs `levelChange → levelChange`)
 - Fullscreen: `../MCSC/Models/Actions/WindowActions/WindowControlActions.swift` (`ToggleFullscreenAction` via `kAXZoomButtonAttribute` + `CoreDockSendNotification("com.apple.expose.awake")`) and `../MCSC/Models/Actions/MissionControlWindowActions.swift` (`performFullscreen` — same Dock SPI, for Mission Control window dict path)
-- Tab/Window creation: `../MCSC/Models/Actions/TabActions.swift` (`NewTabAction` `Cmd+T`, `NewWindowAction` `Cmd+N`)
+- Tab/Window creation: `../MCSC/Models/Actions/TabActions.swift` (`NewTabAction` `Cmd+T`, `NewWindowAction` `Cmd+N`) · tiling `../MCSC/Models/Actions/WindowActions/SizeActions.swift:6` (`FillScreenAction` etc. `setFrame`)
