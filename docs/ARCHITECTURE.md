@@ -44,14 +44,14 @@ MCSC strictly follows the **Model-View-ViewModel (MVVM)** pattern with protocol-
   (ShortcutViewModel ──► ShortcutActionRouter & GestureActionRouter)
                            │
              ┌─────────────┴─────────────┐
-             ▼                           ▼
-      [Actions (Models)]          [Views (Overlays)]
- (WindowActions, AppActions,     (CursorFeedbackOverlay,
-  TabActions, TilingActions)      PreviewCloseButtonOverlay)
+              ▼                           ▼
+       [Actions (Models)]          [Views (Overlays)]
+  (WindowActions/*, AppActions,   (CursorFeedbackOverlay,
+   TabActions, VolumeActions)      PreviewCloseButtonOverlay)
 ```
 
 ### 1. Models (`MCSC/Models`)
-- **Single-Responsibility Structs:** `CloseWindowAction`, `MinimizeWindowAction`, `HideApplicationAction`, `ForceQuitAction`, `CloseAppAction`, `MinimizeAppAction`, `ForceQuitAppAction`, `CloseTabAction`, `ReopenTabAction`, `CloseAllTabsAction`, `NewWindowAction`, `FillScreenAction`, `MakeLargerAction`, `ReasonableSizeAction`, `AlmostMaximizeAction`, `EjectVolumeAction` (closes an ejectable Finder window via `kAXCloseButtonAttribute` then ejects via `MountedVolumeService`).
+ - **Single-Responsibility Structs:** `CloseWindowAction`, `MinimizeWindowAction`, `HideApplicationAction`, `ForceQuitAction`, `CloseAppAction`, `MinimizeAppAction`, `ForceQuitAppAction`, `CloseTabAction`, `ReopenTabAction`, `CloseAllTabsAction`, `NewWindowAction`, `FillScreenAction`, `MakeLargerAction`, `MakeSmallerAction`, `ReasonableSizeAction`, `AlmostMaximizeAction`, `EjectVolumeAction` (closes an ejectable Finder window via `kAXCloseButtonAttribute` then ejects via `MountedVolumeService`) — window actions live in `Models/Actions/WindowActions/` (`WindowControlActions.swift` + `SizeActions.swift` + `DesktopNavigationActions.swift`).
 - **Fuzzy Finder Models:**
   - `WindowSelectionEngine`: Pure, stateless fuzzy search ranking prefix matches over substring matches and resolving top-left thumbnail shoulder coordinates.
   - `WindowSearchSession`: Side-effect-free keyboard session state machine tracking queries, selected index, match cycling, and modifier pass-through.
@@ -103,7 +103,7 @@ flowchart TB
     VM --> HS
     VM --> CF[CursorFeedbackOverlay]
     SR & GR --> REG[ActionRegistry]
-    REG --> WA[Window/App/Tab/Tiling/Volume Actions]
+    REG --> WA[Window/App/Tab/Size/Volume Actions]
     HS --> WSE[WindowSelectionEngine & Session]
     HS --> WAA[WindowActivationAction]
     HS --> PCO[PreviewCloseButtonOverlay]

@@ -44,12 +44,12 @@ swiftc \
   "${ROOT_DIR}/MCSC/Models/Gestures/SwipeRecognizer.swift" \
   "${ROOT_DIR}/MCSC/Models/Gestures/TwoFingerDoubleTapRecognizer.swift" \
   "${ROOT_DIR}/MCSC/Models/Actions/ShortcutAction.swift" \
-  "${ROOT_DIR}/MCSC/Models/Actions/WindowActions.swift" \
-  "${ROOT_DIR}/MCSC/Models/Actions/DesktopNavigationActions.swift" \
+  "${ROOT_DIR}/MCSC/Models/Actions/WindowActions/WindowControlActions.swift" \
+  "${ROOT_DIR}/MCSC/Models/Actions/WindowActions/DesktopNavigationActions.swift" \
   "${ROOT_DIR}/MCSC/Models/Actions/VolumeActions.swift" \
   "${ROOT_DIR}/MCSC/Models/Actions/AppActions.swift" \
   "${ROOT_DIR}/MCSC/Models/Actions/TabActions.swift" \
-  "${ROOT_DIR}/MCSC/Models/Actions/TilingActions.swift" \
+  "${ROOT_DIR}/MCSC/Models/Actions/WindowActions/SizeActions.swift" \
   "${ROOT_DIR}/MCSC/Models/Actions/MissionControlWindowActions.swift" \
   "${ROOT_DIR}/MCSC/Models/Gestures/GestureAction.swift" \
   "${ROOT_DIR}/MCSC/ViewModels/ShortcutConfiguration.swift" \

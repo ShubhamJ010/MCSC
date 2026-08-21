@@ -1,6 +1,6 @@
 import Cocoa
 
-// MARK: - Tiling Actions
+// MARK: - Size Actions
 
 /// Expands the window at `point` to fill its screen's full bounds.
 struct FillScreenAction: ShortcutAction {
