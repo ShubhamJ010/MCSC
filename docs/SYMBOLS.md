@@ -38,6 +38,7 @@ replacement transition.
 | `.almost` | `inset.filled.rectangle` | `rectangle` | Almost Maximize Window | Accent (`controlAccentColor`) | — | `.downUpReveal` |
 | `.reasonable` | `inset.filled.center.rectangle` | `rectangle` | Reasonable Size | Accent (`controlAccentColor`) | — | `.downUpReveal` |
 | `.maximize` | `rectangle.fill` | `rectangle` | Maximize Window | Accent (`controlAccentColor`) | — | `.downUpReveal` |
+| `.makeSmaller` | `arrow.down.right.and.arrow.up.left` | — | Make Smaller Window | Accent (`controlAccentColor`) | — | — |
 | `.closeTab` | `xmark.rectangle.fill` | — | Close Tab | System multicolor (red X) | `.wiggleByLayer` | — |
 | `.reopenTab` | `plus.rectangle.fill` | — | Reopen Tab | System green | `.wiggleByLayer` | — |
 | `.closeAllTabs` | `rectangle.badge.xmark` | — | Close All Tabs | System multicolor (red X badge) | `.wiggleByLayer` | — |

@@ -43,7 +43,7 @@ tries to replicate.
 | 🖱️ **Hover Action Buttons** | Floating button on every window preview — Close, `Option` Minimize, `Command` Force Quit. |
 | ⌨️ **Keyboard Shortcuts** | `Cmd+W` close · `Cmd+Q` force quit · `Cmd+M` minimize · `Cmd+H` hide · `Cmd+Space` recover stuck Mission Control. |
 | ✋ **14 Trackpad Gestures** | Pinch in/out, 4-direction swipes, two-finger double-tap — each with a `Cmd` variant. Replicates [Swish](https://highlyopinionated.co/swish/). |
-| 🪟 **Window Tiling & Tabs** | Fill screen, resize presets (+33% / 60% / 90%), fullscreen toggle, and tab close / reopen / new via swipes. |
+| 🪟 **Window Tiling & Tabs** | Fill screen, resize presets (+33% / −33% / 60% / 90%), fullscreen toggle, and tab close / reopen / new via swipes. |
 | 💿 **Auto-Eject Volumes** | Close + eject mounted volumes (e.g. DMG installers) straight from Mission Control. |
 | 🎯 **Cursor Feedback + Haptics** | Every action flashes a distinct SF Symbol at the cursor with paired haptic feedback. |
 | 🐳 **Dock Gestures Outside MC** | The same shortcuts and gestures also work hovering Dock icons on the desktop, with App Exposé suppressed mid-gesture. |
@@ -122,6 +122,11 @@ actions below.
 | Swipe up | Minimize window | Hide app |
 | Swipe down | Fill screen | Make larger (+33%) |
 | Two-finger double tap | Reasonable size (60%) | Almost maximize (90%) |
+
+> **Make Smaller (−33%)** is available as a selectable gesture action in Settings
+> (bind it to any gesture slot). It shrinks the window from its center by ~33%,
+> clamped to a 200×100 pt minimum, the inverse of Make Larger so the pair
+> round-trips back to the original size.
 
 Each gesture fires **once per finger lift**, so holding your fingers down and
 repeating the motion will not re-trigger it. For the full mapping, hover

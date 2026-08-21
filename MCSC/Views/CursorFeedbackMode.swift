@@ -17,6 +17,7 @@ extension CursorFeedbackOverlay {
         case eject
         case almost
         case reasonable
+        case makeSmaller
         case maximize
         case closeTab
         case reopenTab
@@ -37,6 +38,7 @@ extension CursorFeedbackOverlay {
             case .eject: return "eject.circle.fill"
             case .almost: return "inset.filled.rectangle"
             case .reasonable: return "inset.filled.center.rectangle"
+            case .makeSmaller: return "arrow.down.right.and.arrow.up.left"
             case .maximize: return "rectangle.fill"
             case .closeTab: return "xmark.rectangle.fill"
             case .reopenTab: return "plus.rectangle.fill"
@@ -59,6 +61,7 @@ extension CursorFeedbackOverlay {
             case .eject: return "Eject Volume"
             case .almost: return "Almost Maximize Window"
             case .reasonable: return "Reasonable Size"
+            case .makeSmaller: return "Make Smaller Window"
             case .maximize: return "Maximize Window"
             case .closeTab: return "Close Tab"
             case .reopenTab: return "Reopen Tab"
@@ -83,6 +86,9 @@ extension CursorFeedbackOverlay {
             case .eject: return [.white, .systemRed]
             case .almost, .reasonable:
                 // Single Accent layer (the user's system accent colour), same as Maximize.
+                return [.controlAccentColor]
+            case .makeSmaller:
+                // Single Accent layer (the user's system accent colour), same family as Maximize.
                 return [.controlAccentColor]
             case .maximize:
                 // Single Accent layer (the user's system accent colour).
@@ -122,7 +128,7 @@ extension CursorFeedbackOverlay {
             switch self {
             case .close, .quit: return .bounceUpByLayer
             case .closeTab, .reopenTab, .closeAllTabs, .newWindow, .newTab: return .wiggleByLayer
-            case .minimize, .hide, .eject, .almost, .reasonable, .maximize, .fullscreen, .spaceRight, .spaceLeft: return nil
+            case .minimize, .hide, .eject, .almost, .reasonable, .makeSmaller, .maximize, .fullscreen, .spaceRight, .spaceLeft: return nil
             }
         }
 
@@ -146,7 +152,7 @@ extension CursorFeedbackOverlay {
             switch self {
             case .almost, .reasonable, .maximize, .minimize, .hide: return .downUpReveal
             case .eject: return .magicDownUpReveal
-            case .close, .quit, .closeTab, .reopenTab, .closeAllTabs, .newWindow, .newTab, .fullscreen, .spaceRight, .spaceLeft: return nil
+            case .close, .quit, .closeTab, .reopenTab, .closeAllTabs, .newWindow, .newTab, .fullscreen, .spaceRight, .spaceLeft, .makeSmaller: return nil
             }
         }
 

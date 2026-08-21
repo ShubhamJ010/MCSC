@@ -130,6 +130,10 @@ final class GestureActionRouter {
             return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
                 self?.actions.makeLargerAppAction.perform(app: app, service: service)
             }
+        case .makeSmaller:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                self?.actions.makeSmallerAppAction.perform(app: app, service: service)
+            }
         case .reasonableSize:
             return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
                 self?.actions.reasonableSizeAppAction.perform(app: app, service: service)
@@ -211,6 +215,10 @@ final class GestureActionRouter {
             return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
                 self?.actions.makeLargerAction.perform(at: point, service: service)
             }
+        case .makeSmaller:
+            return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
+                self?.actions.makeSmallerAction.perform(at: point, service: service)
+            }
         case .reasonableSize:
             return .execute(feedbackMode: feedbackMode, haptic: haptic) { [weak self] in
                 self?.actions.reasonableSizeAction.perform(at: point, service: service)
@@ -247,6 +255,7 @@ final class GestureActionRouter {
         case .fillScreen: return .maximize
         case .almostMaximize: return .almost
         case .makeLarger: return .maximize
+        case .makeSmaller: return .makeSmaller
         case .reasonableSize: return .reasonable
         case .minimize: return .minimize
         case .hideApp: return .hide

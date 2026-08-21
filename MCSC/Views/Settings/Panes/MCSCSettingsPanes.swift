@@ -32,6 +32,8 @@ final class GeneralSettingsPane: MCSCSettingsPane {
     private var autoEjectCheckbox: NSButton!
     private var dockActionsCheckbox: NSButton!
     private var hoverCloseCheckbox: NSButton!
+    private var hapticCheckbox: NSButton!
+    private var cursorFeedbackCheckbox: NSButton!
 
     override func loadView() {
         view = NSView()
@@ -39,11 +41,15 @@ final class GeneralSettingsPane: MCSCSettingsPane {
         let layoutView = SettingsLayoutView()
         layoutView.install(in: view)
 
+        // Startup — single toggle, no description needed.
         let startup = layoutView.addColumnSection(label: "Startup")
         launchAtLoginCheckbox = startup.addCheckbox(title: "Launch at Login",
-                                                    target: self,
-                                                    action: #selector(toggleLaunchAtLogin(_:)))
+                                                     target: self,
+                                                     action: #selector(toggleLaunchAtLogin(_:)))
 
+        layoutView.addSeparatorSection()
+
+        // Behavior — core, always-visible toggles.
         let behavior = layoutView.addColumnSection(label: "Behavior", itemColumnMaximumWidth: 340)
         autoEjectCheckbox = behavior.addCheckbox(title: "Auto-Eject Mounted Volumes",
                                                  target: self,
@@ -56,6 +62,19 @@ final class GeneralSettingsPane: MCSCSettingsPane {
                                                   target: self,
                                                   action: #selector(toggleHoverClose(_:)))
         behavior.addDescriptionLabel("Shows a close button when hovering window thumbnails in Mission Control. Click to close; Cmd = quit, Option = minimize.")
+
+        layoutView.addSeparatorSection()
+
+        // Feedback — on by default (configurable, previously forced-on).
+        let feedback = layoutView.addColumnSection(label: "Feedback", itemColumnMaximumWidth: 340)
+        hapticCheckbox = feedback.addCheckbox(title: "Haptic Feedback",
+                                              target: self,
+                                              action: #selector(toggleHaptics(_:)))
+        feedback.addDescriptionLabel("Plays trackpad haptics on gesture/shortcut actions.")
+        cursorFeedbackCheckbox = feedback.addCheckbox(title: "Cursor Flash Overlay",
+                                                      target: self,
+                                                      action: #selector(toggleCursorFeedback(_:)))
+        feedback.addDescriptionLabel("Flashes an icon at the cursor when an action fires.")
 
         layoutView.addSeparatorSection()
 
@@ -74,6 +93,8 @@ final class GeneralSettingsPane: MCSCSettingsPane {
         autoEjectCheckbox?.state = viewModel.isAutoEjectEnabled ? .on : .off
         dockActionsCheckbox?.state = viewModel.isDockActionsOutsideMCEnabled ? .on : .off
         hoverCloseCheckbox?.state = viewModel.isHoverCloseButtonEnabled ? .on : .off
+        hapticCheckbox?.state = viewModel.isHapticFeedbackEnabled ? .on : .off
+        cursorFeedbackCheckbox?.state = viewModel.isCursorFeedbackEnabled ? .on : .off
     }
 
     @objc private func toggleLaunchAtLogin(_ sender: NSButton) {
@@ -96,10 +117,22 @@ final class GeneralSettingsPane: MCSCSettingsPane {
         sender.state = viewModel.isHoverCloseButtonEnabled ? .on : .off
     }
 
+    @objc private func toggleHaptics(_ sender: NSButton) {
+        viewModel.isHapticFeedbackEnabled.toggle()
+        sender.state = viewModel.isHapticFeedbackEnabled ? .on : .off
+    }
+
+    @objc private func toggleCursorFeedback(_ sender: NSButton) {
+        viewModel.isCursorFeedbackEnabled.toggle()
+        sender.state = viewModel.isCursorFeedbackEnabled ? .on : .off
+    }
+
     @objc private func restoreDefaults(_ sender: NSButton) {
         viewModel.isAutoEjectEnabled = true
         viewModel.isDockActionsOutsideMCEnabled = true
         viewModel.isHoverCloseButtonEnabled = true
+        viewModel.isHapticFeedbackEnabled = true
+        viewModel.isCursorFeedbackEnabled = true
         refreshAllPanes()
     }
 }

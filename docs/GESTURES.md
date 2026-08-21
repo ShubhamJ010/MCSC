@@ -82,6 +82,14 @@ switches to the "command" variant listed in the right column.
 | Two-finger double tap | Reasonable size (60%) | Almost maximize (90%) |
 
 > [!NOTE]
+> **Make Smaller (−33%)** is an additional resize action available in the gesture
+> settings pop-ups (it is not bound to a gesture by default). It shrinks the
+> window from its center by ~33% using the inverse of Make Larger's 1.33 factor
+> (÷1.33), clamped to a 200×100 pt minimum, so Make Larger → Make Smaller
+> restores the original size. Point at a window preview to act on that window, or
+> at a Dock item to act on the whole app.
+
+> [!NOTE]
 > The swipe-down pair looks similar but is not identical. Without `Command` it
 > expands the window to **fill the screen**; with `Command` it grows the window
 > by **33%** from its center. Both show the maximize symbol at the cursor.

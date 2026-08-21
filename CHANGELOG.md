@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Make Smaller (−33%) resize action**: New gesture action that shrinks the window from its center by ~33% (1/1.33 factor, the inverse of Make Larger) clamped to a 200×100 pt minimum and screen bounds. Available as a selectable action in the gesture settings pop-ups (not bound to a gesture by default), with app-level parity for Dock targets. Flashes a new `.makeSmaller` cursor feedback mode (`arrow.down.right.and.arrow.up.left`, accent palette). Adds `MakeSmallerAction` (`TilingActions.swift:58`) and `MakeSmallerAppAction` (`AppActions.swift:134`).
+
 ## 0.5.1-beta (21 Aug 2026)
 
 - **Cursor-Flash Symbol Animation Refinements**: Polished every cursor feedback flash:

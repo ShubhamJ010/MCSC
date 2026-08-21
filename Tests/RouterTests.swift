@@ -259,6 +259,25 @@ final class RouterTests: XCTestCase {
         }
     }
 
+    func testMakeSmallerRoutesOnWindowTargetWithMakeSmallerFeedback() {
+        let result = routePinchInBound(to: .makeSmaller, target: .window(mockService.mockElement!))
+        guard case .execute(let mode, _, _) = result else {
+            XCTFail("Expected makeSmaller on window to execute")
+            return
+        }
+        XCTAssertEqual(mode, .makeSmaller)
+    }
+
+    func testMakeSmallerRoutesOnDockTargetWithMakeSmallerFeedback() {
+        let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder").first ?? NSRunningApplication.current
+        let result = routePinchInBound(to: .makeSmaller, target: .dock(dockApp))
+        guard case .execute(let mode, _, _) = result else {
+            XCTFail("Expected makeSmaller on dock to execute")
+            return
+        }
+        XCTAssertEqual(mode, .makeSmaller)
+    }
+
     func testShortcutRouterCmdWRoutesToEjectWhenFinderMountedVolume() {
         let mockVolumeService = MockMountedVolumeService()
         mockVolumeService.mockEjectablePath = "/Volumes/AppInstaller"

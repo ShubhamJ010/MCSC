@@ -68,6 +68,16 @@ struct ShortcutConfiguration {
     var isKeyboardNavigationEnabled = true {
         didSet { UserDefaults.standard.set(isKeyboardNavigationEnabled, forKey: Self.Keys.keyboardNavigation) }
     }
+    // MARK: - General / Feedback — on by default (restores previous always-on behavior, now configurable).
+
+    /// Haptic pulses for shortcuts/gestures. Previously always-on; now configurable.
+    var isHapticFeedbackEnabled = true {
+        didSet { UserDefaults.standard.set(isHapticFeedbackEnabled, forKey: Self.Keys.hapticFeedbackEnabled) }
+    }
+    /// Visual cursor flash overlay on actions. Previously always-on; now configurable.
+    var isCursorFeedbackEnabled = true {
+        didSet { UserDefaults.standard.set(isCursorFeedbackEnabled, forKey: Self.Keys.cursorFeedbackEnabled) }
+    }
 
     // MARK: - Gesture action mappings
 
@@ -81,69 +91,29 @@ struct ShortcutConfiguration {
     }
 
     init() {
-        if UserDefaults.standard.object(forKey: Self.Keys.cmdWEnabled) != nil {
-            isCmdWEnabled = UserDefaults.standard.bool(forKey: Self.Keys.cmdWEnabled)
-        }
-        if UserDefaults.standard.object(forKey: Self.Keys.cmdQEnabled) != nil {
-            isCmdQEnabled = UserDefaults.standard.bool(forKey: Self.Keys.cmdQEnabled)
-        }
-        if UserDefaults.standard.object(forKey: Self.Keys.cmdMEnabled) != nil {
-            isCmdMEnabled = UserDefaults.standard.bool(forKey: Self.Keys.cmdMEnabled)
-        }
-        if UserDefaults.standard.object(forKey: Self.Keys.cmdHEnabled) != nil {
-            isCmdHEnabled = UserDefaults.standard.bool(forKey: Self.Keys.cmdHEnabled)
-        }
-        if UserDefaults.standard.object(forKey: Self.Keys.cmdFEnabled) != nil {
-            isCmdFEnabled = UserDefaults.standard.bool(forKey: Self.Keys.cmdFEnabled)
-        }
-        if UserDefaults.standard.object(forKey: Self.Keys.cmdSpaceEnabled) != nil {
-            isCmdSpaceEnabled = UserDefaults.standard.bool(forKey: Self.Keys.cmdSpaceEnabled)
-        }
-        if UserDefaults.standard.object(forKey: Self.Keys.cmdTEnabled) != nil {
-            isCmdTEnabled = UserDefaults.standard.bool(forKey: Self.Keys.cmdTEnabled)
-        }
-        if UserDefaults.standard.object(forKey: Self.Keys.cmdNEnabled) != nil {
-            isCmdNEnabled = UserDefaults.standard.bool(forKey: Self.Keys.cmdNEnabled)
-        }
-        if UserDefaults.standard.object(forKey: Self.Keys.cmdShiftWEnabled) != nil {
-            isCmdShiftWEnabled = UserDefaults.standard.bool(forKey: Self.Keys.cmdShiftWEnabled)
-        }
-        if UserDefaults.standard.object(forKey: Self.Keys.cmdShiftTEnabled) != nil {
-            isCmdShiftTEnabled = UserDefaults.standard.bool(forKey: Self.Keys.cmdShiftTEnabled)
-        }
-        if UserDefaults.standard.object(forKey: Self.Keys.keyboardNavigation) != nil {
-            isKeyboardNavigationEnabled = UserDefaults.standard.bool(forKey: Self.Keys.keyboardNavigation)
-        }
-        if UserDefaults.standard.object(forKey: Self.Keys.dockActionsOutsideMC) != nil {
-            isDockActionsOutsideMCEnabled = UserDefaults.standard.bool(forKey: Self.Keys.dockActionsOutsideMC)
-        }
-        if UserDefaults.standard.object(forKey: Self.Keys.gesturesEnabled) != nil {
-            isGesturesEnabled = UserDefaults.standard.bool(forKey: Self.Keys.gesturesEnabled)
-        }
-        if UserDefaults.standard.object(forKey: Self.Keys.pinchInEnabled) != nil {
-            isPinchInEnabled = UserDefaults.standard.bool(forKey: Self.Keys.pinchInEnabled)
-        }
-        if UserDefaults.standard.object(forKey: Self.Keys.pinchOutEnabled) != nil {
-            isPinchOutEnabled = UserDefaults.standard.bool(forKey: Self.Keys.pinchOutEnabled)
-        }
-        if UserDefaults.standard.object(forKey: Self.Keys.swipeLeftEnabled) != nil {
-            isSwipeLeftEnabled = UserDefaults.standard.bool(forKey: Self.Keys.swipeLeftEnabled)
-        }
-        if UserDefaults.standard.object(forKey: Self.Keys.swipeRightEnabled) != nil {
-            isSwipeRightEnabled = UserDefaults.standard.bool(forKey: Self.Keys.swipeRightEnabled)
-        }
-        if UserDefaults.standard.object(forKey: Self.Keys.swipeDownEnabled) != nil {
-            isSwipeDownEnabled = UserDefaults.standard.bool(forKey: Self.Keys.swipeDownEnabled)
-        }
-        if UserDefaults.standard.object(forKey: Self.Keys.swipeUpEnabled) != nil {
-            isSwipeUpEnabled = UserDefaults.standard.bool(forKey: Self.Keys.swipeUpEnabled)
-        }
-        if UserDefaults.standard.object(forKey: Self.Keys.twoFingerDoubleTapEnabled) != nil {
-            isTwoFingerDoubleTapEnabled = UserDefaults.standard.bool(forKey: Self.Keys.twoFingerDoubleTapEnabled)
-        }
-        if UserDefaults.standard.object(forKey: Self.Keys.autoEjectEnabled) != nil {
-            isAutoEjectEnabled = UserDefaults.standard.bool(forKey: Self.Keys.autoEjectEnabled)
-        }
+        if let v = Self.loadBool(forKey: Self.Keys.cmdWEnabled) { isCmdWEnabled = v }
+        if let v = Self.loadBool(forKey: Self.Keys.cmdQEnabled) { isCmdQEnabled = v }
+        if let v = Self.loadBool(forKey: Self.Keys.cmdMEnabled) { isCmdMEnabled = v }
+        if let v = Self.loadBool(forKey: Self.Keys.cmdHEnabled) { isCmdHEnabled = v }
+        if let v = Self.loadBool(forKey: Self.Keys.cmdFEnabled) { isCmdFEnabled = v }
+        if let v = Self.loadBool(forKey: Self.Keys.cmdSpaceEnabled) { isCmdSpaceEnabled = v }
+        if let v = Self.loadBool(forKey: Self.Keys.cmdTEnabled) { isCmdTEnabled = v }
+        if let v = Self.loadBool(forKey: Self.Keys.cmdNEnabled) { isCmdNEnabled = v }
+        if let v = Self.loadBool(forKey: Self.Keys.cmdShiftWEnabled) { isCmdShiftWEnabled = v }
+        if let v = Self.loadBool(forKey: Self.Keys.cmdShiftTEnabled) { isCmdShiftTEnabled = v }
+        if let v = Self.loadBool(forKey: Self.Keys.keyboardNavigation) { isKeyboardNavigationEnabled = v }
+        if let v = Self.loadBool(forKey: Self.Keys.dockActionsOutsideMC) { isDockActionsOutsideMCEnabled = v }
+        if let v = Self.loadBool(forKey: Self.Keys.gesturesEnabled) { isGesturesEnabled = v }
+        if let v = Self.loadBool(forKey: Self.Keys.pinchInEnabled) { isPinchInEnabled = v }
+        if let v = Self.loadBool(forKey: Self.Keys.pinchOutEnabled) { isPinchOutEnabled = v }
+        if let v = Self.loadBool(forKey: Self.Keys.swipeLeftEnabled) { isSwipeLeftEnabled = v }
+        if let v = Self.loadBool(forKey: Self.Keys.swipeRightEnabled) { isSwipeRightEnabled = v }
+        if let v = Self.loadBool(forKey: Self.Keys.swipeDownEnabled) { isSwipeDownEnabled = v }
+        if let v = Self.loadBool(forKey: Self.Keys.swipeUpEnabled) { isSwipeUpEnabled = v }
+        if let v = Self.loadBool(forKey: Self.Keys.twoFingerDoubleTapEnabled) { isTwoFingerDoubleTapEnabled = v }
+        if let v = Self.loadBool(forKey: Self.Keys.autoEjectEnabled) { isAutoEjectEnabled = v }
+        if let v = Self.loadBool(forKey: Self.Keys.hapticFeedbackEnabled) { isHapticFeedbackEnabled = v }
+        if let v = Self.loadBool(forKey: Self.Keys.cursorFeedbackEnabled) { isCursorFeedbackEnabled = v }
         if let dict = UserDefaults.standard.dictionary(forKey: Self.Keys.gestureActions) as? [String: String] {
             for (k, v) in dict {
                 if let kind = GestureKind(rawValue: k), let action = GestureAction(rawValue: v) {
@@ -173,6 +143,41 @@ struct ShortcutConfiguration {
     mutating func resetGestureMappings() {
         gestureActions = GestureDefaults.plainDefaults
         cmdGestureActions = GestureDefaults.cmdDefaults
+    }
+
+    /// Resets all toggles to defaults (single source of truth for Restore Defaults).
+    mutating func restoreDefaults() {
+        isCmdWEnabled = true
+        isCmdQEnabled = true
+        isCmdMEnabled = true
+        isCmdHEnabled = true
+        isCmdFEnabled = false
+        isCmdSpaceEnabled = true
+        isCmdTEnabled = false
+        isCmdNEnabled = false
+        isCmdShiftWEnabled = false
+        isCmdShiftTEnabled = false
+        isGesturesEnabled = true
+        isPinchInEnabled = true
+        isPinchOutEnabled = true
+        isSwipeLeftEnabled = true
+        isSwipeRightEnabled = true
+        isSwipeDownEnabled = true
+        isSwipeUpEnabled = true
+        isTwoFingerDoubleTapEnabled = true
+        isAutoEjectEnabled = true
+        isDockActionsOutsideMCEnabled = true
+        isKeyboardNavigationEnabled = true
+        isHapticFeedbackEnabled = true
+        isCursorFeedbackEnabled = true
+        resetGestureMappings()
+    }
+
+    // MARK: - Helpers
+
+    private static func loadBool(forKey key: String) -> Bool? {
+        guard UserDefaults.standard.object(forKey: key) != nil else { return nil }
+        return UserDefaults.standard.bool(forKey: key)
     }
 
     private func persistGestureActions() {
@@ -207,6 +212,8 @@ struct ShortcutConfiguration {
         static let swipeUpEnabled = "mcsc.gestures.swipeUp.enabled"
         static let twoFingerDoubleTapEnabled = "mcsc.gestures.twoFingerDoubleTap.enabled"
         static let autoEjectEnabled = "mcsc.autoEject.enabled"
+        static let hapticFeedbackEnabled = "mcsc.feedback.haptics.enabled"
+        static let cursorFeedbackEnabled = "mcsc.feedback.cursor.enabled"
         static let gestureActions = "mcsc.gestures.actions"
         static let cmdGestureActions = "mcsc.gestures.cmdActions"
     }

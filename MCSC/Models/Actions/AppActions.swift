@@ -131,6 +131,46 @@ struct MakeLargerAppAction {
     }
 }
 
+struct MakeSmallerAppAction {
+    private let scaleFactor: CGFloat = 1.0 / 1.33
+    private let minWidth: CGFloat = 200
+    private let minHeight: CGFloat = 100
+
+    func perform(app: NSRunningApplication, service: AccessibilityServiceProtocol) {
+        let appElement = AXUIElementCreateApplication(app.processIdentifier)
+        var windowsRef: CFTypeRef?
+        AXUIElementCopyAttributeValue(appElement, kAXWindowsAttribute as CFString, &windowsRef)
+        guard let windows = windowsRef as? [AXUIElement], !windows.isEmpty else { return }
+        for window in windows {
+            guard let currentFrame = service.getFrame(for: window) else { continue }
+            let anchor = CGPoint(x: currentFrame.midX, y: currentFrame.midY)
+            guard let screen = ScreenGeometry.screenContaining(axPoint: anchor) else { continue }
+            let axScreenBounds = ScreenGeometry.axBounds(for: screen)
+
+            let targetWidth = max((currentFrame.width * scaleFactor).rounded(), minWidth)
+            let targetHeight = max((currentFrame.height * scaleFactor).rounded(), minHeight)
+            let newWidth = min(targetWidth, axScreenBounds.width)
+            let newHeight = min(targetHeight, axScreenBounds.height)
+
+            var newX = (currentFrame.origin.x + (currentFrame.width - newWidth) / 2.0).rounded()
+            var newY = (currentFrame.origin.y + (currentFrame.height - newHeight) / 2.0).rounded()
+
+            if newX < axScreenBounds.minX {
+                newX = axScreenBounds.minX
+            } else if newX + newWidth > axScreenBounds.maxX {
+                newX = axScreenBounds.maxX - newWidth
+            }
+            if newY < axScreenBounds.minY {
+                newY = axScreenBounds.minY
+            } else if newY + newHeight > axScreenBounds.maxY {
+                newY = axScreenBounds.maxY - newHeight
+            }
+
+            _ = service.setFrame(CGRect(x: newX, y: newY, width: newWidth, height: newHeight), for: window)
+        }
+    }
+}
+
 struct ReasonableSizeAppAction {
     func perform(app: NSRunningApplication, service: AccessibilityServiceProtocol) {
         let appElement = AXUIElementCreateApplication(app.processIdentifier)

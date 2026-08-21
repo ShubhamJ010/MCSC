@@ -84,6 +84,8 @@ final class ShortcutViewModel {
     var isSwipeUpEnabled: Bool { get { config.isSwipeUpEnabled } set { config.isSwipeUpEnabled = newValue } }
     var isTwoFingerDoubleTapEnabled: Bool { get { config.isTwoFingerDoubleTapEnabled } set { config.isTwoFingerDoubleTapEnabled = newValue } }
     var isKeyboardNavigationEnabled: Bool { get { config.isKeyboardNavigationEnabled } set { config.isKeyboardNavigationEnabled = newValue } }
+    var isHapticFeedbackEnabled: Bool { get { config.isHapticFeedbackEnabled } set { config.isHapticFeedbackEnabled = newValue } }
+    var isCursorFeedbackEnabled: Bool { get { config.isCursorFeedbackEnabled } set { config.isCursorFeedbackEnabled = newValue } }
 
     // Gesture action mappings
     func gestureAction(for kind: GestureKind, isCmd: Bool) -> GestureAction { config.action(for: kind, isCmd: isCmd) }
@@ -269,8 +271,10 @@ final class ShortcutViewModel {
         haptic: HapticType?,
         action: @escaping () -> Void
     ) {
-        cursorFeedback.show(at: point, mode: feedbackMode)
-        if let haptic = haptic {
+        if config.isCursorFeedbackEnabled {
+            cursorFeedback.show(at: point, mode: feedbackMode)
+        }
+        if let haptic = haptic, config.isHapticFeedbackEnabled {
             HapticService.perform(haptic)
         }
         DispatchQueue.main.async { [weak self] in

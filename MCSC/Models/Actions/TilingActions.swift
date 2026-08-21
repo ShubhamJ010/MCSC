@@ -55,6 +55,52 @@ struct MakeLargerAction: ShortcutAction {
     }
 }
 
+/// Shrinks the window at `point` by ~33% (anchored at center, clamped to a
+/// minimum size of 200×100 pt and to screen bounds). Uses 1/1.33 so a
+/// Make Larger → Make Smaller cycle restores the original size.
+struct MakeSmallerAction: ShortcutAction {
+    /// Multiplier used to scale window dimensions (÷33% ≈ ×0.75).
+    private let scaleFactor: CGFloat = 1.0 / 1.33
+    /// Floor so windows cannot collapse into unusable slivers.
+    private let minWidth: CGFloat = 200
+    private let minHeight: CGFloat = 100
+
+    func perform(at point: CGPoint, service: AccessibilityServiceProtocol) {
+        guard let element = service.getElement(at: point),
+              let window = service.getWindow(for: element),
+              let currentFrame = service.getFrame(for: window) else { return }
+
+        guard let screen = ScreenGeometry.screenContaining(axPoint: point) else { return }
+        let axScreenBounds = ScreenGeometry.axBounds(for: screen)
+
+        let targetWidth = max((currentFrame.width * scaleFactor).rounded(), minWidth)
+        let targetHeight = max((currentFrame.height * scaleFactor).rounded(), minHeight)
+
+        // Clamp dimensions to screen bounds
+        let newWidth = min(targetWidth, axScreenBounds.width)
+        let newHeight = min(targetHeight, axScreenBounds.height)
+
+        // Shrink symmetrically from center
+        var newX = (currentFrame.origin.x + (currentFrame.width - newWidth) / 2.0).rounded()
+        var newY = (currentFrame.origin.y + (currentFrame.height - newHeight) / 2.0).rounded()
+
+        // Clamp position within screen boundaries
+        if newX < axScreenBounds.minX {
+            newX = axScreenBounds.minX
+        } else if newX + newWidth > axScreenBounds.maxX {
+            newX = axScreenBounds.maxX - newWidth
+        }
+
+        if newY < axScreenBounds.minY {
+            newY = axScreenBounds.minY
+        } else if newY + newHeight > axScreenBounds.maxY {
+            newY = axScreenBounds.maxY - newHeight
+        }
+
+        _ = service.setFrame(CGRect(x: newX, y: newY, width: newWidth, height: newHeight), for: window)
+    }
+}
+
 struct ReasonableSizeAction: ShortcutAction {
     func perform(at point: CGPoint, service: AccessibilityServiceProtocol) {
         guard let element = service.getElement(at: point),
