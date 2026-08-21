@@ -383,9 +383,9 @@ final class GestureSettingsPane: MCSCSettingsPane {
                                                       itemColumnMaximumWidth: isFirst ? Self.itemColumnMaximumWidth : nil,
                                                       identifier: .init(kind.rawValue))
 
-            // Primary action — standard regular popup shape and size
+            // Primary action — only natural actions for this gesture kind
             let popup = section.addPopUpButton(controlSize: .regular, target: self, action: #selector(actionChanged(_:)))
-            for action in GestureAction.allCases {
+            for action in kind.naturalActions {
                 popup.addItem(withTitle: action.menuTitle)
                 popup.lastItem?.representedObject = action.rawValue
             }
@@ -423,7 +423,7 @@ final class GestureSettingsPane: MCSCSettingsPane {
             cmdPopup.target = self
             cmdPopup.action = #selector(cmdActionChanged(_:))
             cmdPopup.tag = gestureIndex
-            for action in GestureAction.allCases {
+            for action in kind.naturalActions {
                 cmdPopup.addItem(withTitle: action.menuTitle)
                 cmdPopup.lastItem?.representedObject = action.rawValue
             }
@@ -484,8 +484,18 @@ final class GestureSettingsPane: MCSCSettingsPane {
             row.actionPopup.isEnabled = rowEnabled
             row.cmdActionPopup.isEnabled = rowEnabled
 
-            let plainAction = viewModel.gestureAction(for: row.kind, isCmd: false)
-            let cmdAction = viewModel.gestureAction(for: row.kind, isCmd: true)
+            var plainAction = viewModel.gestureAction(for: row.kind, isCmd: false)
+            var cmdAction = viewModel.gestureAction(for: row.kind, isCmd: true)
+            // Stale persisted bindings (from when all actions were offered) are
+            // reset to the factory default — keeps popups always showing a valid selection.
+            if !row.kind.naturalActions.contains(plainAction) {
+                plainAction = GestureDefaults.action(for: row.kind, isCmd: false)
+                viewModel.setGestureAction(plainAction, for: row.kind, isCmd: false)
+            }
+            if !row.kind.naturalActions.contains(cmdAction) {
+                cmdAction = GestureDefaults.action(for: row.kind, isCmd: true)
+                viewModel.setGestureAction(cmdAction, for: row.kind, isCmd: true)
+            }
             if let idx = row.actionPopup.itemArray.firstIndex(where: { ($0.representedObject as? String) == plainAction.rawValue }) {
                 row.actionPopup.selectItem(at: idx)
             }

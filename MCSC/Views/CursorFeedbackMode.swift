@@ -43,11 +43,11 @@ extension CursorFeedbackOverlay {
             case .closeTab: return "xmark.rectangle.fill"
             case .reopenTab: return "plus.rectangle.fill"
             case .closeAllTabs: return "rectangle.badge.xmark"
-            case .newWindow: return "rectangle.badge.plus"
-            case .newTab: return "plus.rectangle.on.rectangle"
+            case .newWindow: return "macwindow.badge.plus"
+            case .newTab: return "plus.rectangle.fill.on.rectangle.fill"
             case .fullscreen: return "arrow.down.left.and.arrow.up.right.circle.fill"
-            case .spaceRight: return "arrow.right.square.fill"
-            case .spaceLeft: return "arrow.left.square.fill"
+            case .spaceRight: return "arrowshape.right.circle.fill"
+            case .spaceLeft: return "arrowshape.left.circle.fill"
             }
         }
 
@@ -102,14 +102,17 @@ extension CursorFeedbackOverlay {
                 // System multicolor (red X, matching Close).
                 return nil
             case .reopenTab:
-                // Positive/additive green plus.
-                return [.systemGreen]
+                // Black rectangle body + green plus, both at 100% (palette layer 1: black, layer 2: green).
+                return [.black, .systemGreen]
             case .closeAllTabs:
-                // System multicolor (red X badge, matching Close).
-                return nil
-            case .newWindow, .newTab:
-                // Positive/additive green badge, matching the reopen plus.
-                return [.systemGreen]
+                // Primary (black) rectangle + red badge at 100% — same primary+color pattern as green modes.
+                return [.black, .systemRed]
+            case .newWindow:
+                // Primary (black) window + green badge at 100% — matches reopenTab/fullscreen palette.
+                return [.black, .systemGreen]
+            case .newTab:
+                // Primary (black) rectangles + green plus at 100% — matches reopenTab/newWindow/fullscreen palette.
+                return [.black, .systemGreen]
             }
         }
 
@@ -126,8 +129,8 @@ extension CursorFeedbackOverlay {
 
         var entryAnimation: EntryAnimation? {
             switch self {
-            case .close, .quit: return .bounceUpByLayer
-            case .closeTab, .reopenTab, .closeAllTabs, .newWindow, .newTab: return .wiggleByLayer
+            case .close, .quit, .newWindow: return .bounceUpByLayer
+            case .closeTab, .reopenTab, .closeAllTabs, .newTab: return .wiggleByLayer
             case .minimize, .hide, .eject, .almost, .reasonable, .makeSmaller, .maximize, .fullscreen, .spaceRight, .spaceLeft: return nil
             }
         }
@@ -146,13 +149,16 @@ extension CursorFeedbackOverlay {
             case magicDownUpReveal
             /// `.replace.downUp.byLayer` (macOS 14+; no OS-version fallback).
             case downUpReveal
+            /// Generic `.replace` — SwiftUI `contentTransition(.symbolEffect(.replace))`.
+            case replace
         }
 
         var replaceTransition: ReplaceTransition? {
             switch self {
             case .almost, .reasonable, .maximize, .minimize, .hide: return .downUpReveal
             case .eject: return .magicDownUpReveal
-            case .close, .quit, .closeTab, .reopenTab, .closeAllTabs, .newWindow, .newTab, .fullscreen, .spaceRight, .spaceLeft, .makeSmaller: return nil
+            case .spaceRight, .spaceLeft, .newTab: return .replace
+            case .close, .quit, .closeTab, .reopenTab, .closeAllTabs, .newWindow, .fullscreen, .makeSmaller: return nil
             }
         }
 
@@ -181,6 +187,9 @@ extension CursorFeedbackOverlay {
             // transitions above.
             case .minimize: return "minus.circle"
             case .hide: return "eye.slash.circle"
+            case .spaceRight: return "arrowshape.right.circle"
+            case .spaceLeft: return "arrowshape.left.circle"
+            case .newTab: return "plus.rectangle.on.rectangle"
             default: return nil
             }
         }

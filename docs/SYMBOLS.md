@@ -40,7 +40,7 @@ replacement transition.
 | `.maximize` | `rectangle.fill` | `rectangle` | Maximize Window | Accent (`controlAccentColor`) | — | `.downUpReveal` |
 | `.makeSmaller` | `arrow.down.right.and.arrow.up.left` | — | Make Smaller Window | Accent (`controlAccentColor`) | — | — |
 | `.closeTab` | `xmark.rectangle.fill` | — | Close Tab | System multicolor (red X) | `.wiggleByLayer` | — |
-| `.reopenTab` | `plus.rectangle.fill` | — | Reopen Tab | System green | `.wiggleByLayer` | — |
+| `.reopenTab` | `plus.rectangle.fill` | — | Reopen Tab | Black + system green (`[.black, .systemGreen]` at 100%) | `.wiggleByLayer` | — |
 | `.closeAllTabs` | `rectangle.badge.xmark` | — | Close All Tabs | System multicolor (red X badge) | `.wiggleByLayer` | — |
 | `.newWindow` | `rectangle.badge.plus` | — | New Window | System green | `.wiggleByLayer` | — |
 | `.newTab` | `plus.rectangle.on.rectangle` | — | New Tab | System green | `.wiggleByLayer` | — |

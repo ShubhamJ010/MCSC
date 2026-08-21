@@ -56,6 +56,28 @@ enum GestureKind: String, CaseIterable {
         case .twoFingerDoubleTap: return isCmd ? .cmdTwoFingerDoubleTap : .twoFingerDoubleTap
         }
     }
+
+    /// Actions semantically natural for this gesture — drives the filtered popups
+    /// in `GestureSettingsPane`. Keeping the lists short makes the UX natural:
+    /// only actions that feel like the gesture are offered.
+    var naturalActions: [GestureAction] {
+        switch self {
+        case .pinchIn:
+            return [.closeWindow, .quitApp, .closeTab, .closeAllTabs, .makeSmaller]
+        case .pinchOut:
+            return [.toggleFullscreen, .fillScreen, .almostMaximize, .makeLarger, .newWindow]
+        case .swipeLeft:
+            return [.closeTab, .closeAllTabs, .closeWindow, .quitApp, .movePreviousDesktop]
+        case .swipeRight:
+            return [.reopenTab, .newTab, .newWindow, .moveNextDesktop]
+        case .swipeUp:
+            return [.minimize, .hideApp]
+        case .swipeDown:
+            return [.fillScreen, .almostMaximize, .makeLarger, .makeSmaller, .reasonableSize]
+        case .twoFingerDoubleTap:
+            return [.reasonableSize, .almostMaximize, .toggleFullscreen, .makeSmaller, .makeLarger]
+        }
+    }
 }
 
 // MARK: - Action

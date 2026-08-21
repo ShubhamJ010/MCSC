@@ -186,6 +186,8 @@ final class CursorFeedbackOverlay {
                 }
             case .downUpReveal:
                 imageView?.setSymbolImage(feedbackImage, contentTransition: .replace.downUp.byLayer, options: .nonRepeating)
+            case .replace:
+                imageView?.setSymbolImage(feedbackImage, contentTransition: .replace, options: .nonRepeating)
             }
         }
 
