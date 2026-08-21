@@ -105,11 +105,11 @@ extension CursorFeedbackOverlay {
                 // Black rectangle body + green plus, both at 100% (palette layer 1: black, layer 2: green).
                 return [.black, .systemGreen]
             case .closeAllTabs:
-                // Primary (black) rectangle + white badge + red X — 3-layer badge needs explicit tertiary for glyph.
-                return [.black, .white, .systemRed]
+                // Matching Cmd+N layout in red: red rectangle, white badge, black X.
+                return [.systemRed, .white, .black]
             case .newWindow:
-                // Primary (black) window + white badge + green plus — 3-layer badge needs explicit tertiary; otherwise plus falls back to primary (black).
-                return [.black, .white, .systemGreen]
+                // Per image: green window outline, white badge, black plus.
+                return [.systemGreen, .white, .black]
             case .newTab:
                 // Primary (black) rectangles + green plus at 100% — matches reopenTab/newWindow/fullscreen palette.
                 return [.black, .systemGreen]
