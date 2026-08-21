@@ -42,7 +42,7 @@ extension CursorFeedbackOverlay {
             case .maximize: return "rectangle.fill"
             case .closeTab: return "xmark.rectangle.fill"
             case .reopenTab: return "plus.rectangle.fill"
-            case .closeAllTabs: return "rectangle.badge.xmark"
+            case .closeAllTabs: return "rectangle.fill.badge.xmark"
             case .newWindow: return "macwindow.badge.plus"
             case .newTab: return "plus.rectangle.fill.on.rectangle.fill"
             case .fullscreen: return "arrow.down.left.and.arrow.up.right.circle.fill"
@@ -105,8 +105,8 @@ extension CursorFeedbackOverlay {
                 // Black rectangle body + green plus, both at 100% (palette layer 1: black, layer 2: green).
                 return [.black, .systemGreen]
             case .closeAllTabs:
-                // Red window, white badge, black X — swapped layers to match SF palette order for rectangle.badge.xmark
-                return [.white, .systemRed, .black]
+                // Primary 100% + Red 100% for Cmd+Shift+W — 2-layer palette for fill variant
+                return [.white, .systemRed]
             case .newWindow:
                 // Green window, white badge, black plus — badge is layer 1, window layer 2 for macwindow.badge.plus
                 return [.white, .systemGreen, .black]
@@ -157,8 +157,8 @@ extension CursorFeedbackOverlay {
             switch self {
             case .almost, .reasonable, .maximize, .minimize, .hide: return .downUpReveal
             case .eject: return .magicDownUpReveal
-            case .spaceRight, .spaceLeft, .newTab: return .replace
-            case .close, .quit, .closeTab, .reopenTab, .closeAllTabs, .newWindow, .fullscreen, .makeSmaller: return nil
+            case .spaceRight, .spaceLeft, .newTab, .closeAllTabs: return .replace
+            case .close, .quit, .closeTab, .reopenTab, .newWindow, .fullscreen, .makeSmaller: return nil
             }
         }
 
@@ -190,6 +190,7 @@ extension CursorFeedbackOverlay {
             case .spaceRight: return "arrowshape.right.circle"
             case .spaceLeft: return "arrowshape.left.circle"
             case .newTab: return "plus.rectangle.on.rectangle"
+            case .closeAllTabs: return "rectangle.badge.xmark"
             default: return nil
             }
         }
