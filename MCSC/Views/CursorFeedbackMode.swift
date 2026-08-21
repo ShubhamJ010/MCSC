@@ -105,11 +105,11 @@ extension CursorFeedbackOverlay {
                 // Black rectangle body + green plus, both at 100% (palette layer 1: black, layer 2: green).
                 return [.black, .systemGreen]
             case .closeAllTabs:
-                // Matching Cmd+N layout in red: red rectangle, white badge, black X.
-                return [.systemRed, .white, .black]
+                // Red window, white badge, black X — swapped layers to match SF palette order for rectangle.badge.xmark
+                return [.white, .systemRed, .black]
             case .newWindow:
-                // Per image: green window outline, white badge, black plus.
-                return [.systemGreen, .white, .black]
+                // Green window, white badge, black plus — badge is layer 1, window layer 2 for macwindow.badge.plus
+                return [.white, .systemGreen, .black]
             case .newTab:
                 // Primary (black) rectangles + green plus at 100% — matches reopenTab/newWindow/fullscreen palette.
                 return [.black, .systemGreen]
