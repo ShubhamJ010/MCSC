@@ -413,7 +413,7 @@ final class GestureSettingsPane: MCSCSettingsPane {
             cmdRow.alignment = .centerY
 
             let cmdLabel = NSTextField(labelWithString: "⌘")
-            cmdLabel.font = .systemFont(ofSize: NSFont.systemFontSize, weight: .semibold)
+            cmdLabel.font = .systemFont(ofSize: 18, weight: .semibold)
             cmdLabel.textColor = .secondaryLabelColor
             cmdLabel.setContentHuggingPriority(.required, for: .horizontal)
 
