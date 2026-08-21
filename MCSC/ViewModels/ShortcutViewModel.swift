@@ -69,6 +69,10 @@ final class ShortcutViewModel {
     var isCmdHEnabled: Bool { get { config.isCmdHEnabled } set { config.isCmdHEnabled = newValue } }
     var isCmdFEnabled: Bool { get { config.isCmdFEnabled } set { config.isCmdFEnabled = newValue } }
     var isCmdSpaceEnabled: Bool { get { config.isCmdSpaceEnabled } set { config.isCmdSpaceEnabled = newValue } }
+    var isCmdTEnabled: Bool { get { config.isCmdTEnabled } set { config.isCmdTEnabled = newValue } }
+    var isCmdNEnabled: Bool { get { config.isCmdNEnabled } set { config.isCmdNEnabled = newValue } }
+    var isCmdShiftWEnabled: Bool { get { config.isCmdShiftWEnabled } set { config.isCmdShiftWEnabled = newValue } }
+    var isCmdShiftTEnabled: Bool { get { config.isCmdShiftTEnabled } set { config.isCmdShiftTEnabled = newValue } }
     var isAutoEjectEnabled: Bool { get { config.isAutoEjectEnabled } set { config.isAutoEjectEnabled = newValue } }
     var isDockActionsOutsideMCEnabled: Bool { get { config.isDockActionsOutsideMCEnabled } set { config.isDockActionsOutsideMCEnabled = newValue } }
     var isGesturesEnabled: Bool { get { config.isGesturesEnabled } set { config.isGesturesEnabled = newValue } }

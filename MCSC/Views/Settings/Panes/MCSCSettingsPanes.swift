@@ -108,11 +108,16 @@ final class GeneralSettingsPane: MCSCSettingsPane {
 
 final class ShortcutSettingsPane: MCSCSettingsPane {
     private var keyboardNavCheckbox: NSButton!
+    private var cmdSpaceCheckbox: NSButton!
     private var cmdWCheckbox: NSButton!
     private var cmdQCheckbox: NSButton!
     private var cmdMCheckbox: NSButton!
     private var cmdHCheckbox: NSButton!
-    private var cmdSpaceCheckbox: NSButton!
+    private var cmdFCheckbox: NSButton!
+    private var cmdTCheckbox: NSButton!
+    private var cmdNCheckbox: NSButton!
+    private var cmdShiftWCheckbox: NSButton!
+    private var cmdShiftTCheckbox: NSButton!
 
     override func loadView() {
         view = NSView()
@@ -120,47 +125,118 @@ final class ShortcutSettingsPane: MCSCSettingsPane {
         let layoutView = SettingsLayoutView()
         layoutView.install(in: view)
 
-        let keyboardNav = layoutView.addColumnSection(label: "Mission Control", itemColumnMaximumWidth: 340)
-        keyboardNavCheckbox = keyboardNav.addCheckbox(title: "Enable Keyboard Navigation (Tab / Return)",
+        // Group 1: Mission Control
+        let missionControl = layoutView.addColumnSection(label: "Mission Control", itemColumnMaximumWidth: 340)
+        keyboardNavCheckbox = missionControl.addCheckbox(title: "Enable Keyboard Navigation (Tab / Return)",
+                                                         target: self,
+                                                         action: #selector(toggleKeyboardNav(_:)))
+        missionControl.addDescriptionLabel("Tab / Shift+Tab cycle the selection between visible thumbnails row-major (wrap-around). Return activates the selected window. Typing filters windows fuzzy (e.g. “code” matches Xcode + Code) and Tab cycles only the filtered matches.")
+
+        let mcGapView = NSView(frame: .zero)
+        mcGapView.translatesAutoresizingMaskIntoConstraints = false
+        mcGapView.heightAnchor.constraint(equalToConstant: 8).isActive = true
+        missionControl.addCustomView(mcGapView, verticalAlignment: .centerY)
+        mcGapView.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        mcGapView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        cmdSpaceCheckbox = missionControl.addCheckbox(title: "Cmd + Space Fix",
                                                       target: self,
-                                                      action: #selector(toggleKeyboardNav(_:)))
-        keyboardNav.addDescriptionLabel("Tab / Shift+Tab cycle the selection between visible thumbnails row-major (wrap-around). Return activates the selected window. Typing filters windows fuzzy (e.g. “code” matches Xcode + Code) and Tab cycles only the filtered matches.")
+                                                      action: #selector(toggleCmdSpace(_:)))
+        missionControl.addDescriptionLabel("Re-sends Cmd+Space when Mission Control intercepts Spotlight. Only fires while Mission Control is visible.")
 
         layoutView.addSeparatorSection()
 
-        let appShortcuts = layoutView.addColumnSection(label: "App Shortcuts", itemColumnMaximumWidth: 320)
-        cmdWCheckbox = appShortcuts.addCheckbox(title: "Cmd + W — Close Front Window",
-                                                target: self,
-                                                action: #selector(toggleCmdW(_:)))
-        cmdQCheckbox = appShortcuts.addCheckbox(title: "Cmd + Q — Quit App",
-                                                target: self,
-                                                action: #selector(toggleCmdQ(_:)))
-        cmdMCheckbox = appShortcuts.addCheckbox(title: "Cmd + M — Minimize Window",
-                                                target: self,
-                                                action: #selector(toggleCmdM(_:)))
-        cmdHCheckbox = appShortcuts.addCheckbox(title: "Cmd + H — Hide App",
-                                                target: self,
-                                                action: #selector(toggleCmdH(_:)))
-        cmdSpaceCheckbox = appShortcuts.addCheckbox(title: "Cmd + Space Fix (Mission Control)",
-                                                    target: self,
-                                                    action: #selector(toggleCmdSpace(_:)))
+        // Group 2: Window Shortcuts (Core)
+        let windowShortcuts = layoutView.addColumnSection(label: "Window Shortcuts", itemColumnMaximumWidth: 340)
+        cmdWCheckbox = addShortcutCheckbox(section: windowShortcuts, mode: .close, title: "CMD + W", action: #selector(toggleCmdW(_:)))
+        cmdQCheckbox = addShortcutCheckbox(section: windowShortcuts, mode: .quit, title: "CMD + Q", action: #selector(toggleCmdQ(_:)))
+        cmdMCheckbox = addShortcutCheckbox(section: windowShortcuts, mode: .minimize, title: "CMD + M", action: #selector(toggleCmdM(_:)))
+        cmdHCheckbox = addShortcutCheckbox(section: windowShortcuts, mode: .hide, title: "CMD + H", action: #selector(toggleCmdH(_:)))
+        windowShortcuts.addDescriptionLabel("Applies to the window under the cursor in Mission Control or while hovering a Dock icon.")
+
+        layoutView.addSeparatorSection()
+
+        // Group 3: Extra Shortcuts (New, off by default)
+        let extraShortcuts = layoutView.addColumnSection(label: "Extra Shortcuts", itemColumnMaximumWidth: 340)
+        cmdFCheckbox = addShortcutCheckbox(section: extraShortcuts, mode: .fullscreen, title: "CMD + F", action: #selector(toggleCmdF(_:)))
+        cmdTCheckbox = addShortcutCheckbox(section: extraShortcuts, mode: .newTab, title: "CMD + T", action: #selector(toggleCmdT(_:)))
+        cmdNCheckbox = addShortcutCheckbox(section: extraShortcuts, mode: .newWindow, title: "CMD + N", action: #selector(toggleCmdN(_:)))
+        cmdShiftWCheckbox = addShortcutCheckbox(section: extraShortcuts, mode: .closeAllTabs, title: "CMD + Shift + W", action: #selector(toggleCmdShiftW(_:)))
+        cmdShiftTCheckbox = addShortcutCheckbox(section: extraShortcuts, mode: .reopenTab, title: "CMD + Shift + T", action: #selector(toggleCmdShiftT(_:)))
+
+        layoutView.addSeparatorSection()
+
+        layoutView.addButtonSection(title: "Restore Defaults",
+                                    alignment: .trailing,
+                                    widthMode: .contentBlock,
+                                    target: self,
+                                    action: #selector(restoreDefaults(_:)))
 
         sizePaneToFitContent(minimumWidth: Self.minimumPaneWidth)
         refresh()
     }
 
+    private func addShortcutCheckbox(
+        section: SettingsColumnSectionView,
+        mode: CursorFeedbackOverlay.Mode,
+        title: String,
+        action: Selector
+    ) -> NSButton {
+        let checkbox = section.addCheckbox(title: title, target: self, action: action)
+        checkbox.attributedTitle = makeAttributedTitle(mode: mode, title: title)
+        return checkbox
+    }
+
+    private func makeAttributedTitle(mode: CursorFeedbackOverlay.Mode, title: String) -> NSAttributedString {
+        let font = NSFont.systemFont(ofSize: NSFont.systemFontSize)
+        let attrString = NSMutableAttributedString()
+
+        if let image = SymbolImageFactory.make(
+            symbolName: mode.symbolName,
+            description: mode.accessibilityDescription,
+            paletteColors: mode.paletteColors,
+            pointSize: 13,
+            weight: .medium
+        ) {
+            let attachment = NSTextAttachment()
+            attachment.image = image
+            let imageSize = image.size
+            let yOffset = (font.capHeight - imageSize.height) / 2.0
+            attachment.bounds = CGRect(x: 0, y: yOffset.rounded(), width: imageSize.width, height: imageSize.height)
+            attrString.append(NSAttributedString(attachment: attachment))
+            attrString.append(NSAttributedString(string: "  ", attributes: [.font: font]))
+        }
+
+        attrString.append(NSAttributedString(string: title, attributes: [
+            .font: font,
+            .foregroundColor: NSColor.labelColor
+        ]))
+
+        return attrString
+    }
+
     override func refresh() {
         keyboardNavCheckbox?.state = viewModel.isKeyboardNavigationEnabled ? .on : .off
+        cmdSpaceCheckbox?.state = viewModel.isCmdSpaceEnabled ? .on : .off
         cmdWCheckbox?.state = viewModel.isCmdWEnabled ? .on : .off
         cmdQCheckbox?.state = viewModel.isCmdQEnabled ? .on : .off
         cmdMCheckbox?.state = viewModel.isCmdMEnabled ? .on : .off
         cmdHCheckbox?.state = viewModel.isCmdHEnabled ? .on : .off
-        cmdSpaceCheckbox?.state = viewModel.isCmdSpaceEnabled ? .on : .off
+        cmdFCheckbox?.state = viewModel.isCmdFEnabled ? .on : .off
+        cmdTCheckbox?.state = viewModel.isCmdTEnabled ? .on : .off
+        cmdNCheckbox?.state = viewModel.isCmdNEnabled ? .on : .off
+        cmdShiftWCheckbox?.state = viewModel.isCmdShiftWEnabled ? .on : .off
+        cmdShiftTCheckbox?.state = viewModel.isCmdShiftTEnabled ? .on : .off
     }
 
     @objc private func toggleKeyboardNav(_ sender: NSButton) {
         viewModel.isKeyboardNavigationEnabled.toggle()
         sender.state = viewModel.isKeyboardNavigationEnabled ? .on : .off
+    }
+
+    @objc private func toggleCmdSpace(_ sender: NSButton) {
+        viewModel.isCmdSpaceEnabled.toggle()
+        sender.state = viewModel.isCmdSpaceEnabled ? .on : .off
     }
 
     @objc private func toggleCmdW(_ sender: NSButton) {
@@ -183,18 +259,43 @@ final class ShortcutSettingsPane: MCSCSettingsPane {
         sender.state = viewModel.isCmdHEnabled ? .on : .off
     }
 
-    @objc private func toggleCmdSpace(_ sender: NSButton) {
-        viewModel.isCmdSpaceEnabled.toggle()
-        sender.state = viewModel.isCmdSpaceEnabled ? .on : .off
+    @objc private func toggleCmdF(_ sender: NSButton) {
+        viewModel.isCmdFEnabled.toggle()
+        sender.state = viewModel.isCmdFEnabled ? .on : .off
+    }
+
+    @objc private func toggleCmdT(_ sender: NSButton) {
+        viewModel.isCmdTEnabled.toggle()
+        sender.state = viewModel.isCmdTEnabled ? .on : .off
+    }
+
+    @objc private func toggleCmdN(_ sender: NSButton) {
+        viewModel.isCmdNEnabled.toggle()
+        sender.state = viewModel.isCmdNEnabled ? .on : .off
+    }
+
+    @objc private func toggleCmdShiftW(_ sender: NSButton) {
+        viewModel.isCmdShiftWEnabled.toggle()
+        sender.state = viewModel.isCmdShiftWEnabled ? .on : .off
+    }
+
+    @objc private func toggleCmdShiftT(_ sender: NSButton) {
+        viewModel.isCmdShiftTEnabled.toggle()
+        sender.state = viewModel.isCmdShiftTEnabled ? .on : .off
     }
 
     @objc private func restoreDefaults(_ sender: NSButton) {
         viewModel.isKeyboardNavigationEnabled = true
+        viewModel.isCmdSpaceEnabled = true
         viewModel.isCmdWEnabled = true
         viewModel.isCmdQEnabled = true
         viewModel.isCmdMEnabled = true
         viewModel.isCmdHEnabled = true
-        viewModel.isCmdSpaceEnabled = true
+        viewModel.isCmdFEnabled = false
+        viewModel.isCmdTEnabled = false
+        viewModel.isCmdNEnabled = false
+        viewModel.isCmdShiftWEnabled = false
+        viewModel.isCmdShiftTEnabled = false
         refreshAllPanes()
     }
 }
@@ -203,7 +304,7 @@ final class ShortcutSettingsPane: MCSCSettingsPane {
 
 final class GestureSettingsPane: MCSCSettingsPane {
     /// Demo General pane caps the item column — keeps pop-ups from stretching edge-to-edge.
-    private static let itemColumnMaximumWidth: CGFloat = 220
+    private static let itemColumnMaximumWidth: CGFloat = 250
 
     private var layoutView: SettingsLayoutView?
     private var gesturesMasterCheckbox: NSButton!
@@ -249,49 +350,43 @@ final class GestureSettingsPane: MCSCSettingsPane {
                                                       itemColumnMaximumWidth: isFirst ? Self.itemColumnMaximumWidth : nil,
                                                       identifier: .init(kind.rawValue))
 
-            // Primary action — .small matches the ⌘ row so the two pop-ups share a baseline grid
-            let popup = section.addPopUpButton(controlSize: .small, target: self, action: #selector(actionChanged(_:)))
+            // Primary action — standard regular popup shape and size
+            let popup = section.addPopUpButton(controlSize: .regular, target: self, action: #selector(actionChanged(_:)))
             for action in GestureAction.allCases {
                 popup.addItem(withTitle: action.menuTitle)
                 popup.lastItem?.representedObject = action.rawValue
             }
             popup.tag = gestureIndex
 
-            // Toggle — wire-frame demo uses DemoSwitch (Toggle .switch); NSSwitch is the AppKit
-            // equivalent without SwiftUI overhead (fits memory ceiling). Mirrors
-            // DemoViewControllers Wireframes section: trailing accessory, centerY aligned.
+            // Toggle switch
             let toggle = NSSwitch()
             toggle.target = self
             toggle.action = #selector(toggleGestureEnabled(_:))
-            toggle.controlSize = NSControl.ControlSize.small
+            toggle.controlSize = .regular
             toggle.tag = gestureIndex
             section.addAccessoryView(toggle, to: popup, spacing: 12)
 
-            // Small breathing gap between the plain and ⌘ rows — ~2mm less than before:
-            // keep visual separation but reduce by ~2pt. Gap view (2pt) + itemSpacing (6pt) ≈ 8pt.
             let gapView = NSView(frame: .zero)
             gapView.translatesAutoresizingMaskIntoConstraints = false
-            gapView.heightAnchor.constraint(equalToConstant: 2).isActive = true
+            gapView.heightAnchor.constraint(equalToConstant: 4).isActive = true
             section.addCustomView(gapView, verticalAlignment: .centerY)
-            // gap takes no column-width vote (clear color, non-contributing) — we lower its hugging
-            // so it doesn't widen the item column
             gapView.setContentHuggingPriority(.defaultLow, for: .horizontal)
             gapView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-            // ⌘ variant — second stacked item, same .small size, dimmed secondary label
+            // ⌘ variant — second stacked item, regular size
             let cmdRow = NSStackView()
             cmdRow.orientation = .horizontal
-            cmdRow.spacing = 4
+            cmdRow.spacing = 6
             cmdRow.alignment = .centerY
 
             let cmdLabel = NSTextField(labelWithString: "⌘")
-            cmdLabel.font = .boldSystemFont(ofSize: 14)
+            cmdLabel.font = .systemFont(ofSize: NSFont.systemFontSize, weight: .semibold)
             cmdLabel.textColor = .secondaryLabelColor
             cmdLabel.setContentHuggingPriority(.required, for: .horizontal)
 
             let cmdPopup = NSPopUpButton(frame: .zero, pullsDown: false)
-            cmdPopup.controlSize = .small
-            SettingsSectionView.applyControlSize(.small, to: cmdPopup)
+            cmdPopup.controlSize = .regular
+            SettingsSectionView.applyControlSize(.regular, to: cmdPopup)
             cmdPopup.target = self
             cmdPopup.action = #selector(cmdActionChanged(_:))
             cmdPopup.tag = gestureIndex

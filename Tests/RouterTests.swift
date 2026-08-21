@@ -81,6 +81,130 @@ final class RouterTests: XCTestCase {
         }
     }
 
+    func testNewShortcutsDefaultToDisabledInConfiguration() {
+        let config = ShortcutConfiguration()
+        XCTAssertFalse(config.isCmdFEnabled)
+        XCTAssertFalse(config.isCmdTEnabled)
+        XCTAssertFalse(config.isCmdNEnabled)
+        XCTAssertFalse(config.isCmdShiftWEnabled)
+        XCTAssertFalse(config.isCmdShiftTEnabled)
+    }
+
+    func testShortcutRouterCmdFRoutesToFullscreenWhenEnabled() {
+        var config = ShortcutConfiguration()
+        config.isCmdFEnabled = true
+
+        let result = shortcutRouter.routeShortcut(
+            keyCode: ShortcutActionRouter.kKeyF,
+            flags: .maskCommand,
+            location: CGPoint(x: 100, y: 100),
+            config: config,
+            isMissionControlActive: true,
+            target: .none,
+            service: mockService,
+            activateApp: { _ in }
+        )
+
+        switch result {
+        case .consumeAndExecute(let feedbackMode, _):
+            XCTAssertEqual(feedbackMode, .fullscreen)
+        case .ignore:
+            XCTFail("Expected Cmd+F to route to fullscreen")
+        }
+    }
+
+    func testShortcutRouterCmdTRoutesToNewTabWhenEnabled() {
+        var config = ShortcutConfiguration()
+        config.isCmdTEnabled = true
+
+        let result = shortcutRouter.routeShortcut(
+            keyCode: ShortcutActionRouter.kKeyT,
+            flags: .maskCommand,
+            location: CGPoint(x: 100, y: 100),
+            config: config,
+            isMissionControlActive: true,
+            target: .none,
+            service: mockService,
+            activateApp: { _ in }
+        )
+
+        switch result {
+        case .consumeAndExecute(let feedbackMode, _):
+            XCTAssertEqual(feedbackMode, .newTab)
+        case .ignore:
+            XCTFail("Expected Cmd+T to route to newTab")
+        }
+    }
+
+    func testShortcutRouterCmdNRoutesToNewWindowWhenEnabled() {
+        var config = ShortcutConfiguration()
+        config.isCmdNEnabled = true
+
+        let result = shortcutRouter.routeShortcut(
+            keyCode: ShortcutActionRouter.kKeyN,
+            flags: .maskCommand,
+            location: CGPoint(x: 100, y: 100),
+            config: config,
+            isMissionControlActive: true,
+            target: .none,
+            service: mockService,
+            activateApp: { _ in }
+        )
+
+        switch result {
+        case .consumeAndExecute(let feedbackMode, _):
+            XCTAssertEqual(feedbackMode, .newWindow)
+        case .ignore:
+            XCTFail("Expected Cmd+N to route to newWindow")
+        }
+    }
+
+    func testShortcutRouterCmdShiftWRoutesToCloseAllTabsWhenEnabled() {
+        var config = ShortcutConfiguration()
+        config.isCmdShiftWEnabled = true
+
+        let result = shortcutRouter.routeShortcut(
+            keyCode: ShortcutActionRouter.kKeyW,
+            flags: [.maskCommand, .maskShift],
+            location: CGPoint(x: 100, y: 100),
+            config: config,
+            isMissionControlActive: true,
+            target: .none,
+            service: mockService,
+            activateApp: { _ in }
+        )
+
+        switch result {
+        case .consumeAndExecute(let feedbackMode, _):
+            XCTAssertEqual(feedbackMode, .closeAllTabs)
+        case .ignore:
+            XCTFail("Expected Cmd+Shift+W to route to closeAllTabs")
+        }
+    }
+
+    func testShortcutRouterCmdShiftTRoutesToReopenTabWhenEnabled() {
+        var config = ShortcutConfiguration()
+        config.isCmdShiftTEnabled = true
+
+        let result = shortcutRouter.routeShortcut(
+            keyCode: ShortcutActionRouter.kKeyT,
+            flags: [.maskCommand, .maskShift],
+            location: CGPoint(x: 100, y: 100),
+            config: config,
+            isMissionControlActive: true,
+            target: .none,
+            service: mockService,
+            activateApp: { _ in }
+        )
+
+        switch result {
+        case .consumeAndExecute(let feedbackMode, _):
+            XCTAssertEqual(feedbackMode, .reopenTab)
+        case .ignore:
+            XCTFail("Expected Cmd+Shift+T to route to reopenTab")
+        }
+    }
+
     func testGestureRouterPinchInRoutesToClose() {
         let result = gestureRouter.routeGesture(
             .pinchIn(atNormalized: (0.5, 0.5)),

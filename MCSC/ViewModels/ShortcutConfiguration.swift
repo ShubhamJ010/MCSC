@@ -2,12 +2,36 @@ import Foundation
 
 /// Value type representing user-configurable shortcut and gesture toggles.
 struct ShortcutConfiguration {
-    var isCmdWEnabled = true
-    var isCmdQEnabled = true
-    var isCmdMEnabled = true
-    var isCmdHEnabled = true
-    var isCmdFEnabled = false
-    var isCmdSpaceEnabled = true
+    var isCmdWEnabled = true {
+        didSet { UserDefaults.standard.set(isCmdWEnabled, forKey: Self.Keys.cmdWEnabled) }
+    }
+    var isCmdQEnabled = true {
+        didSet { UserDefaults.standard.set(isCmdQEnabled, forKey: Self.Keys.cmdQEnabled) }
+    }
+    var isCmdMEnabled = true {
+        didSet { UserDefaults.standard.set(isCmdMEnabled, forKey: Self.Keys.cmdMEnabled) }
+    }
+    var isCmdHEnabled = true {
+        didSet { UserDefaults.standard.set(isCmdHEnabled, forKey: Self.Keys.cmdHEnabled) }
+    }
+    var isCmdFEnabled = false {
+        didSet { UserDefaults.standard.set(isCmdFEnabled, forKey: Self.Keys.cmdFEnabled) }
+    }
+    var isCmdSpaceEnabled = true {
+        didSet { UserDefaults.standard.set(isCmdSpaceEnabled, forKey: Self.Keys.cmdSpaceEnabled) }
+    }
+    var isCmdTEnabled = false {
+        didSet { UserDefaults.standard.set(isCmdTEnabled, forKey: Self.Keys.cmdTEnabled) }
+    }
+    var isCmdNEnabled = false {
+        didSet { UserDefaults.standard.set(isCmdNEnabled, forKey: Self.Keys.cmdNEnabled) }
+    }
+    var isCmdShiftWEnabled = false {
+        didSet { UserDefaults.standard.set(isCmdShiftWEnabled, forKey: Self.Keys.cmdShiftWEnabled) }
+    }
+    var isCmdShiftTEnabled = false {
+        didSet { UserDefaults.standard.set(isCmdShiftTEnabled, forKey: Self.Keys.cmdShiftTEnabled) }
+    }
     var isGesturesEnabled = true {
         didSet { UserDefaults.standard.set(isGesturesEnabled, forKey: Self.Keys.gesturesEnabled) }
     }
@@ -57,6 +81,36 @@ struct ShortcutConfiguration {
     }
 
     init() {
+        if UserDefaults.standard.object(forKey: Self.Keys.cmdWEnabled) != nil {
+            isCmdWEnabled = UserDefaults.standard.bool(forKey: Self.Keys.cmdWEnabled)
+        }
+        if UserDefaults.standard.object(forKey: Self.Keys.cmdQEnabled) != nil {
+            isCmdQEnabled = UserDefaults.standard.bool(forKey: Self.Keys.cmdQEnabled)
+        }
+        if UserDefaults.standard.object(forKey: Self.Keys.cmdMEnabled) != nil {
+            isCmdMEnabled = UserDefaults.standard.bool(forKey: Self.Keys.cmdMEnabled)
+        }
+        if UserDefaults.standard.object(forKey: Self.Keys.cmdHEnabled) != nil {
+            isCmdHEnabled = UserDefaults.standard.bool(forKey: Self.Keys.cmdHEnabled)
+        }
+        if UserDefaults.standard.object(forKey: Self.Keys.cmdFEnabled) != nil {
+            isCmdFEnabled = UserDefaults.standard.bool(forKey: Self.Keys.cmdFEnabled)
+        }
+        if UserDefaults.standard.object(forKey: Self.Keys.cmdSpaceEnabled) != nil {
+            isCmdSpaceEnabled = UserDefaults.standard.bool(forKey: Self.Keys.cmdSpaceEnabled)
+        }
+        if UserDefaults.standard.object(forKey: Self.Keys.cmdTEnabled) != nil {
+            isCmdTEnabled = UserDefaults.standard.bool(forKey: Self.Keys.cmdTEnabled)
+        }
+        if UserDefaults.standard.object(forKey: Self.Keys.cmdNEnabled) != nil {
+            isCmdNEnabled = UserDefaults.standard.bool(forKey: Self.Keys.cmdNEnabled)
+        }
+        if UserDefaults.standard.object(forKey: Self.Keys.cmdShiftWEnabled) != nil {
+            isCmdShiftWEnabled = UserDefaults.standard.bool(forKey: Self.Keys.cmdShiftWEnabled)
+        }
+        if UserDefaults.standard.object(forKey: Self.Keys.cmdShiftTEnabled) != nil {
+            isCmdShiftTEnabled = UserDefaults.standard.bool(forKey: Self.Keys.cmdShiftTEnabled)
+        }
         if UserDefaults.standard.object(forKey: Self.Keys.keyboardNavigation) != nil {
             isKeyboardNavigationEnabled = UserDefaults.standard.bool(forKey: Self.Keys.keyboardNavigation)
         }
@@ -132,6 +186,16 @@ struct ShortcutConfiguration {
     }
 
     private enum Keys {
+        static let cmdWEnabled = "mcsc.shortcuts.cmdW.enabled"
+        static let cmdQEnabled = "mcsc.shortcuts.cmdQ.enabled"
+        static let cmdMEnabled = "mcsc.shortcuts.cmdM.enabled"
+        static let cmdHEnabled = "mcsc.shortcuts.cmdH.enabled"
+        static let cmdFEnabled = "mcsc.shortcuts.cmdF.enabled"
+        static let cmdSpaceEnabled = "mcsc.shortcuts.cmdSpace.enabled"
+        static let cmdTEnabled = "mcsc.shortcuts.cmdT.enabled"
+        static let cmdNEnabled = "mcsc.shortcuts.cmdN.enabled"
+        static let cmdShiftWEnabled = "mcsc.shortcuts.cmdShiftW.enabled"
+        static let cmdShiftTEnabled = "mcsc.shortcuts.cmdShiftT.enabled"
         static let keyboardNavigation = "mcsc.keyboardNavigation.enabled"
         static let dockActionsOutsideMC = "mcsc.dockActionsOutsideMC.enabled"
         static let gesturesEnabled = "mcsc.gestures.enabled"
