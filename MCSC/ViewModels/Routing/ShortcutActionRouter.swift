@@ -34,6 +34,33 @@ final class ShortcutActionRouter {
 
     private let actions: ActionRegistry
 
+    /// The complete set of virtual key codes any routable shortcut can use.
+    /// Union of every `kKey*` constant above — Cmd+Space is handled by
+    /// `MissionControlService` before routing but included so the predicate
+    /// stays conservative.
+    static let handledKeyCodes: Set<Int64> = [
+        kKeyW, kKeyQ, kKeyM, kKeyH, kKeyF, kKeyT, kKeyN, kKeySpace,
+        kKeyE, kKeyD, kKeyA, kKeyR, kKeyL, kKeyS, kKeyRight, kKeyLeft,
+    ]
+
+    /// Cheap, allocation-free predicate answering "could this event possibly
+    /// route to any action?". Mirrors `shouldHandle(flags:)` plus the fixed
+    /// key-code switch, so a negative answer guarantees `.ignore`.
+    ///
+    /// Used by `ShortcutViewModel` *before* the expensive AX hit-test
+    /// (`resolveTarget`) so plain typing (no Cmd) and untracked keys never pay
+    /// for WindowServer/app AX IPC. Must stay in sync with `routeShortcut`:
+    /// - flags need Command, without Control or Option,
+    /// - key code must be one of the routed constants.
+    static func isShortcutCandidate(keyCode: Int64, flags: CGEventFlags) -> Bool {
+        guard flags.contains(.maskCommand),
+              !flags.contains(.maskControl),
+              !flags.contains(.maskAlternate) else {
+            return false
+        }
+        return handledKeyCodes.contains(keyCode)
+    }
+
     init(actions: ActionRegistry = ActionRegistry()) {
         self.actions = actions
     }

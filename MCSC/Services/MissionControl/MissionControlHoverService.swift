@@ -521,6 +521,32 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
         hideOverlay()
     }
 
+    deinit {
+        if let source = runLoopSource {
+            CFRunLoopSourceInvalidate(source)
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes)
+        }
+        if let tap = eventTap {
+            CGEvent.tapEnable(tap: tap, enable: false)
+        }
+        keyboardTap?.stop()
+        // Both timers must die with the service: a repeating `windowFetchTimer`
+        // that survives dealloc would poll a zombie instance every 0.5 s (the
+        // timer's block retains the closure target chain).
+        windowFetchTimer?.invalidate()
+        windowFetchTimer = nil
+        queryIdleTimer?.invalidate()
+        queryIdleTimer = nil
+        if let obs = axObserver {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(obs), .commonModes)
+        }
+        if let observer = spaceChangeObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(observer)
+        }
+    }
+}
+
+extension MissionControlHoverService {
     // MARK: - Keyboard Fuzzy-Finder (type-to-select)
 
     /// Resets the session and installs a fresh `MCKeyboardTapService` for the
@@ -669,24 +695,6 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
             tolerance: Timing.queryIdleTolerance
         ) { [weak self] _ in
             Task { @MainActor in self?.clearSearch() }
-        }
-    }
-
-    deinit {
-        if let source = runLoopSource {
-            CFRunLoopSourceInvalidate(source)
-            CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes)
-        }
-        if let tap = eventTap {
-            CGEvent.tapEnable(tap: tap, enable: false)
-        }
-        keyboardTap?.stop()
-        queryIdleTimer?.invalidate()
-        if let obs = axObserver {
-            CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(obs), .commonModes)
-        }
-        if let observer = spaceChangeObserver {
-            NSWorkspace.shared.notificationCenter.removeObserver(observer)
         }
     }
 }

@@ -77,17 +77,20 @@ final class GeneralSettingsPane: MCSCSettingsPane {
             title: "Dock Gestures & Shortcuts",
             description: "Gestures & Cmd-shortcuts while hovering Dock icons.",
             target: self,
-            action: #selector(toggleDockActions(_:)))
+            action: #selector(toggleDockActions(_:))
+        )
         titleBarActionsCheckbox = behavior.addDescribedCheckbox(
             title: "Title Bar Gestures & Shortcuts",
             description: "Gestures & Cmd-shortcuts while hovering the frontmost window's title bar.",
             target: self,
-            action: #selector(toggleTitleBarActions(_:)))
+            action: #selector(toggleTitleBarActions(_:))
+        )
         hoverCloseCheckbox = behavior.addDescribedCheckbox(
             title: "Hover Close Button",
             description: "Shows a close button when hovering window thumbnails in Mission Control. Click to close; Cmd = quit, Option = minimize.",
             target: self,
-            action: #selector(toggleHoverClose(_:)))
+            action: #selector(toggleHoverClose(_:))
+        )
 
         layoutView.addSeparatorSection()
 
@@ -99,7 +102,8 @@ final class GeneralSettingsPane: MCSCSettingsPane {
                 + "(wrap-around). Return activates the selected window. Typing filters windows fuzzy "
                 + "(e.g. “code” matches Xcode + Code) and Tab cycles only the filtered matches.",
             target: self,
-            action: #selector(toggleKeyboardNav(_:)))
+            action: #selector(toggleKeyboardNav(_:))
+        )
         let mcGapView = NSView(frame: .zero)
         mcGapView.translatesAutoresizingMaskIntoConstraints = false
         mcGapView.heightAnchor.constraint(equalToConstant: 8).isActive = true
@@ -110,7 +114,8 @@ final class GeneralSettingsPane: MCSCSettingsPane {
             title: "Restore Spotlight (⌘ + Space) in Mission Control",
             description: "Fixes Mission Control blocking Spotlight. Re-sends ⌘+Space when Mission Control is visible so Spotlight still opens.",
             target: self,
-            action: #selector(toggleSpotlightFix(_:)))
+            action: #selector(toggleSpotlightFix(_:))
+        )
 
         layoutView.addSeparatorSection()
 
@@ -120,12 +125,14 @@ final class GeneralSettingsPane: MCSCSettingsPane {
             title: "Haptic Feedback",
             description: "Plays trackpad haptics on gesture/shortcut actions.",
             target: self,
-            action: #selector(toggleHaptics(_:)))
+            action: #selector(toggleHaptics(_:))
+        )
         cursorFeedbackCheckbox = feedback.addDescribedCheckbox(
             title: "Cursor Flash Overlay",
             description: "Flashes an icon at the cursor when an action fires.",
             target: self,
-            action: #selector(toggleCursorFeedback(_:)))
+            action: #selector(toggleCursorFeedback(_:))
+        )
 
         layoutView.addSeparatorSection()
 

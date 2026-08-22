@@ -127,7 +127,10 @@ final class MissionControlService: MissionControlServiceProtocol {
 
         // Collect the layers of all empty-named Dock windows.
         var emptyNamedDockLayers: [Int] = []
-        if let windowList = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] {
+        if let windowList = CGWindowListCopyWindowInfo(
+            [.optionOnScreenOnly, .excludeDesktopElements],
+            kCGNullWindowID
+        ) as? [[String: Any]] {
             for window in windowList {
                 guard (window[kCGWindowOwnerName as String] as? String) == "Dock" else { continue }
                 let name = window[kCGWindowName as String] as? String ?? ""

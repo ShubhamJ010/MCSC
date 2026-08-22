@@ -255,6 +255,13 @@ final class ShortcutViewModel {
         eventTapService.onShortcutDetected = { [weak self] keyCode, flags, location in
             guard let self else { return false }
 
+            // Cheap pre-filter BEFORE any AX IPC: plain typing (no Cmd) and
+            // untracked keys can never route, so skip the hit-test entirely.
+            // This keeps keystroke latency in other apps free of MCSC cost.
+            guard ShortcutActionRouter.isShortcutCandidate(keyCode: keyCode, flags: flags) else {
+                return false
+            }
+
             let isCmdPressed = flags.contains(.maskCommand)
             let isShiftPressed = flags.contains(.maskShift)
             let isControlPressed = flags.contains(.maskControl)

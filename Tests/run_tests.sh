@@ -24,6 +24,7 @@ swiftc \
   "${ROOT_DIR}/MCSC/Services/Haptics/HapticService.swift" \
   "${ROOT_DIR}/MCSC/Services/MissionControl/MissionControlHoverService.swift" \
   "${ROOT_DIR}/MCSC/Services/MissionControl/MCKeyboardTapService.swift" \
+  "${ROOT_DIR}/MCSC/Services/MissionControl/MissionControlService.swift" \
   "${ROOT_DIR}/MCSC/Models/WindowSelectionEngine.swift" \
   "${ROOT_DIR}/MCSC/Models/WindowSearchSession.swift" \
   "${ROOT_DIR}/MCSC/Models/Actions/WindowActivationAction.swift" \
@@ -68,6 +69,7 @@ swiftc \
   "${SCRIPT_DIR}/ShortcutConfigurationTests.swift" \
   "${SCRIPT_DIR}/RouterTests.swift" \
   "${SCRIPT_DIR}/DockInteractionSuppressorTests.swift" \
+  "${SCRIPT_DIR}/PerformanceTests.swift" \
   "${SCRIPT_DIR}/TestRunner.swift"
 
 trap 'rm -f "${SCRIPT_DIR}/bin_test_runner"' EXIT
