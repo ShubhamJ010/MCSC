@@ -681,7 +681,13 @@ final class MissionControlHoverService: MissionControlHoverServiceProtocol {
             CGEvent.tapEnable(tap: tap, enable: false)
         }
         keyboardTap?.stop()
+        // Both timers must die with the service: a repeating `windowFetchTimer`
+        // that survives dealloc would poll a zombie instance every 0.5 s (the
+        // timer's block retains the closure target chain).
+        windowFetchTimer?.invalidate()
+        windowFetchTimer = nil
         queryIdleTimer?.invalidate()
+        queryIdleTimer = nil
         if let obs = axObserver {
             CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(obs), .commonModes)
         }

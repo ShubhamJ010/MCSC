@@ -72,6 +72,13 @@ final class AccessibilityService: AccessibilityServiceProtocol {
     private var cachedDockElement: AXUIElement?
     private var cachedDockPID: pid_t = 0
 
+    /// Cached frontmost-application element for `isFrontmostWindow`, keyed by
+    /// pid. The title-bar hover path calls `isFrontmostWindow` up to 30×/s per
+    /// gesture frame; without the cache each call allocated a fresh
+    /// `AXUIElementCreateApplication`. The pid check invalidates on app switch.
+    private var cachedFrontmostAppElement: AXUIElement?
+    private var cachedFrontmostAppPID: pid_t = 0
+
     /// Cached bounding frame of the Dock's icon list. Refreshed lazily and on
     /// screen-configuration changes to avoid per-frame AX queries.
     private var cachedDockFrame: CGRect?
@@ -469,10 +476,16 @@ final class AccessibilityService: AccessibilityServiceProtocol {
     /// `true` when `window` is the focused window of the frontmost application.
     /// Two cheap AX reads (app element + focused-window attribute); only called
     /// when the title-bar feature is enabled and Mission Control is closed.
+    /// The application element is cached per pid — `AXUIElementCreateApplication`
+    /// on every gesture frame was measurable allocator churn.
     func isFrontmostWindow(_ window: AXUIElement) -> Bool {
         guard let frontApp = NSWorkspace.shared.frontmostApplication else { return false }
-        let appElement = AXUIElementCreateApplication(frontApp.processIdentifier)
-        guard let focusedWindow: AXUIElement = getAttributeValue(kAXFocusedWindowAttribute, for: appElement) else {
+        if cachedFrontmostAppElement == nil || cachedFrontmostAppPID != frontApp.processIdentifier {
+            cachedFrontmostAppElement = AXUIElementCreateApplication(frontApp.processIdentifier)
+            cachedFrontmostAppPID = frontApp.processIdentifier
+        }
+        guard let appElement = cachedFrontmostAppElement,
+              let focusedWindow: AXUIElement = getAttributeValue(kAXFocusedWindowAttribute, for: appElement) else {
             return false
         }
         return CFEqual(focusedWindow, window)
