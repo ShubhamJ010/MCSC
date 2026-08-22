@@ -106,6 +106,15 @@ Re-measured after the fixes with the same procedure as below; launch `footprint`
 and idle CPU are unchanged (the wins are IPC/allocation reductions on active
 paths), and `leaks` remains 0.
 
+**Deployed verification (`0.5.2-beta` perf build via `./deploy.sh`, 2026-08-22):**
+after granting Accessibility and two Mission Control open/close cycles,
+idle settles at **21-23 MB `phys_footprint` / 0.0% `ps` CPU**, peak 73 MB only
+during MC's own IOSurface compositing (36 MB of that reclaimable graphics
+memory). Idle `sample` shows **1 `SLWindowListCopyWindowInfo` per 5 s**
+(vs 7-9 pre-audit, ~38 in `0.5.0-beta`) thanks to the keystroke pre-filter +
+frame gate; heap 30k nodes / 4.8 MB; all threads parked in `mach_msg2_trap`
+at rest.
+
 ### Profiling the installed / running build
 
 
