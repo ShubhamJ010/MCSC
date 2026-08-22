@@ -115,6 +115,22 @@ memory). Idle `sample` shows **1 `SLWindowListCopyWindowInfo` per 5 s**
 frame gate; heap 30k nodes / 4.8 MB; all threads parked in `mach_msg2_trap`
 at rest.
 
+**Mission Control open vs closed (same session, pid 66437):**
+
+| State | `phys_footprint` | `ps` CPU | Heap | vmmap DIRTY | Window-list IPC / 5 s |
+| --- | --- | --- | --- | --- | --- |
+| Mission Control **open** (no cursor motion) | 23 MB (session peak 73 MB) | 0.1% | 44k nodes / 5.8 MB | 10.9 MB | **3** |
+| Mission Control **closed**, settled idle | 23 MB | 0.0% | 43k nodes / 5.7 MB | 10.3 MB | **1** |
+
+Opening/closing Mission Control no longer produces a footprint step or CPU
+spike: dirty memory stays flat at ~10-11 MB (under the 13 MB ceiling), the
+heap grows by <0.2 MB with MC open (window list + overlay surfaces), and the
+only recurring IPC while MC is held open is the 0.5 s window poll — which
+coalesces to ~3 WindowServer round-trips per 5 s when the cursor is not
+moving. The 73 MB session peak is transient `IOSurface`/`IOAccelerator`
+graphics owned by MC compositing itself; 36 MB of it is marked reclaimable
+and returns on idle.
+
 ### Profiling the installed / running build
 
 
