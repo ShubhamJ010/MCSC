@@ -122,7 +122,9 @@ struct ShortcutConfiguration {
     /// bar of the frontmost window in normal desktop mode (Mission Control
     /// closed). Persisted to `UserDefaults` on every mutation.
     var isTitleBarActionsOutsideMCEnabled = false {
-        didSet { UserDefaults.standard.set(isTitleBarActionsOutsideMCEnabled, forKey: Self.Keys.titleBarActionsOutsideMC) }
+        didSet {
+            UserDefaults.standard.set(isTitleBarActionsOutsideMCEnabled, forKey: Self.Keys.titleBarActionsOutsideMC)
+        }
     }
 
     var isKeyboardNavigationEnabled = true {
@@ -162,7 +164,11 @@ struct ShortcutConfiguration {
     /// key and default value. Drives loading (`init`), `restoreDefaults()`,
     /// and the defaults-drift unit tests. The stored-property literals above
     /// must match `defaultValue` (enforced by `ShortcutConfigurationTests`).
-    static let toggleDefaults: [(keyPath: WritableKeyPath<ShortcutConfiguration, Bool>, key: String, defaultValue: Bool)] = [
+    static let toggleDefaults: [(
+        keyPath: WritableKeyPath<ShortcutConfiguration, Bool>,
+        key: String,
+        defaultValue: Bool
+    )] = [
         (\.isCmdWEnabled, Keys.cmdWEnabled, true),
         (\.isCmdQEnabled, Keys.cmdQEnabled, true),
         (\.isCmdMEnabled, Keys.cmdMEnabled, true),

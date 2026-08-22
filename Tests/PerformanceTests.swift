@@ -98,7 +98,9 @@ final class PerformanceTests: XCTestCase {
         let start = CACurrentMediaTime()
         var accepted = 0
         for i in 0 ..< iterations {
-            if gate.shouldForward(timestamp: Double(i) * 0.001) { accepted += 1 }
+            if gate.shouldForward(timestamp: Double(i) * 0.001) {
+                accepted += 1
+            }
         }
         let elapsed = CACurrentMediaTime() - start
 
@@ -118,16 +120,21 @@ final class PerformanceTests: XCTestCase {
         XCTAssertFalse(ShortcutActionRouter.isShortcutCandidate(keyCode: 7 /* X */, flags: cmd))
         // Cmd+Ctrl / Cmd+Option combos are excluded by the router contract.
         XCTAssertFalse(ShortcutActionRouter.isShortcutCandidate(
-            keyCode: ShortcutActionRouter.kKeyW, flags: [.maskCommand, .maskControl]))
+            keyCode: ShortcutActionRouter.kKeyW, flags: [.maskCommand, .maskControl]
+        ))
         XCTAssertFalse(ShortcutActionRouter.isShortcutCandidate(
-            keyCode: ShortcutActionRouter.kKeyW, flags: [.maskCommand, .maskAlternate]))
+            keyCode: ShortcutActionRouter.kKeyW, flags: [.maskCommand, .maskAlternate]
+        ))
         // Tracked keys with Cmd must pass.
         XCTAssertTrue(ShortcutActionRouter.isShortcutCandidate(
-            keyCode: ShortcutActionRouter.kKeyW, flags: cmd))
+            keyCode: ShortcutActionRouter.kKeyW, flags: cmd
+        ))
         XCTAssertTrue(ShortcutActionRouter.isShortcutCandidate(
-            keyCode: ShortcutActionRouter.kKeySpace, flags: cmd))
+            keyCode: ShortcutActionRouter.kKeySpace, flags: cmd
+        ))
         XCTAssertTrue(ShortcutActionRouter.isShortcutCandidate(
-            keyCode: ShortcutActionRouter.kKeyRight, flags: [.maskCommand, .maskShift]))
+            keyCode: ShortcutActionRouter.kKeyRight, flags: [.maskCommand, .maskShift]
+        ))
 
         // Every kKey constant must be admitted — guards against someone adding
         // a new shortcut constant but forgetting the whitelist.
@@ -160,7 +167,8 @@ final class PerformanceTests: XCTestCase {
         for i in 0 ..< iterations {
             if ShortcutActionRouter.isShortcutCandidate(
                 keyCode: keyCodes[i % keyCodes.count],
-                flags: flagSet[i % flagSet.count]) {
+                flags: flagSet[i % flagSet.count]
+            ) {
                 hits += 1
             }
         }
@@ -180,7 +188,7 @@ final class PerformanceTests: XCTestCase {
         let service = MissionControlService()
         _ = service.checkMissionControlActive() // warm the cache (real IPC)
 
-        let iterations = 10_000
+        let iterations = 10000
         let start = CACurrentMediaTime()
         for _ in 0 ..< iterations {
             _ = service.checkMissionControlActive()
@@ -223,13 +231,14 @@ final class PerformanceTests: XCTestCase {
     func testFuzzyMatchThroughputOnRealisticWindowList() {
         let windows = makeWindowList(count: 60)
         let queries = ["sa", "saf", "xcod", "mail", "term", "z"]
-        let iterations = 5_000
+        let iterations = 5000
 
         let start = CACurrentMediaTime()
         var totalMatches = 0
         for i in 0 ..< iterations {
             totalMatches += WindowSelectionEngine.fuzzyMatch(
-                query: queries[i % queries.count], in: windows).count
+                query: queries[i % queries.count], in: windows
+            ).count
         }
         let elapsed = CACurrentMediaTime() - start
 
@@ -241,7 +250,7 @@ final class PerformanceTests: XCTestCase {
     /// keypress; same budget rationale as `testFuzzyMatchThroughput…`.
     func testRowMajorSortThroughputOnRealisticWindowList() {
         let windows = makeWindowList(count: 60)
-        let iterations = 5_000
+        let iterations = 5000
 
         let start = CACurrentMediaTime()
         var totalSorted = 0
